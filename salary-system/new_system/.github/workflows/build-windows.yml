@@ -1,0 +1,43 @@
+# Builds the two Windows .exe apps in the cloud — no local Windows machine needed.
+#
+# IMPORTANT: GitHub only runs workflows from `.github/workflows/` at the REPOSITORY
+# ROOT. If your repo root is the parent of `new_system/`, move this `.github`
+# folder up there and keep `working-directory: new_system` below. If `new_system`
+# IS your repo root, change `working-directory` to `.`.
+#
+# Run it: push to the repo, then GitHub → Actions → "Build Windows apps" → Run
+# workflow. When it finishes, download the "apex-payroll-windows" artifact — it
+# contains both .exe files ready to hand out.
+
+name: Build Windows apps
+
+on:
+  workflow_dispatch: {}        # manual "Run workflow" button
+  push:
+    tags: ["v*"]               # ...also on version tags like v1.0
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: new_system
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: pip install -r requirements-build.txt
+
+      - name: Build the apps
+        run: pyinstaller --noconfirm apex_payroll.spec
+
+      - name: Upload the built apps
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-payroll-windows
+          path: new_system/dist/*.exe
+          if-no-files-found: error

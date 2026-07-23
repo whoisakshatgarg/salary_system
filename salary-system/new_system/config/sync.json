@@ -1,0 +1,9 @@
+{
+  "_comment": "Offline exchange between the Operator machine and the CEO machine. Point shared_folder at a folder that BOTH machines keep in sync via Google Drive / Dropbox / OneDrive (the desktop client mirrors it). The app writes/reads JSON sync files there. Change the path any time and reload — no restart needed. Leave it blank to use manual download/upload instead.",
+
+  "shared_folder": "",
+
+  "auto_check_on_login": true,
+
+  "_paths_help": "Examples — macOS: '/Users/you/Library/CloudStorage/GoogleDrive-you@gmail.com/My Drive/SalarySync'  ·  Windows: 'C:\\\\Users\\\\you\\\\Google Drive\\\\SalarySync'  ·  Dropbox: '/Users/you/Dropbox/SalarySync'. The folder must already exist."
+}

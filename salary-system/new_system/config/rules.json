@@ -1,0 +1,64 @@
+{
+  "_comment": "All payroll business rules for APEX THERMOCON, made configurable. Defaults reproduce the OLD system's behaviour exactly. Edit values here (or later via the UI) to change policy without touching code. See backend/payroll.py for how each field is used.",
+
+  "company_name": "APEX THERMOCON",
+  "currency_symbol": "₹",
+
+  "departments": ["CNC", "QA", "Conventional", "Production", "Buffing", "Cutting", "Admin", "Electrical", "Accounts", "Stores"],
+
+  "leave": {
+    "annual_entitlement_days": 12,
+    "reset_month": 1,
+    "new_employee_seed": "remaining_months_in_year",
+    "sunday_is_paid": true,
+    "_note": "Non-overtime employees get a paid-leave bank of annual_entitlement_days, reset every January. Absences draw down the bank; absences beyond the bank are unpaid. Overtime-eligible employees have NO bank (all absences unpaid) but instead get the excess-absence penalty tiers below. Absent Sundays are always paid when sunday_is_paid=true."
+  },
+
+  "overtime": {
+    "hours_per_workday": 8,
+    "void_overtime_on_absent_day": true,
+    "_note": "8 overtime hours = one day's base pay. Overtime entered on an absent day is ignored. Overtime pay AND the refreshment allowance apply to ANY employee who logs overtime hours; the per-employee 'overtime_eligible' flag only chooses leave-bank (flag off) vs penalty-days (flag on)."
+  },
+
+  "refreshment": {
+    "min_overtime_hours": 3.0,
+    "rate_per_day": 8,
+    "exclude_sunday": true,
+    "_note": "A 'refreshment day' is a present, non-Sunday day with overtime >= min_overtime_hours. Each one pays rate_per_day."
+  },
+
+  "absence_penalty": {
+    "_note": "Applies ONLY to overtime-eligible employees (the no-leave-bank group). Sundays are paid weekly-offs and are NOT counted as absences here. SINGLE ESCALATING SCALE — the highest applicable penalty applies; the consecutive-run and tier penalties do NOT add. The tier governs from 4 leaves upward; the consecutive-run rule only matters below the lowest tier (a 3-in-a-row when total leaves < 4). Penalty days are subtracted from paid days, reducing attendance % and pay.",
+    "enabled": true,
+    "consecutive_run": {
+      "enabled": true,
+      "length": 3,
+      "penalty_days": 1,
+      "_note": "A run of `length`+ consecutive non-Sunday absent days = `penalty_days`, but only when total leaves are below the lowest tier (i.e. exactly a 3-in-a-row with <4 total). At 4+ total leaves the tier below takes over. A paid Sunday between two absences breaks the run."
+    },
+    "weekday_absence_tiers": [
+      { "min": 4, "max": 6, "penalty_days": 2 },
+      { "min": 7, "max": 12, "penalty_days": 3 },
+      { "min": 13, "max": 18, "penalty_days": 4 }
+    ],
+    "_tiers_note": "On the TOTAL non-Sunday absences in the month. Matched by lower bound, so 19+ absences also get the top (4) tier; `max` is documentation only. Penalty is the tier value itself (not added to the consecutive rule)."
+  },
+
+  "bonus": {
+    "amount": 200,
+    "departments": ["CNC"],
+    "require_full_attendance": true,
+    "excluded_employees": ["Sunil Singh", "Bahadur Singh"],
+    "_note": "Flat bonus added when an employee is in one of `departments`, has full attendance (if required), and is not in excluded_employees. excluded_employees is a stop-gap for hardcoded names in the old code; prefer a per-employee 'bonus_eligible' flag long term."
+  },
+
+  "deductions": {
+    "pf_mode": "manual",
+    "esi_mode": "manual",
+    "_note": "PF and ESI are operator-entered rupee amounts in the old system (not computed percentages). Kept manual for parity; can be switched to percentage-based later."
+  },
+
+  "salary_formula": {
+    "_note": "total = round( base*attendance_fraction + (overtime_hours/hours_per_workday)/days_in_period*base + refreshment_days*refreshment_rate + bonus - pf - esi - adjusted_advance ). days_in_period = calendar days in the pay month (every calendar day is a working day in the divisor, matching the old system)."
+  }
+}

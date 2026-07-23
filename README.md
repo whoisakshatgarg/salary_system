@@ -1,2 +1,0 @@
-# salary_system
-salary

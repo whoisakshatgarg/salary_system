@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+data/*.db
+data/backups/
+
+# PyInstaller build output
+build/
+dist/
+build-venv/
+*.session_secret

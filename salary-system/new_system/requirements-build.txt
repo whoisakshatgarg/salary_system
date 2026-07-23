@@ -1,0 +1,6 @@
+# Build-time dependencies for packaging the desktop apps (PyInstaller).
+# Runtime deps are pulled in via requirements.txt below.
+-r requirements.txt
+
+pywebview>=5.0          # native window (uses WebView2 on Windows)
+pyinstaller>=6.6        # bundles Python + the app into a single .exe
