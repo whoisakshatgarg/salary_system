@@ -1,7 +1,10 @@
 // APEX THERMOCON salary system — single-page app (Alpine.js, zero build).
 
 async function api(path, { method = "GET", body } = {}) {
-  const opts = { method, headers: {} };
+  // The custom header marks requests as coming from this app: a hostile web
+  // page can't attach it cross-origin without a CORS preflight (which this
+  // server never grants), so state-changing routes can require it.
+  const opts = { method, headers: { "X-Requested-With": "apex-payroll" } };
   if (body !== undefined) {
     opts.headers["Content-Type"] = "application/json";
     opts.body = JSON.stringify(body);
@@ -31,7 +34,9 @@ function prevMonth() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  // LOCAL date — toISOString() is UTC and says "yesterday" before 05:30 IST.
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function app() {
@@ -60,7 +65,12 @@ function app() {
 
     async boot() {
       window.addEventListener("unauth", () => { this.user = null; });
-      try { this.edition = (await api("/api/edition")).edition; } catch (_) {}
+      try {
+        const ed = await api("/api/edition");
+        this.edition = ed.edition;
+        this.version = ed.version;
+      } catch (_) {}
+      this.checkUpdates();   // deliberately not awaited — never delays startup
       try {
         // Operator app: sign in automatically (kiosk). CEO app: resume any session.
         this.user = this.isOperatorEdition
@@ -132,6 +142,18 @@ function app() {
     empName(id) { const e = this.employees.find((x) => x.id === id); return e ? e.name : id; },
 
     // ---- dashboard ------------------------------------------------------- //
+    openInventory() {
+      // Packaged app (pywebview): window.open is dead / loses the session —
+      // ask the native shell for a second window instead (see desktop.py).
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.open_inventory) {
+        window.pywebview.api.open_inventory()
+          .catch(() => { window.location.href = "/inventory.html?back=1"; });
+        return;
+      }
+      // Browser: named window, so clicking again focuses the existing one.
+      const w = window.open("/inventory.html", "apex_inventory");
+      if (!w) window.location.href = "/inventory.html?back=1";  // popup blocked
+    },
     dash: { total: 0, cnc: 0, ot: 0, advance: 0 },
     enter_dashboard() {
       this.dash.total = this.employees.length;
@@ -687,6 +709,37 @@ function app() {
         const st = await api(`/api/attendance-status/${period}`);
         this.reminder = st.complete ? null : { ...st, daysLeft: 7 - new Date().getDate() };
       } catch (_) { /* ignore */ }
+    },
+
+    // ---- self-update (GitHub Releases) ----------------------------------- //
+    // Kept OUT of resetUiState: the popup belongs to the app instance, not to a
+    // login session (it must survive logins and show on the login screen too).
+    version: "",
+    upd: { info: null, show: false, busy: false, done: false },
+    async checkUpdates(manual = false) {
+      try {
+        const info = await api("/api/update/check");
+        this.upd.info = info;
+        if (info.update_available && (manual || info.auto_check)) {
+          this.upd.show = true;
+        } else if (manual) {
+          if (!info.configured) this.flash("Updates aren't set up (config/update.json)", "err");
+          else if (info.error) this.flash(info.error, "err");
+          else this.flash(`You're up to date (v${info.current})`);
+        }
+      } catch (e) { if (manual) this.fail(e); }
+    },
+    async applyUpdate() {
+      this.upd.busy = true;
+      try {
+        // The server exits itself right after answering; the updater script
+        // swaps the .exe and relaunches. This window will close on its own.
+        await api("/api/update/apply", { method: "POST" });
+        this.upd.done = true;
+      } catch (e) {
+        this.upd.busy = false;
+        this.fail(e);
+      }
     },
 
     // ---- backup (CEO) --------------------------------------------------- //

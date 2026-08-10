@@ -1,0 +1,5 @@
+# Local Python environments (recreate with: python3 -m venv salary-system/venv
+# && salary-system/venv/bin/pip install -r salary-system/new_system/requirements.txt)
+venv/
+__pycache__/
+*.pyc

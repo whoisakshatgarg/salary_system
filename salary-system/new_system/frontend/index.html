@@ -21,11 +21,62 @@
 </head>
 <body class="bg-slate-100 text-slate-800" x-data="app()" x-init="boot()" x-cloak>
 
-  <!-- Toast -->
+  <!-- Toast (above the update modal's z-[60], so apply errors stay visible) -->
   <div x-show="toast.show" x-transition
-       class="fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white text-sm"
+       class="fixed top-4 right-4 z-[70] px-4 py-3 rounded-lg shadow-lg text-white text-sm"
        :class="toast.kind === 'err' ? 'bg-rose-600' : 'bg-emerald-600'"
        x-text="toast.msg"></div>
+
+  <!-- ====================== UPDATE-AVAILABLE POPUP ====================== -->
+  <!-- Shown only when a newer release exists (checked quietly at startup). -->
+  <div x-show="upd.show" x-cloak
+       class="fixed inset-0 z-[60] bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+      <template x-if="!upd.done">
+        <div>
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-full bg-brand-600/10 text-brand-700 flex items-center justify-center text-xl">⬆</div>
+            <div>
+              <div class="text-lg font-bold text-slate-800">Update available</div>
+              <div class="text-sm text-slate-500">
+                Version <b x-text="'v' + (upd.info?.latest || '')"></b> is ready —
+                you have <span x-text="'v' + (upd.info?.current || '')"></span>.
+              </div>
+            </div>
+          </div>
+          <p x-show="upd.info?.notes" class="text-xs text-slate-500 bg-slate-50 rounded-lg p-3 mb-3 max-h-28 overflow-auto whitespace-pre-line"
+             x-text="upd.info?.notes"></p>
+          <p x-show="upd.info && !upd.info.can_apply" class="text-xs text-amber-700 bg-amber-50 rounded-lg p-3 mb-3">
+            This copy can't update itself (it runs from source or the new build isn't
+            finished yet). On the installed Windows app this button does everything.
+          </p>
+          <p class="text-xs text-slate-400 mb-4">
+            Your data is safe — employees, attendance and salaries live outside the app
+            and are untouched by updates.
+          </p>
+          <div class="flex gap-3">
+            <button @click="applyUpdate()" :disabled="upd.busy || !upd.info?.can_apply"
+                    class="flex-1 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg"
+                    x-text="upd.busy ? 'Downloading…' : 'Update now'"></button>
+            <button @click="upd.show = false" :disabled="upd.busy"
+                    class="flex-1 border border-slate-300 hover:bg-slate-50 disabled:opacity-50 text-slate-600 font-medium py-2.5 rounded-lg">
+              Not now
+            </button>
+          </div>
+        </div>
+      </template>
+      <template x-if="upd.done">
+        <div class="text-center py-4">
+          <div class="text-3xl mb-2">✅</div>
+          <div class="text-lg font-bold text-slate-800 mb-1">Update downloaded</div>
+          <p class="text-sm text-slate-500">
+            The app will now close and reopen itself with the new version.<br />
+            If it doesn't come back in ~15 seconds, just double-click it again.
+          </p>
+        </div>
+      </template>
+    </div>
+  </div>
 
   <!-- ============================= LOGIN ============================= -->
   <!-- Operator app signs in automatically (kiosk); this form is the CEO app's. -->
@@ -101,6 +152,10 @@
         <div class="text-sm text-white" x-text="user?.username"></div>
         <div class="text-xs text-slate-400 mb-2 capitalize" x-text="user?.role"></div>
         <button x-show="!isOperatorEdition" @click="logout()" class="text-sm text-rose-400 hover:text-rose-300">Logout</button>
+        <!-- Click the version to check for updates on demand. -->
+        <button @click="checkUpdates(true)" title="Check for updates"
+                class="block mt-2 text-[11px] text-slate-500 hover:text-slate-300"
+                x-text="version ? 'v' + version + ' · check for updates' : ''"></button>
       </div>
     </aside>
 
@@ -146,6 +201,16 @@
             </div>
           </template>
         </div>
+        <!-- Inventory opens in its own window (separate module, same session) -->
+        <button @click="openInventory()"
+                class="mt-6 bg-white rounded-xl shadow-sm hover:shadow-md transition p-5 flex items-center gap-4 text-left w-full max-w-lg">
+          <div class="w-12 h-12 rounded-xl bg-brand-600/10 text-brand-700 flex items-center justify-center text-2xl">⛭</div>
+          <div>
+            <div class="font-bold text-slate-800">Raw Material Inventory</div>
+            <div class="text-sm text-slate-500">Heats, rod stock, usage log &amp; mill certificates</div>
+          </div>
+          <div class="ml-auto text-slate-400 text-lg">↗</div>
+        </button>
         <p class="text-slate-500 mt-8 text-sm">Pick a section from the left to manage employees, enter attendance, issue advances, calculate the monthly salary, or export the CEO / Distribution slips.</p>
       </section>
 
@@ -808,7 +873,7 @@
         <!-- database backup (CEO) -->
         <div x-show="isAdmin" class="bg-white rounded-xl shadow-sm p-5 mt-5">
           <h2 class="font-semibold mb-1">Database backup</h2>
-          <p class="text-xs text-slate-500 mb-3">This machine holds the master payroll data — back it up regularly. Saves a timestamped copy in <code>data/backups/</code>; "Download a copy" also saves one wherever you choose (e.g. the shared folder).</p>
+          <p class="text-xs text-slate-500 mb-3">This machine holds the master payroll data — back it up regularly. Each backup is a timestamped <code>.zip</code> holding the database <em>and</em> all inventory attachments, saved in <code>data/backups/</code>; "Download a copy" also saves one wherever you choose (e.g. the shared folder).</p>
           <div class="flex flex-wrap items-center gap-3">
             <button @click="backupNow()" :disabled="backup.busy"
                     class="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium"

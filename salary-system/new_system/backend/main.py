@@ -10,16 +10,18 @@ payroll.py; Excel in exporters.py. Run:
 from __future__ import annotations
 
 import tempfile
+import zipfile
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import Cookie, Depends, FastAPI, HTTPException, Response
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import auth, db, edition, paths, repo, seed, sync
+from . import auth, db, edition, inventory, paths, repo, seed, sync, update
 from .exporters import build_ceo, build_distribution
 from .rules import get_rules, load_rules, save_rules
+from .version import __version__
 
 FRONTEND = paths.frontend_dir()
 BACKUP_DIR = paths.backups_dir()
@@ -43,32 +45,15 @@ async def no_cache_frontend(request, call_next):
 def _startup() -> None:
     db.init_db()
     seed.seed()  # no-op if already populated
+    inventory.ensure_defaults()  # seed the inventory dropdown lists (idempotent)
 
 
 # --------------------------------------------------------------------------- #
-# Dependencies
+# Dependencies (shared with feature routers — see deps.py)
 # --------------------------------------------------------------------------- #
-def get_db():
-    conn = db.connect()
-    try:
-        yield conn
-    finally:
-        conn.close()
+from .deps import current_user, get_db, require_admin  # noqa: E402
 
-
-def current_user(session: str | None = Cookie(default=None)) -> dict:
-    user = auth.read_token(session)
-    if not user:
-        raise HTTPException(status_code=401, detail="Not logged in")
-    return user
-
-
-def require_admin(user: dict = Depends(current_user)) -> dict:
-    # Belt-and-braces: in the Operator app, admin routes are dead no matter what
-    # token is presented — the admin half of the system simply isn't reachable.
-    if edition.is_operator_edition() or user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    return user
+app.include_router(inventory.router)
 
 
 # --------------------------------------------------------------------------- #
@@ -149,7 +134,7 @@ class PayrollIn(BaseModel):
 @app.get("/api/edition")
 def app_edition():
     """Public: lets the UI know which app it is before anyone signs in."""
-    return {"edition": edition.edition()}
+    return {"edition": edition.edition(), "version": __version__}
 
 
 @app.post("/api/login")
@@ -208,6 +193,7 @@ def meta(user: dict = Depends(current_user)):
         "departments": r.get("departments", []),
         "role": user["role"],
         "edition": edition.edition(),
+        "version": __version__,
     }
 
 
@@ -463,12 +449,53 @@ def sync_import_file(body: ImportContent, user: dict = Depends(current_user), co
 
 
 # --------------------------------------------------------------------------- #
+# Self-update (GitHub Releases). Public on purpose: the popup must be able to
+# appear on the login screen too, and the server only binds to 127.0.0.1.
+# --------------------------------------------------------------------------- #
+@app.get("/api/update/check")
+def update_check():
+    """Never raises — offline/misconfigured just means 'no update'."""
+    return update.check()
+
+
+@app.post("/api/update/apply")
+def update_apply(request: Request):
+    # Anti-CSRF: a malicious website can make the browser POST to 127.0.0.1,
+    # but it cannot attach this custom header without a CORS preflight, which
+    # this server never grants. Our own UI always sends it (see app.js api()).
+    if request.headers.get("x-requested-with") != "apex-payroll":
+        raise HTTPException(status_code=403, detail="Cross-site request refused")
+    try:
+        return update.apply()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# --------------------------------------------------------------------------- #
 # Database backup (CEO)
 # --------------------------------------------------------------------------- #
+def _write_backup_zip(dest: Path) -> None:
+    """A COMPLETE backup: consistent salary.db snapshot + every inventory
+    attachment file. Restore = unzip salary.db (and inventory_files/) back into
+    the app's data folder."""
+    tmp = Path(tempfile.mkdtemp()) / "salary.db"
+    db.backup_to(tmp)
+    try:
+        with zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED) as z:
+            z.write(tmp, "salary.db")
+            for f in sorted(paths.inventory_files_dir().iterdir()):
+                if f.is_file():
+                    z.write(f, f"inventory_files/{f.name}")
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
 @app.get("/api/backup/list")
 def backup_list(user: dict = Depends(require_admin)):
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    files = sorted(BACKUP_DIR.glob("salary-*.db"), reverse=True)
+    files = sorted(list(BACKUP_DIR.glob("salary-*.zip"))
+                   + list(BACKUP_DIR.glob("salary-*.db")),  # pre-inventory backups
+                   key=lambda f: f.name, reverse=True)
     return {
         "dir": str(BACKUP_DIR),
         "backups": [{"file": f.name, "size_kb": round(f.stat().st_size / 1024)} for f in files[:15]],
@@ -478,19 +505,19 @@ def backup_list(user: dict = Depends(require_admin)):
 @app.post("/api/backup")
 def backup_now(user: dict = Depends(require_admin)):
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    dest = BACKUP_DIR / f"salary-{datetime.now().strftime('%Y%m%d-%H%M%S')}.db"
-    db.backup_to(dest)
+    dest = BACKUP_DIR / f"salary-{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip"
+    _write_backup_zip(dest)
     return {"file": dest.name, "size_kb": round(dest.stat().st_size / 1024)}
 
 
 @app.get("/api/backup/download")
 def backup_download(user: dict = Depends(require_admin)):
-    tmp = Path(tempfile.mkdtemp()) / "salary-backup.db"
-    db.backup_to(tmp)
+    tmp = Path(tempfile.mkdtemp()) / "salary-backup.zip"
+    _write_backup_zip(tmp)
     data = tmp.read_bytes()
     tmp.unlink(missing_ok=True)
-    fname = f"salary-{datetime.now().strftime('%Y%m%d-%H%M%S')}.db"
-    return Response(content=data, media_type="application/octet-stream",
+    fname = f"salary-{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip"
+    return Response(content=data, media_type="application/zip",
                     headers={"Content-Disposition": f'attachment; filename="{fname}"'})
 
 

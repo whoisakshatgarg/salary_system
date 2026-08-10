@@ -146,6 +146,7 @@ attendance record and the exported slip on **Publish**.
 - [x] CEO + Distribution `.xlsx` exporters (legacy layout; needs a real sample to byte-match)
 - [x] Browser UI (login, dashboard, employees, attendance grid, advances, salary table, history, exports, rules)
 - [x] Auth/session + role gating (admin vs temp)
+- [x] Self-update from GitHub Releases (`backend/version.py` + `backend/update.py` + `config/update.json`; release flow in `DEPLOY.md`)
 
 ### Verified end-to-end (smoke test)
 

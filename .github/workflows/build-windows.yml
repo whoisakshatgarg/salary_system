@@ -1,0 +1,87 @@
+# Builds the two Windows .exe apps in the cloud — no local Windows machine needed.
+#
+# Two ways it runs:
+#   * Manual test build:  GitHub → Actions → "Build Windows apps" → Run workflow.
+#     Produces the "apex-payroll-windows" artifact (both .exe files) — no release.
+#   * RELEASE (what the apps' self-update watches): push a tag like v1.0.1.
+#     The build is attached to a GitHub Release; every installed app then offers
+#     the update on its next launch.
+#
+# Publishing a new version, start to finish:
+#   1. Edit salary-system/new_system/backend/version.py  →  __version__ = "1.0.1"
+#   2. Commit and push your changes to main.
+#   3. git tag v1.0.1 && git push origin v1.0.1
+# The guard step below fails the build if the tag and version.py disagree,
+# because a mismatch would make the apps either miss the update or loop on it.
+
+name: Build Windows apps
+
+on:
+  workflow_dispatch: {}        # manual "Run workflow" button (artifact only)
+  push:
+    tags: ["v*"]               # version tags — builds AND publishes a Release
+
+permissions:
+  contents: write              # needed to create the Release
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: salary-system/new_system
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check the tag matches backend/version.py
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: python
+        run: |
+          import os, re, sys
+          code = open("salary-system/new_system/backend/version.py", encoding="utf-8").read()
+          version = re.search(r'__version__\s*=\s*"([^"]+)"', code).group(1)
+          tag = os.environ["TAG"].lstrip("v")
+          if version != tag:
+              sys.exit(f"backend/version.py says {version} but the tag is v{tag} — "
+                       f"bump version.py (and commit) before tagging.")
+          print(f"OK: releasing v{version}")
+        working-directory: ${{ github.workspace }}
+        env:
+          TAG: ${{ github.ref_name }}
+
+      - name: Install build dependencies
+        run: pip install -r requirements-build.txt
+
+      - name: Build the apps
+        run: pyinstaller --noconfirm apex_payroll.spec
+
+      # GitHub mangles spaces in release-asset filenames, and the self-updater
+      # picks its file by the "admin"/"operator" word — so publish clean names.
+      - name: Rename the builds for release
+        run: |
+          copy "dist\APEX Payroll (Admin).exe" "dist\APEX-Payroll-Admin.exe" || exit /b 1
+          copy "dist\APEX Payroll (Operator).exe" "dist\APEX-Payroll-Operator.exe" || exit /b 1
+        shell: cmd
+
+      - name: Upload the built apps (workflow artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-payroll-windows
+          path: |
+            salary-system/new_system/dist/APEX-Payroll-Admin.exe
+            salary-system/new_system/dist/APEX-Payroll-Operator.exe
+          if-no-files-found: error
+
+      - name: Publish the GitHub Release (what the apps update from)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            salary-system/new_system/dist/APEX-Payroll-Admin.exe
+            salary-system/new_system/dist/APEX-Payroll-Operator.exe
+          fail_on_unmatched_files: true
+          generate_release_notes: true

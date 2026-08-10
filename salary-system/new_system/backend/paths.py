@@ -97,10 +97,19 @@ def secret_path() -> Path:
     return data_dir() / ".session_secret"
 
 
+def inventory_files_dir() -> Path:
+    """Attachment files for the inventory module (certificates, invoices).
+    NOTE: lives OUTSIDE salary.db by design — a full backup is salary.db PLUS
+    this folder."""
+    d = data_dir() / "inventory_files"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def _seed_default_config(dest: Path) -> None:
     """Copy bundled default config into the writable dir, only if missing."""
     src = resource_dir() / "config"
-    for name in ("rules.json", "sync.json"):
+    for name in ("rules.json", "sync.json", "update.json"):
         s, d = src / name, dest / name
         if s.exists() and not d.exists():
             shutil.copyfile(s, d)

@@ -42,10 +42,45 @@ You're on a Mac; the `.exe` must be built **on Windows** (PyInstaller can't cros
 (You only need Python on the *build* machine, once. The laptops you hand the `.exe` to need nothing.)
 
 ### Option B — build in the cloud (no Windows machine needed)
-Use the included GitHub Actions workflow at `.github/workflows/build-windows.yml`:
-1. Push this project to a GitHub repo (move the `.github` folder to the repo root — see the note at the top of that file).
+The GitHub Actions workflow lives at the **repository root**: `.github/workflows/build-windows.yml` (GitHub only runs workflows from there; it builds inside `salary-system/new_system`).
+1. Push the repo to GitHub.
 2. GitHub → **Actions → “Build Windows apps” → Run workflow**.
 3. When it finishes, download the **`apex-payroll-windows`** artifact — it contains both `.exe` files.
+
+For **releases** (which also feed the built-in auto-update), don't run it manually — push a version tag instead, see below.
+
+---
+
+## Shipping updates (built-in auto-update)
+
+The apps update themselves from **GitHub Releases** of the repo named in
+`config/update.json` (`github_repo`). On every launch each app quietly checks the
+newest release; **only if a newer version exists** does the user see an
+*“Update available”* popup — one click on **Update now** downloads the new build,
+the app closes, swaps itself, and reopens. No popup otherwise, and no data is
+touched (the DB/config live in the per-user folder, not in the `.exe`).
+
+### To publish a new version
+1. Make your code changes.
+2. Bump the version in [`backend/version.py`](backend/version.py) — e.g. `__version__ = "1.0.1"`.
+3. Commit and push to `main`.
+4. Tag and push the tag:
+   ```bash
+   git tag v1.0.1 && git push origin v1.0.1
+   ```
+5. GitHub Actions builds both `.exe`s and attaches them to a Release automatically
+   (the build **fails on purpose** if the tag doesn't match `version.py`, so you
+   can't ship a mismatched version). ~10 minutes later, every installed app offers
+   the update on its next launch.
+
+### Notes
+- The repo must be **public**, or paste a read-only fine-grained personal access
+  token into `github_token` in `config/update.json` before building.
+- `auto_check_on_start: false` in `config/update.json` disables the launch-time
+  popup; the version label at the bottom of the sidebar still checks on demand.
+- The very first installs (v1.0.0) are distributed by hand as before; everything
+  after that can ride the updater.
+- Offline is fine: if GitHub is unreachable the check silently does nothing.
 
 ---
 

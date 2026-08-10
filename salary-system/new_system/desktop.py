@@ -62,7 +62,19 @@ def run() -> None:
     try:
         import webview
 
-        webview.create_window(title, url, width=1320, height=860, min_size=(1024, 720))
+        class JsApi:
+            """Bridge for the UI (window.pywebview.api): window.open doesn't
+            work inside pywebview, so the inventory module asks the shell for
+            a real second window. Same WebView2 profile => same session."""
+
+            def open_inventory(self):
+                webview.create_window(
+                    title + " — Inventory", f"{url}inventory.html",
+                    width=1320, height=860, min_size=(1024, 720),
+                )
+
+        webview.create_window(title, url, width=1320, height=860,
+                              min_size=(1024, 720), js_api=JsApi())
         webview.start()  # blocks until the window is closed
     except Exception:
         import webbrowser

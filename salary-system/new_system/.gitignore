@@ -1,7 +1,8 @@
 __pycache__/
 *.pyc
-data/*.db
-data/backups/
+# Everything the app writes at runtime is per-user state, never committed:
+# the DB, backups, the session secret, inventory attachment files, ...
+data/
 
 # PyInstaller build output
 build/

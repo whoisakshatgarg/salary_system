@@ -1,0 +1,11 @@
+{
+  "_comment": "Self-update settings. On every launch the app asks GitHub whether `github_repo` has a release newer than the version it was built from; if yes, the user gets an 'Update available' prompt (no popup otherwise). Publishing a new version = bump backend/version.py, push, tag `v<version>` — see DEPLOY.md.",
+
+  "github_repo": "whoisakshatgarg/salary_system",
+
+  "auto_check_on_start": true,
+
+  "github_token": "",
+
+  "_help": "github_repo is '<owner>/<repo>' on github.com. auto_check_on_start=false stops the launch-time popup (the sidebar's version label still checks on demand). github_token is only needed if the repo is PRIVATE: paste a fine-grained personal access token with read-only access to that repo's contents/releases; leave empty for public repos."
+}

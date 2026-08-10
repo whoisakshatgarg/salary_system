@@ -118,6 +118,72 @@ CREATE TABLE IF NOT EXISTS leave_reset (
     year INTEGER PRIMARY KEY
 );
 
+-- ---------- Inventory (raw-material heats) — admin-only module ---------- --
+-- Dropdown values live in inv_option but are stored DENORMALIZED on the heat,
+-- so deleting an option never corrupts existing records. Stock is always
+-- derived from heat_movement (never stored). heat.id is a surrogate key so the
+-- user-facing heat_number stays editable (typo fixes) yet unique.
+
+CREATE TABLE IF NOT EXISTS inv_option (
+    id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind  TEXT NOT NULL,                  -- material_class | shape | grade | element
+    value TEXT NOT NULL,
+    UNIQUE(kind, value)
+);
+
+CREATE TABLE IF NOT EXISTS heat (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    heat_number       TEXT NOT NULL UNIQUE,
+    date_received     TEXT NOT NULL,      -- 'YYYY-MM-DD'
+    supplier          TEXT,
+    material_class    TEXT,
+    grade             TEXT,
+    shape             TEXT,
+    size_section      TEXT,               -- free text, e.g. 'Ø25 mm × 3 m'
+    rods_received     INTEGER NOT NULL,
+    total_weight_kg   REAL,
+    rack              TEXT,
+    price_total       REAL,               -- ₹
+    price_rate_per_kg REAL,               -- ₹/kg
+    notes             TEXT,
+    created_at        TEXT
+);
+
+CREATE TABLE IF NOT EXISTS heat_composition (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    heat_id INTEGER NOT NULL REFERENCES heat(id) ON DELETE CASCADE,
+    element TEXT NOT NULL,
+    percent REAL NOT NULL,
+    UNIQUE(heat_id, element)
+);
+
+CREATE TABLE IF NOT EXISTS heat_movement (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    heat_id    INTEGER NOT NULL REFERENCES heat(id),   -- no cascade: guard deletes
+    mv_date    TEXT NOT NULL,
+    type       TEXT NOT NULL,             -- 'issue' | 'reject'
+    order_id   TEXT,                      -- required (in code) when type='issue'
+    rods       INTEGER NOT NULL,
+    weight_kg  REAL,
+    remarks    TEXT,
+    created_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS heat_attachment (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    heat_id     INTEGER NOT NULL REFERENCES heat(id) ON DELETE CASCADE,
+    kind        TEXT NOT NULL,            -- 'certificate' | 'invoice'
+    filename    TEXT NOT NULL,            -- original name, shown to the user
+    mime        TEXT,
+    size_bytes  INTEGER,
+    stored_name TEXT NOT NULL UNIQUE,     -- file on disk under inventory_files/
+    uploaded_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_heat_movement_heat  ON heat_movement(heat_id);
+CREATE INDEX IF NOT EXISTS idx_heat_movement_order ON heat_movement(order_id);
+CREATE INDEX IF NOT EXISTS idx_heat_comp_heat      ON heat_composition(heat_id);
+
 CREATE TABLE IF NOT EXISTS sync_log (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     filename    TEXT,
@@ -140,7 +206,10 @@ def connect(db_path: str | Path | None = None) -> sqlite3.Connection:
     """Open a connection with row access by column name and FK enforcement."""
     path = Path(db_path) if db_path else DB_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
+    # check_same_thread=False: FastAPI may create a request's connection in one
+    # threadpool thread and run the handler in another. Each request still gets
+    # its OWN connection (never shared concurrently), so this is safe.
+    conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
