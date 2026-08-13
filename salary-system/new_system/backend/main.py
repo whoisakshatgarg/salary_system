@@ -18,16 +18,16 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import repo, seed, sync
-from .modules import inventory
+from . import seed, sync
 from .core import auth, db, edition, paths, update
-from .core.rules import get_rules, load_rules, save_rules
+from .core.rules import get_rules
 from .core.version import __version__
-from .exporters import build_ceo, build_distribution
+from .modules import inventory
+from .modules.payroll import repo
+from .modules.payroll.router import router as payroll_router
 
 FRONTEND = paths.frontend_dir()
 BACKUP_DIR = paths.backups_dir()
-XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 app = FastAPI(title="APEX THERMOCON Salary System")
 
@@ -56,6 +56,7 @@ def _startup() -> None:
 from .core.deps import current_user, get_db, require_admin  # noqa: E402
 
 app.include_router(inventory.router)
+app.include_router(payroll_router)
 
 
 # --------------------------------------------------------------------------- #
@@ -77,15 +78,6 @@ class EmployeeIn(BaseModel):
     rem_advance: int = 0
     leave_balance: int | None = None
     date_joined: str | None = None
-
-
-class AdvanceIn(BaseModel):
-    employee_id: int
-    amount: int
-    txn_date: str
-    cheque: int = 0
-    cash: int = 0
-    note: str | None = None
 
 
 class DayIn(BaseModel):
@@ -123,11 +115,6 @@ class ImportRef(BaseModel):
 
 class ImportContent(BaseModel):
     envelope: dict
-
-
-class PayrollIn(BaseModel):
-    period: str
-    rows: list[dict]
 
 
 # --------------------------------------------------------------------------- #
@@ -200,20 +187,6 @@ def meta(user: dict = Depends(current_user)):
 
 
 # --------------------------------------------------------------------------- #
-# Rules (admin)
-# --------------------------------------------------------------------------- #
-@app.get("/api/rules")
-def read_rules(user: dict = Depends(require_admin)):
-    return load_rules()
-
-
-@app.put("/api/rules")
-def write_rules(body: dict, user: dict = Depends(require_admin)):
-    save_rules(body)
-    return {"ok": True}
-
-
-# --------------------------------------------------------------------------- #
 # Employees
 # --------------------------------------------------------------------------- #
 @app.get("/api/employees")
@@ -255,29 +228,6 @@ def update_employee(emp_id: int, body: EmployeeIn, user: dict = Depends(require_
 def set_active(emp_id: int, active: bool, user: dict = Depends(require_admin), conn=Depends(get_db)):
     repo.set_employee_active(conn, emp_id, active)
     return {"ok": True}
-
-
-# --------------------------------------------------------------------------- #
-# Advances
-# --------------------------------------------------------------------------- #
-@app.post("/api/advances")
-def issue_advance(body: AdvanceIn, user: dict = Depends(require_admin), conn=Depends(get_db)):
-    try:
-        repo.issue_advance(conn, body.employee_id, body.amount, body.txn_date,
-                           body.cheque, body.cash, body.note)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    return repo.list_advances(conn, body.employee_id)
-
-
-@app.get("/api/advances/employee/{emp_id}")
-def advances_for_employee(emp_id: int, user: dict = Depends(require_admin), conn=Depends(get_db)):
-    return repo.list_advances(conn, emp_id)
-
-
-@app.get("/api/advances")
-def advances_by_period(period: str, user: dict = Depends(require_admin), conn=Depends(get_db)):
-    return repo.advances_by_period(conn, period)
 
 
 # --------------------------------------------------------------------------- #
@@ -352,51 +302,6 @@ def attendance_summaries(period: str, user: dict = Depends(current_user), conn=D
 @app.get("/api/attendance-history/{emp_id}")
 def attendance_history(emp_id: int, user: dict = Depends(current_user), conn=Depends(get_db)):
     return repo.attendance_history(conn, emp_id)
-
-
-# --------------------------------------------------------------------------- #
-# Payroll (admin)
-# --------------------------------------------------------------------------- #
-@app.get("/api/payroll/prepare/{period}")
-def prepare_payroll(period: str, user: dict = Depends(require_admin), conn=Depends(get_db)):
-    return repo.prepare_payroll(conn, period, get_rules())
-
-
-@app.post("/api/payroll/calculate")
-def calculate_payroll(body: PayrollIn, user: dict = Depends(require_admin)):
-    rules = get_rules()
-    return {"rows": [repo.compute_row(r, body.period, rules) for r in body.rows]}
-
-
-@app.post("/api/payroll/publish")
-def publish_payroll(body: PayrollIn, user: dict = Depends(require_admin), conn=Depends(get_db)):
-    try:
-        return repo.publish_payroll(conn, body.period, body.rows, get_rules())
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.get("/api/pay")
-def pay(period: str | None = None, employee_id: int | None = None,
-        user: dict = Depends(require_admin), conn=Depends(get_db)):
-    return repo.list_pay(conn, period=period, employee_id=employee_id)
-
-
-# --------------------------------------------------------------------------- #
-# Exports (admin)
-# --------------------------------------------------------------------------- #
-@app.get("/api/export/{kind}/{period}")
-def export(kind: str, period: str, user: dict = Depends(require_admin), conn=Depends(get_db)):
-    if kind == "ceo":
-        content, fname = build_ceo(conn, period)
-    elif kind == "distribution":
-        content, fname = build_distribution(conn, period)
-    else:
-        raise HTTPException(status_code=404, detail="Unknown export type")
-    return Response(
-        content=content, media_type=XLSX_MIME,
-        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
-    )
 
 
 # --------------------------------------------------------------------------- #

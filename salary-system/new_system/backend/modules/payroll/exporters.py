@@ -21,7 +21,7 @@ import openpyxl
 from openpyxl.styles import Alignment, Border, Font, Side
 from openpyxl.utils import get_column_letter
 
-from .payroll import days_in_period
+from .engine import days_in_period
 
 CENTER = Alignment(horizontal="center")
 LEFT = Alignment(horizontal="left")

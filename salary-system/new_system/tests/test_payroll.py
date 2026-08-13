@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from backend.payroll import (  # noqa: E402
+from backend.modules.payroll.engine import (  # noqa: E402
     DayMark,
     compute_salary,
     days_in_period,
