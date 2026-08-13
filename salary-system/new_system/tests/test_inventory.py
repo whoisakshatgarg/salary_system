@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from backend import inventory  # noqa: E402
+from backend.modules import inventory  # noqa: E402
 from backend.core import db  # noqa: E402
 
 

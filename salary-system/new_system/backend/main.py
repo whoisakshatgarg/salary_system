@@ -18,7 +18,8 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import inventory, repo, seed, sync
+from . import repo, seed, sync
+from .modules import inventory
 from .core import auth, db, edition, paths, update
 from .core.rules import get_rules, load_rules, save_rules
 from .core.version import __version__

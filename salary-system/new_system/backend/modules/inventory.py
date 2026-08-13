@@ -32,8 +32,8 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from .core import db, paths
-from .core.deps import get_db, require_admin
+from ..core import db, paths
+from ..core.deps import get_db, require_admin
 
 router = APIRouter(prefix="/api/inventory", dependencies=[Depends(require_admin)])
 
