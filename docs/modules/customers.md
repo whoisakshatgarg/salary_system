@@ -1,19 +1,28 @@
 # Customers
 
-**Status: ❌ not started** (tile + placeholder exist; scoped 2026-08-13)
+**Status: ✅ built** (2026-08-14)
 
 ## Purpose
-Small customer master that Orders, Parts & Pricing and consignments reference.
+The thin master Orders, Parts & Pricing and consignments reference: name,
+GSTIN, addresses, contact persons, payment terms.
 
-## Scope (decided)
-Name, GSTIN, billing/shipping addresses, contact persons (name/phone/email),
-payment terms, notes, active flag. Thin on purpose — it unblocks the other
-modules.
+## User flows
+List with search + active filter → record with contacts (add/delete), edit,
+deactivate/reactivate. Delete works only while the customer has no orders or
+drawings (otherwise deactivate — history stays).
 
-## Data model (planned)
-`customer(id, name, gstin, address_billing, address_shipping, payment_terms,
-notes, active)` · `customer_contact(customer_id, name, phone, email, role)`.
+## Implemented (file paths)
+`backend/modules/customers.py` (data + `/api/customers/*` routes, grant
+`customers`) · UI `frontend/customers.html` + `customers.js` · spec
+`tests/test_workshop.py` (CustomersSpec).
 
-## What's left (everything)
-- [ ] Schema + module (`backend/modules/customers/`), routes, UI page
-      (list + form; searchable dropdown for other modules to embed).
+## Data model
+`customer(id, name UNIQUE, gstin, address_billing, address_shipping,
+payment_terms, notes, active)` · `customer_contact(customer_id, name, phone,
+email, role)` (cascade).
+
+## Screens
+guide-images: ws-customer.
+
+## What's left
+- [ ] Nothing pending. (Receivables view belongs to Dashboard — ROADMAP Next.)

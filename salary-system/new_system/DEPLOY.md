@@ -25,7 +25,7 @@ The database, the editable config, backups, and the session secret live in a nor
 - **Windows:** `%APPDATA%\APEX Payroll\`  (e.g. `C:\Users\<you>\AppData\Roaming\APEX Payroll\`)
 - macOS: `~/Library/Application Support/APEX Payroll/`
 
-To **back up**, copy `salary.db` from there (or use the in-app backup button). To **reset**, delete that folder — the app reseeds on next launch.
+To **back up**, use the in-app backup button (a `.zip` of the database AND every `*_files/` attachments folder); copying by hand means `salary.db` **plus** `inventory_files/`, `employee_files/` and `drawing_files/`. To **reset**, delete that folder — the app reseeds on next launch.
 
 ---
 

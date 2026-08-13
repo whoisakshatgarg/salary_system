@@ -11,7 +11,7 @@
   (`SALARY_EDITION=admin|operator`) from one codebase. CI at
   `.github/workflows/build-windows.yml` builds both exes and publishes GitHub
   Releases on `v*` tags; the app self-updates from those releases.
-- **Tests:** stdlib unittest (`salary-system/new_system/tests/`), ~66 tests.
+- **Tests:** stdlib unittest (`salary-system/new_system/tests/`), 100+ tests.
   Playwright (dev-only, in the venv) for browser E2E.
 
 ## Folder tree
@@ -53,6 +53,10 @@ salary_system/                        repo root
         │       │   │                 /api/export/*
         │       │   └── exporters.py  CEO + Distribution .xlsx (legacy layouts)
         │       ├── inventory.py      heat register (single file until it grows)
+        │       ├── customers.py      customer master + contacts
+        │       ├── parts.py          drawing master, rate history, costing builder
+        │       ├── orders.py         orders, stages, consignments, FY numbering
+        │       ├── settings.py       config: order format, units, op rates (+ /api/lists)
         │       └── users.py          /api/modules (tiles) + /api/users* (accounts+grants)
         ├── frontend/
         │   ├── index.html + shell.js    login → Home launcher → Users & Access,
@@ -60,11 +64,12 @@ salary_system/                        repo root
         │   ├── payroll.html + app.js    Salary & Attendance SPA (incl. Pay Setup)
         │   ├── employees.html + employees.js  Employee Management page
         │   ├── inventory.html + inventory.js  Inventory SPA
+        │   ├── customers/parts/orders/settings .html + .js  one page per module
         │   └── vendor/                  tailwind.js, alpine.js (offline)
         ├── config/                   rules.json (payroll policy) · sync.json · update.json
-        ├── tests/                    test_payroll / test_inventory / test_users
+        ├── tests/                    test_payroll / test_inventory / test_users / test_workshop
         ├── data/                     runtime state, gitignored (salary.db, backups,
-        │                             inventory_files/, employee_files/) — frozen
+        │                             inventory_files/, employee_files/, drawing_files/) — frozen
         │                             builds use %APPDATA%
         └── apex_payroll.spec · build_windows.bat · run_admin.py · run_operator.py · desktop.py
 ```

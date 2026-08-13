@@ -33,11 +33,8 @@ accounts:
 ![Home launcher](guide-images/shell-home.jpg)
 
 After signing in you land on **Home**. Every box (tile) is one part of the
-business. Click a tile to open it; the **⌂ All modules** link inside any module
-brings you back. Tiles marked **PLANNED** are coming soon — clicking them shows
-what they will do:
-
-![Planned module page](guide-images/shell-placeholder.jpg)
+business — all seven modules are live. Click a tile to open it; the
+**⌂ All modules** link inside any module brings you back.
 
 You only see the tiles your account is allowed to use. Here is what a staff
 account with two permissions sees:
@@ -257,21 +254,98 @@ Removing a value never changes heats already recorded with it.
 
 ---
 
-## 6. Keeping your data safe
+
+## 6. Customers
+
+Open the **🏢 Customers** tile. One record per customer: GSTIN, billing and
+shipping addresses, payment terms, and the people you talk to.
+
+![Customer record](guide-images/ws-customer.jpg)
+
+**+ Add customer** creates one; click a row for its record, where you add
+contact persons (name, role, phone, email). Customers with orders or drawings
+can be **deactivated** but never deleted — history stays intact.
+
+---
+
+## 7. Parts & Pricing
+
+Open the **📐 Parts & Pricing** tile — one record per customer drawing.
+
+![Drawing record](guide-images/ws-part-detail.jpg)
+
+- **Drawing number + revision** identify the part; **+ Revision** starts a new
+  revision (its rates and files begin fresh — pricing history is per revision).
+- **Drawing files** — attach the PDF or a scan.
+- **Rate history** answers "what did we charge last time": dated entries marked
+  **quoted / agreed / revised**, newest first. The latest rate shows on the
+  list and auto-fills order items.
+- **Costing** builds a ₹/piece price from operations: pick an operation
+  (its ₹/hour comes from Settings), type minutes per piece, add material cost
+  and margin — the total updates live. **→ quote** / **→ agreed** records the
+  result straight into the rate history.
+
+---
+
+## 8. Order Tracking
+
+Open the **🗂 Order Tracking** tile.
+
+![Order record](guide-images/ws-order-detail.jpg)
+
+- **New order** — pick the customer, note their PO number, add items (picking
+  a drawing fills the unit and its latest rate). The order number is automatic
+  (format set in Settings) and restarts every financial year.
+- **Stages** — Enquiry → Quote → PO received → Production → QC → Dispatch →
+  Payment received. Click any stage to move there (skipping is fine); every
+  move is logged with a note.
+- **Material used** — rods issued in Inventory against this order number
+  appear automatically, with their heat numbers: order → heat → mill
+  certificate, the full traceability chain.
+- **Shipping (consignments)** — press **🚚 Ship**:
+
+![Consignment](guide-images/ws-consignment.jpg)
+
+  Enter the GST paperwork (transporter, LR number, e-way bill, invoice,
+  vehicle, freight) and the quantities going on this truck. **Partial
+  shipments are fine**, and one consignment can carry items from **several
+  orders** (type another order number and press *Add order*). The app refuses
+  to ship more than an item has left. The **Consignments** tab lists every
+  shipment — mark them **Delivered ✓** when confirmed.
+
+---
+
+## 9. Settings
+
+Open the **⚙ Settings** tile (changes are owner/admin only).
+
+![Settings](guide-images/ws-settings.jpg)
+
+- **Order numbers** — the format template (`{FY}` financial year, `{SEQ}`
+  running number) with a live preview of the next number.
+- **Units** — the searchable list every unit dropdown uses.
+- **Machining operations & hourly rates** — what the Parts costing builder
+  charges per hour. Changing a rate affects new costings only.
+- **Departments** — shared with employees and payroll.
+
+---
+
+## 10. Keeping your data safe
 
 - **Back up regularly:** Salary & Attendance → Sync/Exchange → **Back up now**.
   Each backup is one `.zip` holding the entire database *and* every
   attachment (inventory certificates and employee documents). *Download a copy* saves it wherever you choose — keep one off the
   computer.
 - **Restore:** unzip into the app's data folder (`%APPDATA%\APEX Payroll\`),
-  replacing `salary.db`, `inventory_files/` and `employee_files/`.
+  replacing `salary.db` and **every** `*_files/` folder in the zip
+  (`inventory_files/`, `employee_files/`, `drawing_files/`).
 - **Updates:** when a new version is released, a popup offers it at sign-in —
   one click downloads, restarts, done. Your data is never touched. No popup =
   you're up to date (the `v1.x.x` label in the header checks on demand).
 
 ---
 
-## 7. If something goes wrong
+## 11. If something goes wrong
 
 | Problem | What to do |
 |---|---|

@@ -115,6 +115,14 @@ def employee_files_dir() -> Path:
     return d
 
 
+def drawing_files_dir() -> Path:
+    """Customer drawing scans/PDFs (Parts & Pricing) — same pattern; included
+    in backup zips."""
+    d = data_dir() / "drawing_files"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def _seed_default_config(dest: Path) -> None:
     """Copy bundled default config into the writable dir, only if missing."""
     src = resource_dir() / "config"

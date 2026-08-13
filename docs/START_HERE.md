@@ -21,10 +21,10 @@ Tests: `../venv/bin/python -m unittest discover -s tests`.
 | Salary & Attendance (payroll) | ₹ | ✅ built | [modules/payroll.md](modules/payroll.md) |
 | Raw Material Inventory (heat register) | ⛭ | ✅ built | [modules/inventory.md](modules/inventory.md) |
 | Employee Management (people, documents, leave bank) | 👥 | ✅ built | [modules/employees.md](modules/employees.md) |
-| Order Tracking | 🗂 | ❌ not started | [modules/orders.md](modules/orders.md) |
-| Parts & Pricing (drawing master) | 📐 | ❌ not started | [modules/parts-pricing.md](modules/parts-pricing.md) |
-| Customers | 🏢 | ❌ not started | [modules/customers.md](modules/customers.md) |
-| Settings | ⚙ | ❌ not started (rules editor lives in payroll) | [modules/settings.md](modules/settings.md) |
+| Order Tracking (stages, heats link, consignments) | 🗂 | ✅ built | [modules/orders.md](modules/orders.md) |
+| Parts & Pricing (drawings, rate history, costing) | 📐 | ✅ built | [modules/parts-pricing.md](modules/parts-pricing.md) |
+| Customers (master + contacts) | 🏢 | ✅ built | [modules/customers.md](modules/customers.md) |
+| Settings (order format, units, op rates, departments) | ⚙ | ✅ built | [modules/settings.md](modules/settings.md) |
 | Self-update / backups / two-machine sync | — | ✅ built (shared services) | [ARCHITECTURE.md](ARCHITECTURE.md) |
 
 ## Reading order for a new session

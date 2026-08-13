@@ -1,30 +1,34 @@
 # Settings
 
-**Status: ❌ not started as a module** (tile + placeholder exist). The pieces it
-will consolidate already exist and work — scattered.
+**Status: ✅ built** (2026-08-14)
 
 ## Purpose
-One friendly place for configuration that today lives in three JSON files and
-two in-app screens.
+Owner-editable configuration: order-number format, the units list, machining
+operations with ₹/hour rates (feeds the Parts costing builder), departments.
 
-## Where config lives today
-- Payroll policy: `salary-system/new_system/config/rules.json` — edited as raw
-  JSON in the payroll SPA's Rules tab (admin).
-- Two-machine sync folder: `config/sync.json` (hand-edited).
-- Self-update source: `config/update.json` (hand-edited).
-- Inventory dropdown lists: managed in the inventory page's Lists tab.
-- Company name / currency / departments: inside `rules.json`.
+## User flows
+Single page (⚙ tile): format editor with live "next number" preview
+({FY}/{YYYY}/{SEQ} tokens, {SEQ} required); searchable units with add/remove;
+operations table with per-row rate save + add/remove; departments add/remove.
+Reads need the `settings` grant; every change is admin-only.
 
-## Scope (decided 2026-08-13)
-- Friendly forms for the above (replace raw-JSON editing).
-- **Order-number format** (template like `ORD-{FY}-{SEQ}`, used by Orders).
-- **Units:** comprehensive searchable unit list (length/weight/count…), fully
-  user-manageable — used by Parts & Pricing and Orders.
-- Departments list management; operation list + rates for costing
-  (OPEN_QUESTIONS #1).
+## Implemented (file paths)
+`backend/modules/settings.py` (routes `/api/settings*`; first-run seeding of
+~50 units + 21 operations + the default format; `fy_label`/`render_order_no`
+used by Orders). Form reference data for other modules is served by
+grant-gated endpoints in those modules (`/api/orders/refs`, `/api/parts/refs`)
+— pricing never leaks past a module's own grant · UI
+`frontend/settings.html` + `settings.js` · spec `tests/test_workshop.py`
+(SettingsSpec). Departments read/write `config/rules.json` via `core/rules.py`.
 
-## What's left (everything as a module)
-- [ ] `backend/modules/settings/` + UI page behind the tile.
-- [ ] Units table + seed of common units; searchable dropdown component.
-- [ ] Order-number format setting (validated template).
-- [ ] Move rules editing here from the payroll SPA (form-based, validated).
+## Data model
+`app_setting(key, value JSON)` · `unit(name UNIQUE)` ·
+`operation(name UNIQUE, rate_per_hour)` · `order_seq(fy, seq)` (bumped by
+Orders).
+
+## Screens
+guide-images: ws-settings.
+
+## What's left
+- [ ] Absorb the payroll rules editor as friendly forms (ROADMAP Next).
+- [ ] Sync/update config (`config/*.json`) surfaced here (hand-edited today).

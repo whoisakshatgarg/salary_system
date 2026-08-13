@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customers — APEX THERMOCON</title>
+  <script src="vendor/tailwind.js"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { brand: { 600: "#1d4ed8", 700: "#1e40af" } } } } };
+  </script>
+  <script defer src="customers.js"></script>
+  <script defer src="vendor/alpine.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    input, select, textarea { @apply outline-none; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800" x-data="cu()" x-init="boot()" x-cloak>
+
+  <div x-show="toast.show" x-transition
+       class="fixed top-4 right-4 z-[70] px-4 py-3 rounded-lg shadow-lg text-white text-sm"
+       :class="toast.kind === 'err' ? 'bg-rose-600' : 'bg-emerald-600'" x-text="toast.msg"></div>
+
+  <div x-show="booted && authed" class="min-h-screen flex flex-col">
+    <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
+      <div>
+        <div class="text-white font-bold leading-tight">Customers</div>
+        <div class="text-[11px] text-slate-400">APEX THERMOCON · customer master</div>
+      </div>
+      <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
+        <a href="/" class="text-slate-300 hover:text-white font-medium">⌂ All modules</a>
+        <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-auto p-6 max-w-5xl w-full mx-auto">
+      <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-end gap-3">
+        <div class="flex-1 min-w-[220px]">
+          <label class="block text-xs font-medium text-slate-500 mb-1">Search</label>
+          <input x-model="q" @input.debounce.400ms="load()" placeholder="Name or GSTIN"
+                 class="w-full border rounded-lg px-3 py-2 text-sm" />
+        </div>
+        <label class="flex items-center gap-2 text-sm pb-2">
+          <input type="checkbox" x-model="activeOnly" @change="load()" /> Active only
+        </label>
+        <button @click="newCust()"
+                class="ml-auto bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+          + Add customer
+        </button>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm overflow-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-slate-500 border-b bg-slate-50">
+              <th class="px-4 py-3">Name</th>
+              <th class="px-3 py-3">GSTIN</th>
+              <th class="px-3 py-3">Payment terms</th>
+              <th class="px-3 py-3 text-right">Contacts</th>
+              <th class="px-3 py-3 text-right">Orders</th>
+              <th class="px-3 py-3 text-right">Drawings</th>
+              <th class="px-3 py-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="c in rows" :key="c.id">
+              <tr @click="open(c.id)" class="border-b last:border-0 hover:bg-brand-600/5 cursor-pointer"
+                  :class="!c.active && 'opacity-50'">
+                <td class="px-4 py-2.5 font-semibold text-brand-700" x-text="c.name"></td>
+                <td class="px-3 py-2.5 font-mono text-xs" x-text="c.gstin || '—'"></td>
+                <td class="px-3 py-2.5" x-text="c.payment_terms || '—'"></td>
+                <td class="px-3 py-2.5 text-right" x-text="c.contacts"></td>
+                <td class="px-3 py-2.5 text-right" x-text="c.orders"></td>
+                <td class="px-3 py-2.5 text-right" x-text="c.drawings"></td>
+                <td class="px-3 py-2.5">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                        :class="c.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
+                        x-text="c.active ? 'Active' : 'Inactive'"></span>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="!rows.length">
+              <td colspan="7" class="px-4 py-10 text-center text-slate-400">
+                No customers yet — add the first with “+ Add customer”.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- Detail -->
+  <template x-if="detail">
+  <div class="fixed inset-0 z-40 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-4">
+      <div class="flex items-center gap-3 px-6 py-4 border-b">
+        <div>
+          <div class="text-xl font-bold" x-text="detail.name"></div>
+          <div class="text-xs text-slate-500 font-mono" x-text="detail.gstin || 'no GSTIN'"></div>
+        </div>
+        <span class="px-2.5 py-1 rounded-full text-xs font-medium"
+              :class="detail.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
+              x-text="detail.active ? 'Active' : 'Inactive'"></span>
+        <div class="ml-auto flex gap-2">
+          <button @click="editCust()" class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm">Edit</button>
+          <button @click="toggleActive()" class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm"
+                  x-text="detail.active ? 'Deactivate' : 'Reactivate'"></button>
+          <button @click="removeCust()" class="border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-sm">Delete</button>
+          <button @click="closeDetail()" class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+        </div>
+      </div>
+      <div class="p-6 grid grid-cols-2 gap-6">
+        <div class="space-y-3 text-sm">
+          <div><div class="text-xs text-slate-500 mb-0.5">Billing address</div>
+            <div class="whitespace-pre-line" x-text="detail.address_billing || '—'"></div></div>
+          <div><div class="text-xs text-slate-500 mb-0.5">Shipping address</div>
+            <div class="whitespace-pre-line" x-text="detail.address_shipping || '—'"></div></div>
+          <div><div class="text-xs text-slate-500 mb-0.5">Payment terms</div>
+            <div x-text="detail.payment_terms || '—'"></div></div>
+          <div x-show="detail.notes"><div class="text-xs text-slate-500 mb-0.5">Notes</div>
+            <div class="whitespace-pre-line" x-text="detail.notes"></div></div>
+        </div>
+        <div>
+          <div class="font-semibold text-sm mb-2">Contact persons</div>
+          <template x-for="k in detail.contacts" :key="k.id">
+            <div class="flex items-center gap-2 text-sm py-1.5 border-b last:border-0">
+              <div>
+                <div class="font-medium" x-text="k.name + (k.role ? ' · ' + k.role : '')"></div>
+                <div class="text-xs text-slate-500" x-text="[k.phone, k.email].filter(Boolean).join(' · ')"></div>
+              </div>
+              <button @click="removeContact(k)" class="ml-auto text-slate-300 hover:text-rose-600">✕</button>
+            </div>
+          </template>
+          <p x-show="!detail.contacts.length" class="text-xs text-slate-400">None yet.</p>
+          <div class="grid grid-cols-2 gap-2 mt-3">
+            <input x-model="contact.name" placeholder="Name" class="border rounded-lg px-2 py-1.5 text-sm" />
+            <input x-model="contact.role" placeholder="Role (e.g. Purchase)" class="border rounded-lg px-2 py-1.5 text-sm" />
+            <input x-model="contact.phone" placeholder="Phone" class="border rounded-lg px-2 py-1.5 text-sm" />
+            <input x-model="contact.email" placeholder="Email" class="border rounded-lg px-2 py-1.5 text-sm" />
+          </div>
+          <button @click="addContact()"
+                  class="mt-2 bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium">+ Add contact</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </template>
+
+  <!-- Add / edit -->
+  <template x-if="form">
+  <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-10">
+      <div class="px-6 py-4 border-b flex items-center">
+        <div class="text-lg font-bold" x-text="form.id ? 'Edit ' + form.name : 'New customer'"></div>
+        <button @click="form = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+      </div>
+      <form @submit.prevent="saveCust()" class="p-6 space-y-3 text-sm">
+        <div><label class="block text-xs text-slate-500 mb-1">Name *</label>
+          <input x-model="form.name" class="border rounded-lg px-3 py-2 w-full" /></div>
+        <div><label class="block text-xs text-slate-500 mb-1">GSTIN</label>
+          <input x-model="form.gstin" class="border rounded-lg px-3 py-2 w-full font-mono" /></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs text-slate-500 mb-1">Billing address</label>
+            <textarea x-model="form.address_billing" rows="3" class="border rounded-lg px-3 py-2 w-full"></textarea></div>
+          <div><label class="block text-xs text-slate-500 mb-1">Shipping address</label>
+            <textarea x-model="form.address_shipping" rows="3" class="border rounded-lg px-3 py-2 w-full"></textarea></div>
+        </div>
+        <div><label class="block text-xs text-slate-500 mb-1">Payment terms</label>
+          <input x-model="form.payment_terms" placeholder="e.g. 30 days" class="border rounded-lg px-3 py-2 w-full" /></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Notes</label>
+          <textarea x-model="form.notes" rows="2" class="border rounded-lg px-3 py-2 w-full"></textarea></div>
+        <p x-show="formError" x-text="formError" class="text-rose-600 text-sm"></p>
+        <div class="flex gap-3 pt-1">
+          <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg">Save</button>
+          <button type="button" @click="form = null"
+                  class="flex-1 border border-slate-300 hover:bg-slate-50 text-slate-600 py-2.5 rounded-lg">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  </template>
+
+</body>
+</html>

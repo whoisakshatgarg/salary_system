@@ -23,7 +23,7 @@ from .core import auth, db, edition, paths, update
 from .core.deps import current_user, get_db, require_admin
 from .core.rules import get_rules
 from .core.version import __version__
-from .modules import inventory, users
+from .modules import customers, inventory, orders, parts, settings, users
 from .modules.employees import seed
 from .modules.employees.router import router as employees_router
 from .modules.payroll.router import router as payroll_router
@@ -50,12 +50,17 @@ def _startup() -> None:
     db.init_db()
     seed.seed()  # no-op if already populated
     inventory.ensure_defaults()  # first-run inventory dropdown lists
+    settings.ensure_defaults()   # first-run units / operations / order format
 
 
 app.include_router(employees_router)
 app.include_router(payroll_router)
 app.include_router(inventory.router)
 app.include_router(users.router)
+app.include_router(settings.router)
+app.include_router(customers.router)
+app.include_router(parts.router)
+app.include_router(orders.router)
 
 
 # --------------------------------------------------------------------------- #
@@ -168,7 +173,8 @@ def _write_backup_zip(dest: Path) -> None:
         with zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED) as z:
             z.write(tmp, "salary.db")
             for dirname, folder in (("inventory_files", paths.inventory_files_dir()),
-                                    ("employee_files", paths.employee_files_dir())):
+                                    ("employee_files", paths.employee_files_dir()),
+                                    ("drawing_files", paths.drawing_files_dir())):
                 for f in sorted(folder.iterdir()):
                     if f.is_file():
                         z.write(f, f"{dirname}/{f.name}")

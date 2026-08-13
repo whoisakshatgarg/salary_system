@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings — APEX THERMOCON</title>
+  <script src="vendor/tailwind.js"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { brand: { 600: "#1d4ed8", 700: "#1e40af" } } } } };
+  </script>
+  <script defer src="settings.js"></script>
+  <script defer src="vendor/alpine.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    input, select { @apply outline-none; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800" x-data="st()" x-init="boot()" x-cloak>
+
+  <div x-show="toast.show" x-transition
+       class="fixed top-4 right-4 z-[70] px-4 py-3 rounded-lg shadow-lg text-white text-sm"
+       :class="toast.kind === 'err' ? 'bg-rose-600' : 'bg-emerald-600'" x-text="toast.msg"></div>
+
+  <div x-show="booted && authed" class="min-h-screen flex flex-col">
+    <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
+      <div>
+        <div class="text-white font-bold leading-tight">Settings</div>
+        <div class="text-[11px] text-slate-400">APEX THERMOCON · configuration</div>
+      </div>
+      <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
+        <a href="/" class="text-slate-300 hover:text-white font-medium">⌂ All modules</a>
+        <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-auto p-6 max-w-5xl w-full mx-auto space-y-5">
+      <p x-show="!isAdmin" class="bg-amber-50 text-amber-800 text-sm rounded-xl p-3">
+        You can see the configuration; only an administrator can change it.
+      </p>
+
+      <!-- Order numbers -->
+      <section class="bg-white rounded-xl shadow-sm p-5">
+        <h2 class="font-bold mb-1">Order numbers</h2>
+        <p class="text-xs text-slate-500 mb-3">
+          Used by Order Tracking. Tokens: <code class="bg-slate-100 px-1 rounded">{FY}</code> financial year (26-27),
+          <code class="bg-slate-100 px-1 rounded">{YYYY}</code> calendar year,
+          <code class="bg-slate-100 px-1 rounded">{SEQ}</code> running number (restarts each financial year).
+        </p>
+        <div class="flex items-end gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">Format</label>
+            <input x-model="fmt" :disabled="!isAdmin" class="border rounded-lg px-3 py-2 text-sm w-64 disabled:bg-slate-50" />
+          </div>
+          <button x-show="isAdmin" @click="saveFormat()"
+                  class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Save</button>
+          <div class="ml-auto text-sm text-slate-500">Next order will be
+            <b class="text-slate-800" x-text="data?.order_number_preview"></b></div>
+        </div>
+      </section>
+
+      <div class="grid grid-cols-2 gap-5">
+        <!-- Units -->
+        <section class="bg-white rounded-xl shadow-sm p-5">
+          <h2 class="font-bold mb-1">Units</h2>
+          <p class="text-xs text-slate-500 mb-3">Every unit dropdown in Parts and Orders searches this list.</p>
+          <input x-model="unitQ" placeholder="Search units…" class="border rounded-lg px-3 py-2 text-sm w-full mb-2" />
+          <div class="flex flex-wrap gap-1.5 max-h-64 overflow-auto mb-3">
+            <template x-for="u in filteredUnits" :key="u">
+              <span class="bg-slate-100 rounded-full px-2.5 py-1 text-xs flex items-center gap-1">
+                <span x-text="u"></span>
+                <button x-show="isAdmin" @click="removeUnit(u)" class="text-slate-400 hover:text-rose-600">✕</button>
+              </span>
+            </template>
+          </div>
+          <form x-show="isAdmin" @submit.prevent="addUnit()" class="flex gap-2">
+            <input x-model="newUnit" placeholder="Add a unit…" class="flex-1 border rounded-lg px-2 py-1.5 text-sm" />
+            <button class="bg-brand-600 hover:bg-brand-700 text-white px-3 rounded-lg text-sm">Add</button>
+          </form>
+        </section>
+
+        <!-- Departments -->
+        <section class="bg-white rounded-xl shadow-sm p-5">
+          <h2 class="font-bold mb-1">Departments</h2>
+          <p class="text-xs text-slate-500 mb-3">Used by employees and payroll (stored with the salary rules).</p>
+          <div class="space-y-1 max-h-64 overflow-auto mb-3">
+            <template x-for="d in data?.departments || []" :key="d">
+              <div class="flex items-center justify-between text-sm px-2 py-1 rounded hover:bg-slate-50">
+                <span x-text="d"></span>
+                <button x-show="isAdmin" @click="removeDept(d)" class="text-slate-300 hover:text-rose-600">✕</button>
+              </div>
+            </template>
+          </div>
+          <form x-show="isAdmin" @submit.prevent="addDept()" class="flex gap-2">
+            <input x-model="newDept" placeholder="Add a department…" class="flex-1 border rounded-lg px-2 py-1.5 text-sm" />
+            <button class="bg-brand-600 hover:bg-brand-700 text-white px-3 rounded-lg text-sm">Add</button>
+          </form>
+        </section>
+      </div>
+
+      <!-- Operations & rates -->
+      <section class="bg-white rounded-xl shadow-sm p-5">
+        <h2 class="font-bold mb-1">Machining operations &amp; hourly rates</h2>
+        <p class="text-xs text-slate-500 mb-3">
+          The costing builder in Parts &amp; Pricing prices each operation at these ₹/hour rates.
+          Changing a rate affects <b>new</b> costings only — old ones keep the rate they used.
+        </p>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-slate-500 border-b">
+              <th class="py-2">Operation</th>
+              <th class="py-2 w-44">Rate (₹/hour)</th>
+              <th class="py-2 w-24"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="op in data?.operations || []" :key="op.id">
+              <tr class="border-b last:border-0">
+                <td class="py-1.5" x-text="op.name"></td>
+                <td class="py-1.5">
+                  <input type="number" min="0" x-model="op.rate_per_hour" :disabled="!isAdmin"
+                         class="border rounded-lg px-2 py-1 text-sm w-28 disabled:bg-slate-50" />
+                </td>
+                <td class="py-1.5 whitespace-nowrap" x-show="isAdmin">
+                  <button @click="saveOpRate(op)" class="text-brand-700 hover:underline text-xs mr-2">Save</button>
+                  <button @click="removeOp(op)" class="text-slate-300 hover:text-rose-600 text-xs">✕</button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <form x-show="isAdmin" @submit.prevent="addOp()" class="flex gap-2 mt-3">
+          <input x-model="newOp.name" placeholder="New operation…" class="flex-1 border rounded-lg px-2 py-1.5 text-sm" />
+          <input x-model="newOp.rate_per_hour" type="number" min="0" placeholder="₹/hr"
+                 class="border rounded-lg px-2 py-1.5 text-sm w-28" />
+          <button class="bg-brand-600 hover:bg-brand-700 text-white px-3 rounded-lg text-sm">Add</button>
+        </form>
+      </section>
+
+      <p class="text-xs text-slate-400">
+        Payroll policy (leave, penalties, bonus) is still edited in Salary &amp; Attendance → Rules.
+        Sync &amp; update sources live in <code>config/</code> files — see the user guide.
+      </p>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orders — APEX THERMOCON</title>
+  <script src="vendor/tailwind.js"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { brand: { 600: "#1d4ed8", 700: "#1e40af" } } } } };
+  </script>
+  <script defer src="orders.js"></script>
+  <script defer src="vendor/alpine.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    input, select, textarea { @apply outline-none; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800" x-data="od()" x-init="boot()" x-cloak>
+
+  <div x-show="toast.show" x-transition
+       class="fixed top-4 right-4 z-[70] px-4 py-3 rounded-lg shadow-lg text-white text-sm"
+       :class="toast.kind === 'err' ? 'bg-rose-600' : 'bg-emerald-600'" x-text="toast.msg"></div>
+
+  <div x-show="booted && authed" class="min-h-screen flex flex-col">
+    <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
+      <div>
+        <div class="text-white font-bold leading-tight">Order Tracking</div>
+        <div class="text-[11px] text-slate-400">APEX THERMOCON · enquiry → payment</div>
+      </div>
+      <nav class="flex gap-1 ml-4">
+        <button @click="tab = 'orders'" class="px-4 py-1.5 rounded-lg text-sm font-medium transition"
+                :class="tab === 'orders' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800'">Orders</button>
+        <button @click="tab = 'consignments'; loadCons()" class="px-4 py-1.5 rounded-lg text-sm font-medium transition"
+                :class="tab === 'consignments' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800'">Consignments</button>
+      </nav>
+      <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
+        <a href="/" class="text-slate-300 hover:text-white font-medium">⌂ All modules</a>
+        <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-auto p-6 max-w-6xl w-full mx-auto">
+
+      <!-- ============================= ORDERS ============================= -->
+      <section x-show="tab === 'orders'">
+        <!-- stage chips -->
+        <div class="flex flex-wrap gap-2 mb-4">
+          <button @click="stageFilter = ''; load()"
+                  class="px-3 py-1.5 rounded-full text-xs font-medium border"
+                  :class="!stageFilter ? 'bg-slate-800 text-white border-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'">
+            All (<span x-text="data.rows.length"></span>)
+          </button>
+          <template x-for="s in data.stages" :key="s.key">
+            <button @click="stageFilter = s.key; load()"
+                    class="px-3 py-1.5 rounded-full text-xs font-medium border"
+                    :class="stageFilter === s.key ? 'bg-slate-800 text-white border-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'">
+              <span x-text="s.label"></span>
+              <span class="opacity-60" x-text="' ' + (data.stage_counts[s.key] || 0)"></span>
+            </button>
+          </template>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-end gap-3">
+          <div class="flex-1 min-w-[240px]">
+            <label class="block text-xs font-medium text-slate-500 mb-1">Search</label>
+            <input x-model="q" @input.debounce.400ms="load()"
+                   placeholder="Order no / customer PO / customer"
+                   class="w-full border rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <button @click="newOrder()"
+                  class="ml-auto bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+            + New order
+          </button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm overflow-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-xs text-slate-500 border-b bg-slate-50">
+                <th class="px-4 py-3">Order no.</th>
+                <th class="px-3 py-3">Date</th>
+                <th class="px-3 py-3">Customer</th>
+                <th class="px-3 py-3">Customer PO</th>
+                <th class="px-3 py-3 text-right">Items</th>
+                <th class="px-3 py-3 text-right">Amount</th>
+                <th class="px-3 py-3">Due</th>
+                <th class="px-3 py-3">Stage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="o in data.rows" :key="o.id">
+                <tr @click="open(o.id)" class="border-b last:border-0 hover:bg-brand-600/5 cursor-pointer">
+                  <td class="px-4 py-2.5 font-semibold text-brand-700 font-mono text-xs" x-text="o.order_no"></td>
+                  <td class="px-3 py-2.5 whitespace-nowrap" x-text="fmtDate(o.order_date)"></td>
+                  <td class="px-3 py-2.5" x-text="o.customer_name"></td>
+                  <td class="px-3 py-2.5" x-text="o.customer_po || '—'"></td>
+                  <td class="px-3 py-2.5 text-right" x-text="o.items"></td>
+                  <td class="px-3 py-2.5 text-right whitespace-nowrap" x-text="money(o.amount)"></td>
+                  <td class="px-3 py-2.5 whitespace-nowrap" x-text="fmtDate(o.due_date)"></td>
+                  <td class="px-3 py-2.5">
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                          :class="stageClass(o.stage)" x-text="stageLabel(o.stage)"></span>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="!data.rows.length">
+                <td colspan="8" class="px-4 py-10 text-center text-slate-400">
+                  No orders match — create the first with “+ New order”.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============================= CONSIGNMENTS ============================= -->
+      <section x-show="tab === 'consignments'">
+        <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-end gap-3">
+          <div class="flex-1 min-w-[240px]">
+            <label class="block text-xs font-medium text-slate-500 mb-1">Search</label>
+            <input x-model="cons.q" @input.debounce.400ms="loadCons()"
+                   placeholder="LR no / invoice / transporter / order no"
+                   class="w-full border rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <button @click="newCons()"
+                  class="ml-auto bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+            + New consignment
+          </button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-xs text-slate-500 border-b bg-slate-50">
+                <th class="px-4 py-3">Date</th>
+                <th class="px-3 py-3">Orders</th>
+                <th class="px-3 py-3">Transporter</th>
+                <th class="px-3 py-3">LR no.</th>
+                <th class="px-3 py-3">Invoice</th>
+                <th class="px-3 py-3 text-right">Lines</th>
+                <th class="px-3 py-3">Delivered</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="cn in cons.rows" :key="cn.id">
+                <tr @click="openCons(cn.id)" class="border-b last:border-0 hover:bg-brand-600/5 cursor-pointer">
+                  <td class="px-4 py-2.5 whitespace-nowrap" x-text="fmtDate(cn.consign_date)"></td>
+                  <td class="px-3 py-2.5 font-mono text-xs" x-text="cn.order_nos"></td>
+                  <td class="px-3 py-2.5" x-text="cn.transporter || '—'"></td>
+                  <td class="px-3 py-2.5" x-text="cn.lr_no || '—'"></td>
+                  <td class="px-3 py-2.5" x-text="cn.invoice_no || '—'"></td>
+                  <td class="px-3 py-2.5 text-right" x-text="cn.lines"></td>
+                  <td class="px-3 py-2.5">
+                    <button @click.stop="toggleDelivered(cn)"
+                            class="px-2 py-0.5 rounded-full text-xs font-medium"
+                            :class="cn.delivered ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'"
+                            x-text="cn.delivered ? 'Delivered ✓' : 'In transit'"></button>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="!cons.rows.length">
+                <td colspan="7" class="px-4 py-10 text-center text-slate-400">No consignments yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============================= ORDER DETAIL ============================= -->
+  <template x-if="detail">
+  <div class="fixed inset-0 z-40 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl my-4">
+      <div class="flex items-center gap-3 px-6 py-4 border-b">
+        <div>
+          <div class="text-xl font-bold font-mono" x-text="detail.order_no"></div>
+          <div class="text-xs text-slate-500"
+               x-text="[detail.customer_name, detail.customer_po && ('PO ' + detail.customer_po),
+                        fmtDate(detail.order_date)].filter(Boolean).join(' · ')"></div>
+        </div>
+        <span class="px-2.5 py-1 rounded-full text-xs font-medium"
+              :class="stageClass(detail.stage)" x-text="stageLabel(detail.stage)"></span>
+        <div class="ml-auto flex gap-2">
+          <button @click="newCons(detail); tab = 'orders'"
+                  class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm">🚚 Ship</button>
+          <button @click="editOrder()" class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm">Edit</button>
+          <button @click="removeOrder()" class="border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-sm">Delete</button>
+          <button @click="closeDetail()" class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+        </div>
+      </div>
+
+      <!-- stage progress -->
+      <div class="px-6 pt-4 flex flex-wrap gap-1.5">
+        <template x-for="(s, i) in detail.stages" :key="s.key">
+          <button @click="setStage(s.key)"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium border transition"
+                  :class="s.key === detail.stage
+                          ? 'bg-brand-600 text-white border-brand-600'
+                          : (detail.stages.findIndex(x => x.key === detail.stage) > i
+                             ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                             : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50')"
+                  x-text="s.label"></button>
+        </template>
+      </div>
+
+      <div class="p-6 grid grid-cols-2 gap-6">
+        <!-- Left: items + materials -->
+        <div class="space-y-5">
+          <div>
+            <div class="font-semibold text-sm mb-2">Items
+              <span class="font-normal text-slate-400" x-text="'· total ' + money(detail.amount)"></span></div>
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left text-xs text-slate-500 border-b">
+                  <th class="py-2 pr-2">Part</th>
+                  <th class="py-2 pr-2 text-right">Qty</th>
+                  <th class="py-2 pr-2 text-right">Shipped</th>
+                  <th class="py-2 pr-2 text-right">Rate</th>
+                  <th class="py-2 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="it in detail.items" :key="it.id">
+                  <tr class="border-b last:border-0">
+                    <td class="py-2 pr-2">
+                      <div class="font-medium" x-text="it.drawing_no ? (it.drawing_no + ' rev ' + it.revision) : it.description"></div>
+                      <div x-show="it.drawing_no && it.description" class="text-xs text-slate-400" x-text="it.description"></div>
+                    </td>
+                    <td class="py-2 pr-2 text-right whitespace-nowrap" x-text="it.qty + ' ' + it.unit"></td>
+                    <td class="py-2 pr-2 text-right"
+                        :class="it.shipped >= it.qty ? 'text-emerald-600 font-medium' : 'text-slate-500'"
+                        x-text="it.shipped"></td>
+                    <td class="py-2 pr-2 text-right" x-text="money(it.rate)"></td>
+                    <td class="py-2 text-right font-medium" x-text="money(it.amount)"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <div>
+            <div class="font-semibold text-sm mb-2">Material used (from Inventory)</div>
+            <template x-for="(h, i) in detail.heats" :key="i">
+              <div class="flex items-center gap-2 text-sm py-1 border-b last:border-0">
+                <span class="font-mono text-xs font-semibold text-brand-700" x-text="h.heat_number"></span>
+                <span class="text-xs text-slate-500" x-text="[h.material_class, h.grade].filter(Boolean).join(' ')"></span>
+                <span class="ml-auto text-xs" x-text="h.rods + ' rods · ' + fmtDate(h.mv_date)"></span>
+              </div>
+            </template>
+            <p x-show="!detail.heats.length" class="text-xs text-slate-400">
+              No heats issued against this order number yet (Inventory → issue with Order ID
+              <span class="font-mono" x-text="detail.order_no"></span>).
+            </p>
+          </div>
+        </div>
+
+        <!-- Right: consignments + history -->
+        <div class="space-y-5">
+          <div>
+            <div class="font-semibold text-sm mb-2">Consignments</div>
+            <template x-for="cn in detail.consignments" :key="cn.id">
+              <div class="flex items-center gap-2 text-sm py-1.5 border-b last:border-0">
+                <span x-text="fmtDate(cn.consign_date)"></span>
+                <span class="text-xs text-slate-500" x-text="[cn.transporter, cn.lr_no && ('LR ' + cn.lr_no)].filter(Boolean).join(' · ')"></span>
+                <button @click="toggleDelivered(cn)"
+                        class="ml-auto px-2 py-0.5 rounded-full text-xs font-medium"
+                        :class="cn.delivered ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'"
+                        x-text="cn.delivered ? 'Delivered ✓' : 'In transit'"></button>
+              </div>
+            </template>
+            <p x-show="!detail.consignments.length" class="text-xs text-slate-400">
+              Nothing shipped yet — the 🚚 Ship button starts a consignment.
+            </p>
+          </div>
+
+          <div>
+            <div class="font-semibold text-sm mb-2">Stage history</div>
+            <template x-for="l in detail.stage_log" :key="l.id">
+              <div class="flex items-start gap-2 text-sm py-1">
+                <span class="px-2 py-0.5 rounded-full text-xs font-medium shrink-0"
+                      :class="stageClass(l.stage)" x-text="stageLabel(l.stage)"></span>
+                <span class="text-xs text-slate-400 shrink-0 pt-0.5" x-text="l.at.slice(0, 16).replace('T', ' ')"></span>
+                <span class="text-xs text-slate-500 pt-0.5" x-text="l.note"></span>
+              </div>
+            </template>
+          </div>
+
+          <div x-show="detail.notes" class="text-sm bg-amber-50 rounded-lg p-3 text-amber-900" x-text="detail.notes"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </template>
+
+  <!-- ============================= ORDER FORM ============================= -->
+  <template x-if="form">
+  <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-6">
+      <div class="px-6 py-4 border-b flex items-center">
+        <div class="text-lg font-bold" x-text="form.id ? 'Edit order' : 'New order'"></div>
+        <button @click="form = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+      </div>
+      <form @submit.prevent="saveOrder()" class="p-6 space-y-4 text-sm">
+        <div class="grid grid-cols-3 gap-3">
+          <div><label class="block text-xs text-slate-500 mb-1">Customer *</label>
+            <select x-model="form.customer_id" class="border rounded-lg px-3 py-2 w-full">
+              <option value="">—</option>
+              <template x-for="c in lists.customers" :key="c.id">
+                <option :value="c.id" x-text="c.name"></option>
+              </template>
+            </select></div>
+          <div><label class="block text-xs text-slate-500 mb-1">Customer PO no.</label>
+            <input x-model="form.customer_po" class="border rounded-lg px-3 py-2 w-full" /></div>
+          <div x-show="!form.id"><label class="block text-xs text-slate-500 mb-1">Starting stage</label>
+            <select x-model="form.stage" class="border rounded-lg px-3 py-2 w-full">
+              <template x-for="s in data.stages" :key="s.key">
+                <option :value="s.key" x-text="s.label"></option>
+              </template>
+            </select></div>
+          <div><label class="block text-xs text-slate-500 mb-1">Order date</label>
+            <input type="date" x-model="form.order_date" class="border rounded-lg px-3 py-2 w-full" /></div>
+          <div><label class="block text-xs text-slate-500 mb-1">Due date</label>
+            <input type="date" x-model="form.due_date" class="border rounded-lg px-3 py-2 w-full" /></div>
+        </div>
+
+        <div>
+          <div class="flex items-center mb-2">
+            <div class="font-semibold">Items</div>
+            <div class="ml-auto text-slate-500" x-text="'Total ' + money(formTotal)"></div>
+          </div>
+          <template x-for="(it, i) in form.items" :key="i">
+            <div class="grid grid-cols-12 gap-2 mb-2 items-center">
+              <select x-model="it.drawing_id" @change="drawingPicked(it)"
+                      class="col-span-3 border rounded-lg px-2 py-1.5">
+                <option value="">(no drawing)</option>
+                <template x-for="d in lists.drawings" :key="d.id">
+                  <option :value="d.id" x-text="d.drawing_no + ' rev ' + d.revision"></option>
+                </template>
+              </select>
+              <input x-model="it.description" placeholder="Description"
+                     class="col-span-4 border rounded-lg px-2 py-1.5" />
+              <input type="number" min="0" step="0.01" x-model="it.qty" placeholder="Qty"
+                     class="col-span-1 border rounded-lg px-2 py-1.5" />
+              <input x-model="it.unit" list="unitlist" placeholder="Unit"
+                     class="col-span-1 border rounded-lg px-2 py-1.5" />
+              <input type="number" min="0" step="0.01" x-model="it.rate" placeholder="₹ rate"
+                     class="col-span-2 border rounded-lg px-2 py-1.5" />
+              <button type="button" @click="removeItem(i)"
+                      class="col-span-1 text-slate-300 hover:text-rose-600">✕</button>
+            </div>
+          </template>
+          <datalist id="unitlist">
+            <template x-for="u in lists.units" :key="u"><option :value="u"></option></template>
+          </datalist>
+          <button type="button" @click="addItem()" class="text-xs text-brand-700 hover:underline">+ Add item</button>
+          <p class="text-[11px] text-slate-400 mt-1">Picking a drawing fills the unit and its latest recorded rate.</p>
+        </div>
+
+        <div><label class="block text-xs text-slate-500 mb-1">Notes</label>
+          <textarea x-model="form.notes" rows="2" class="border rounded-lg px-3 py-2 w-full"></textarea></div>
+        <p x-show="formError" x-text="formError" class="text-rose-600 text-sm"></p>
+        <div class="flex gap-3">
+          <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg">Save order</button>
+          <button type="button" @click="form = null"
+                  class="flex-1 border border-slate-300 hover:bg-slate-50 text-slate-600 py-2.5 rounded-lg">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  </template>
+
+  <!-- ============================= CONSIGNMENT DETAIL ============================= -->
+  <template x-if="consDetail">
+  <div class="fixed inset-0 z-40 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-10">
+      <div class="flex items-center gap-3 px-6 py-4 border-b">
+        <div>
+          <div class="text-lg font-bold" x-text="'Consignment · ' + fmtDate(consDetail.consign_date)"></div>
+          <div class="text-xs text-slate-500"
+               x-text="[consDetail.transporter, consDetail.vehicle_no].filter(Boolean).join(' · ')"></div>
+        </div>
+        <button @click="toggleDelivered(consDetail)"
+                class="px-2.5 py-1 rounded-full text-xs font-medium"
+                :class="consDetail.delivered ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'"
+                x-text="consDetail.delivered ? 'Delivered ✓' : 'In transit'"></button>
+        <div class="ml-auto flex gap-2">
+          <button @click="removeCons(consDetail)" class="border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-sm">Delete</button>
+          <button @click="consDetail = null" class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+        </div>
+      </div>
+      <div class="p-6 space-y-4 text-sm">
+        <div class="grid grid-cols-3 gap-x-4 gap-y-2">
+          <div class="text-slate-500">LR number</div><div class="col-span-2" x-text="consDetail.lr_no || '—'"></div>
+          <div class="text-slate-500">E-way bill</div><div class="col-span-2" x-text="consDetail.eway_no || '—'"></div>
+          <div class="text-slate-500">Invoice</div><div class="col-span-2" x-text="consDetail.invoice_no || '—'"></div>
+          <div class="text-slate-500">Freight</div><div class="col-span-2" x-text="consDetail.freight ? money(consDetail.freight) : '—'"></div>
+          <div class="text-slate-500" x-show="consDetail.notes">Notes</div>
+          <div class="col-span-2" x-show="consDetail.notes" x-text="consDetail.notes"></div>
+        </div>
+        <div>
+          <div class="font-semibold mb-2">Lines</div>
+          <template x-for="l in consDetail.lines" :key="l.id">
+            <div class="flex items-center gap-2 py-1.5 border-b last:border-0">
+              <span class="font-mono text-xs text-brand-700" x-text="l.order_no"></span>
+              <span x-text="l.drawing_no || l.description"></span>
+              <span class="ml-auto" x-text="l.qty + ' ' + (l.unit || '')"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+  </template>
+
+  <!-- ============================= CONSIGNMENT FORM ============================= -->
+  <template x-if="consForm">
+  <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-6">
+      <div class="px-6 py-4 border-b flex items-center">
+        <div class="text-lg font-bold">New consignment</div>
+        <button @click="consForm = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+      </div>
+      <form @submit.prevent="saveCons()" class="p-6 space-y-4 text-sm">
+        <div class="grid grid-cols-3 gap-3">
+          <div><label class="block text-xs text-slate-500 mb-1">Date</label>
+            <input type="date" x-model="consForm.consign_date" class="border rounded-lg px-3 py-2 w-full" /></div>
+          <div><label class="block text-xs text-slate-500 mb-1">Transporter</label>
+            <input x-model="consForm.transporter" class="border rounded-lg px-3 py-2 w-full" /></div>
+          <div><label class="block text-xs text-slate-500 mb-1">Vehicle no.</label>
+            <input x-model="consForm.vehicle_no" class="border rounded-lg px-3 py-2 w-full" /></div>
+          <div><label class="block text-xs text-slate-500 mb-1">LR number</label>
+            <input x-model="consForm.lr_no" class="border rounded-lg px-3 py-2 w-full" /></div>
+          <div><label class="block text-xs text-slate-500 mb-1">E-way bill no.</label>
+            <input x-model="consForm.eway_no" class="border rounded-lg px-3 py-2 w-full" /></div>
+          <div><label class="block text-xs text-slate-500 mb-1">Invoice no.</label>
+            <input x-model="consForm.invoice_no" class="border rounded-lg px-3 py-2 w-full" /></div>
+          <div><label class="block text-xs text-slate-500 mb-1">Freight (₹, optional)</label>
+            <input type="number" min="0" step="0.01" x-model="consForm.freight" class="border rounded-lg px-3 py-2 w-full" /></div>
+        </div>
+
+        <div>
+          <div class="font-semibold mb-2">Items on this truck</div>
+          <template x-for="(l, i) in consForm.lines" :key="l.order_item_id">
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="font-mono text-xs text-brand-700 w-28 shrink-0" x-text="l.order_no"></span>
+              <span class="flex-1 truncate" x-text="l.label"></span>
+              <span class="text-xs text-slate-400" x-text="'pending ' + l.pending"></span>
+              <input type="number" min="0" step="0.01" x-model="l.qty"
+                     class="border rounded-lg px-2 py-1.5 w-24" />
+              <span class="text-xs text-slate-500 w-10" x-text="l.unit"></span>
+              <button type="button" @click="removeConsLine(i)" class="text-slate-300 hover:text-rose-600">✕</button>
+            </div>
+          </template>
+          <p x-show="!consForm.lines.length" class="text-xs text-slate-400 mb-1">
+            No items yet — pull in an order below.
+          </p>
+          <div class="flex gap-2 mt-2">
+            <input x-model="consOrderQ" @keydown.enter.prevent="addOrderToCons()"
+                   placeholder="Type an order no / PO and press Enter to add its pending items"
+                   class="flex-1 border rounded-lg px-2 py-1.5 text-xs" />
+            <button type="button" @click="addOrderToCons()"
+                    class="bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium">Add order</button>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">One truck can carry several orders — partial quantities are fine.</p>
+        </div>
+
+        <div><label class="block text-xs text-slate-500 mb-1">Notes</label>
+          <input x-model="consForm.notes" class="border rounded-lg px-3 py-2 w-full" /></div>
+        <p x-show="consError" x-text="consError" class="text-rose-600 text-sm"></p>
+        <div class="flex gap-3">
+          <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg">Create consignment</button>
+          <button type="button" @click="consForm = null"
+                  class="flex-1 border border-slate-300 hover:bg-slate-50 text-slate-600 py-2.5 rounded-lg">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  </template>
+
+</body>
+</html>

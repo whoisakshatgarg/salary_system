@@ -1,41 +1,41 @@
 # Order Tracking
 
-**Status: ❌ not started** (tile + placeholder exist; scoped 2026-08-13)
+**Status: ✅ built** (2026-08-14)
 
 ## Purpose
-The operational spine: every customer order from first contact to payment,
-including what steel fed it and how it shipped.
+The operational spine: every order from enquiry to payment, what steel fed it,
+and how it shipped.
 
-## Scope (decided)
-- **7 skippable stages:** Enquiry → Quote → PO received → Production → QC →
-  Dispatch → Payment. An order may start at PO; stage history is kept.
-- **Order numbers:** auto per financial year, format configurable in Settings
-  (e.g. `ORD-{FY}-{SEQ}`); customer's own PO number is a separate searchable
-  field.
-- **Items** reference the drawing master (Parts & Pricing): drawing ID +
-  revision, qty, rate snapshot.
-- **Material linkage:** inventory's usage-log `order_id` becomes a real
-  reference — from an order, see the heats (and mill certificates) that fed it.
-- **Consignments (shipping lives here, not a separate module):** own entity with
-  date, transporter, LR number, e-way bill no., invoice no., delivery-confirmed
-  flag (+ optional vehicle no., freight ₹); consignment lines reference order
-  items with quantities → partial shipments and multi-order consignments work.
-  A global consignments list is a tab inside this module.
+## User flows
+- Stage chips (with counts) + list (search order no / customer PO / customer).
+- New order: customer, PO number, skippable starting stage, item rows —
+  picking a drawing prefills unit + latest recorded rate; order number is
+  generated from the Settings format, sequenced per financial year (atomic).
+- Record: stage progress row (click any stage; every move logged with a note),
+  items with shipped-vs-ordered, **material used** (inventory issues whose
+  Order ID equals this order number — heat numbers for traceability),
+  consignments, stage history. Delete only while nothing has shipped.
+- **🚚 Ship** → consignment: date, transporter, LR no., e-way bill, invoice,
+  vehicle, freight + line quantities (partial fine; pull in further orders —
+  one truck, several orders). Over-shipping an item is refused atomically.
+  Consignments tab: global list, delivered toggle, delete (frees quantities).
 
-## Dependencies
-Customers module (who ordered), Parts & Pricing (what part, at what rate),
-Inventory (heat links exist already), Settings (number format).
+## Implemented (file paths)
+`backend/modules/orders.py` (data + `/api/orders/*` routes incl.
+`/api/orders/consignments*`, grant `orders`) · UI `frontend/orders.html` +
+`orders.js` · numbering via `modules/settings.py` (`order_seq` table) · spec
+`tests/test_workshop.py` (OrdersSpec).
 
-## Data model (planned)
-`customer_order(id, order_no, customer_id, customer_po, stage, dates…)` ·
-`order_item(order_id, drawing_id, revision, qty, rate, amount)` ·
-`order_stage_log(order_id, stage, at, note)` ·
-`consignment(id, date, transporter, lr_no, eway_no, invoice_no, vehicle_no,
-freight, delivered)` · `consignment_line(consignment_id, order_item_id, qty)`.
+## Data model
+`customer_order(order_no UNIQUE, customer_id, customer_po, stage, dates…)` ·
+`order_item(order_id, drawing_id?, description, qty, unit, rate)` ·
+`order_stage_log` · `order_seq(fy, seq)` · `consignment(GST fields, delivered)`
+· `consignment_line(consignment_id, order_item_id, qty)` — shipped/pending
+always derived.
 
-## What's left (everything)
-- [ ] Schema + module package (`backend/modules/orders/`), routes, UI page.
-- [ ] Stage board/list + order detail with items, stage history, heats, consignments.
-- [ ] Consignment entry with GST fields; delivery confirmation.
-- [ ] Order-number generator (FY-aware, configurable format).
-- [ ] Wire inventory issue entries to order records.
+## Screens
+guide-images: ws-order-detail, ws-consignment.
+
+## What's left
+- [ ] Delivery-challan / order printouts (ROADMAP Next).
+- [ ] Stage-change audit belongs to the app-wide audit trail (ROADMAP Now).

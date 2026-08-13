@@ -20,16 +20,16 @@ MODULES = [
      "path": "/employees.html", "built": True},
     {"key": "orders", "label": "Order Tracking", "icon": "🗂",
      "desc": "Enquiry → quote → PO → production → QC → dispatch → payment",
-     "path": None, "built": False},
+     "path": "/orders.html", "built": True},
     {"key": "parts", "label": "Parts & Pricing", "icon": "📐",
-     "desc": "Drawing master with revisions and rate history per customer",
-     "path": None, "built": False},
+     "desc": "Drawing master: revisions, rate history, per-operation costing",
+     "path": "/parts.html", "built": True},
     {"key": "customers", "label": "Customers", "icon": "🏢",
      "desc": "Customer master: GSTIN, contacts, payment terms",
-     "path": None, "built": False},
+     "path": "/customers.html", "built": True},
     {"key": "settings", "label": "Settings", "icon": "⚙",
-     "desc": "Payroll rules, units, order-number format, sync & updates",
-     "path": None, "built": False},
+     "desc": "Order-number format, units, operation rates, departments",
+     "path": "/settings.html", "built": True},
 ]
 
 ALL_KEYS = [m["key"] for m in MODULES]

@@ -198,6 +198,162 @@ CREATE TABLE IF NOT EXISTS employee_document (
 );
 CREATE INDEX IF NOT EXISTS idx_emp_doc_emp ON employee_document(employee_id);
 
+-- ---------- Settings (app-wide configuration) ---------- --
+CREATE TABLE IF NOT EXISTS app_setting (
+    key   TEXT PRIMARY KEY,                       -- e.g. 'order_number_format'
+    value TEXT                                     -- JSON-encoded
+);
+
+CREATE TABLE IF NOT EXISTS unit (
+    id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE                      -- 'Nos', 'kg', 'mm', …
+);
+
+CREATE TABLE IF NOT EXISTS operation (             -- machining ops for costing
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL UNIQUE,            -- 'Turning', 'Milling', …
+    rate_per_hour REAL NOT NULL DEFAULT 0          -- ₹/hr, editable in Settings
+);
+
+-- ---------- Customers ---------- --
+CREATE TABLE IF NOT EXISTS customer (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    name             TEXT NOT NULL UNIQUE,
+    gstin            TEXT,
+    address_billing  TEXT,
+    address_shipping TEXT,
+    payment_terms    TEXT,
+    notes            TEXT,
+    active           INTEGER NOT NULL DEFAULT 1,
+    created_at       TEXT
+);
+
+CREATE TABLE IF NOT EXISTS customer_contact (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id INTEGER NOT NULL REFERENCES customer(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL,
+    phone       TEXT,
+    email       TEXT,
+    role        TEXT
+);
+
+-- ---------- Parts & Pricing (drawing master) ---------- --
+CREATE TABLE IF NOT EXISTS drawing (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    drawing_no     TEXT NOT NULL,
+    revision       TEXT NOT NULL DEFAULT 'A',
+    customer_id    INTEGER REFERENCES customer(id),
+    description    TEXT,
+    material_class TEXT,                           -- denormalized (inventory lists)
+    grade          TEXT,
+    unit           TEXT,                           -- from the units list
+    notes          TEXT,
+    active         INTEGER NOT NULL DEFAULT 1,
+    created_at     TEXT,
+    UNIQUE(drawing_no, revision)
+);
+
+CREATE TABLE IF NOT EXISTS drawing_file (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    drawing_id  INTEGER NOT NULL REFERENCES drawing(id) ON DELETE CASCADE,
+    filename    TEXT NOT NULL,
+    mime        TEXT,
+    size_bytes  INTEGER,
+    stored_name TEXT NOT NULL UNIQUE,              -- file under drawing_files/
+    uploaded_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS drawing_rate (          -- the rate/quote HISTORY
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    drawing_id INTEGER NOT NULL REFERENCES drawing(id) ON DELETE CASCADE,
+    kind       TEXT NOT NULL,                      -- 'quoted' | 'agreed' | 'revised'
+    rate       REAL NOT NULL,                      -- ₹/piece (per drawing.unit)
+    rate_date  TEXT NOT NULL,
+    note       TEXT,
+    created_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS costing (               -- per-operation build-up
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    drawing_id    INTEGER NOT NULL REFERENCES drawing(id) ON DELETE CASCADE,
+    material_cost REAL NOT NULL DEFAULT 0,
+    margin_pct    REAL NOT NULL DEFAULT 0,
+    notes         TEXT,
+    created_at    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS costing_op (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    costing_id    INTEGER NOT NULL REFERENCES costing(id) ON DELETE CASCADE,
+    operation     TEXT NOT NULL,
+    minutes       REAL NOT NULL,
+    rate_per_hour REAL NOT NULL,                   -- snapshot of the rate used
+    cost          REAL NOT NULL                    -- minutes/60 * rate
+);
+
+-- ---------- Order Tracking ---------- --
+CREATE TABLE IF NOT EXISTS order_seq (             -- per-FY order numbering
+    fy  TEXT PRIMARY KEY,                          -- '26-27'
+    seq INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS customer_order (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_no    TEXT NOT NULL UNIQUE,              -- from the configurable format
+    customer_id INTEGER NOT NULL REFERENCES customer(id),
+    customer_po TEXT,                              -- the customer's own PO number
+    stage       TEXT NOT NULL DEFAULT 'enquiry',   -- 7 skippable stages
+    order_date  TEXT NOT NULL,
+    due_date    TEXT,
+    notes       TEXT,
+    created_at  TEXT
+);
+
+CREATE TABLE IF NOT EXISTS order_item (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id    INTEGER NOT NULL REFERENCES customer_order(id) ON DELETE CASCADE,
+    drawing_id  INTEGER REFERENCES drawing(id),    -- nullable: free-text items ok
+    description TEXT,
+    qty         REAL NOT NULL,
+    unit        TEXT,
+    rate        REAL NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS order_stage_log (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL REFERENCES customer_order(id) ON DELETE CASCADE,
+    stage    TEXT NOT NULL,
+    at       TEXT NOT NULL,
+    note     TEXT
+);
+
+CREATE TABLE IF NOT EXISTS consignment (           -- shipments; lines may span orders
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    consign_date TEXT NOT NULL,
+    transporter  TEXT,
+    lr_no        TEXT,                             -- Lorry Receipt
+    eway_no      TEXT,                             -- e-way bill
+    invoice_no   TEXT,
+    vehicle_no   TEXT,
+    freight      REAL,
+    delivered    INTEGER NOT NULL DEFAULT 0,
+    notes        TEXT,
+    created_at   TEXT
+);
+
+CREATE TABLE IF NOT EXISTS consignment_line (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    consignment_id INTEGER NOT NULL REFERENCES consignment(id) ON DELETE CASCADE,
+    order_item_id  INTEGER NOT NULL REFERENCES order_item(id),
+    qty            REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_drawing_rate_drawing ON drawing_rate(drawing_id);
+CREATE INDEX IF NOT EXISTS idx_order_item_order     ON order_item(order_id);
+CREATE INDEX IF NOT EXISTS idx_stage_log_order      ON order_stage_log(order_id);
+CREATE INDEX IF NOT EXISTS idx_cons_line_cons       ON consignment_line(consignment_id);
+CREATE INDEX IF NOT EXISTS idx_cons_line_item       ON consignment_line(order_item_id);
+
 CREATE TABLE IF NOT EXISTS sync_log (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     filename    TEXT,

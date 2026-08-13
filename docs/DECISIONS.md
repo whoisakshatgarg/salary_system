@@ -80,3 +80,36 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   employees grant.
 - E2E caught a latent API bug: `leave_balance: null` crashed employee creation
   (int(None)); fixed + regression-tested.
+
+## 2026-08-14 — All remaining tiles built (Customers, Parts & Pricing, Orders, Settings)
+- **Settings** (`backend/modules/settings.py` + `frontend/settings.html`):
+  order-number format (`{FY}`/`{YYYY}`/`{SEQ}`, live preview), searchable units
+  list (~50 seeded), machining operations with editable ₹/hour, departments.
+  Seeding is first-run-only; reads need the settings grant, writes are admin.
+- **Customers** (`modules/customers.py`): master + contact persons; delete only
+  while unreferenced, otherwise deactivate.
+- **Parts & Pricing** (`modules/parts.py`): drawing_no+revision master (new
+  revision = fresh record; pricing history is per revision), drawing files on
+  disk (`drawing_files/`, in backup zips), dated rate history
+  (quoted/agreed/revised), and the extensive costing model the owner asked
+  for: operations × minutes × ₹/hr (rates snapshot at entry) + material +
+  margin → ₹/piece, recordable straight into the rate history.
+- **Orders** (`modules/orders.py`): 7 skippable stages with a logged history;
+  items reference drawings (latest rate prefills); order numbers atomic per
+  FY from the configurable format; heat traceability by joining inventory
+  movements on the order number; consignments with the GST field set, lines
+  spanning multiple orders, partial shipments, over-ship refused, delivered
+  flag; orders locked against deletion while shipped.
+- **Reference data for form pickers is grant-gated per consumer**
+  (`/api/orders/refs`, `/api/parts/refs`): an early shared `/api/lists` leaked
+  drawing prices + operation rates to any signed-in account (review catch) and
+  was removed the same day.
+- E2E caught & fixed: parts rate/costing boxes used x-show over nullable
+  models (console errors); customer create now opens the record.
+- Post-review hardening (22-agent pass, 18 confirmed): removed the /api/lists
+  price leak; order-number formats must contain {FY} (per-FY sequence would
+  collide across years) and collisions return a friendly 400; finite+bounded
+  numeric guards on operation rates and costing money; one shared rollup for
+  displayed and recorded costing totals; BEGIN IMMEDIATE on drawing
+  save/delete; consignment order-search hits the server; drawing switch
+  replaces the prefyled rate; restore docs cover all *_files folders.
