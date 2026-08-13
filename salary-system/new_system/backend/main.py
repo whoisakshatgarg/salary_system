@@ -18,10 +18,11 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import auth, db, edition, inventory, paths, repo, seed, sync, update
+from . import inventory, repo, seed, sync
+from .core import auth, db, edition, paths, update
+from .core.rules import get_rules, load_rules, save_rules
+from .core.version import __version__
 from .exporters import build_ceo, build_distribution
-from .rules import get_rules, load_rules, save_rules
-from .version import __version__
 
 FRONTEND = paths.frontend_dir()
 BACKUP_DIR = paths.backups_dir()
@@ -51,7 +52,7 @@ def _startup() -> None:
 # --------------------------------------------------------------------------- #
 # Dependencies (shared with feature routers — see deps.py)
 # --------------------------------------------------------------------------- #
-from .deps import current_user, get_db, require_admin  # noqa: E402
+from .core.deps import current_user, get_db, require_admin  # noqa: E402
 
 app.include_router(inventory.router)
 

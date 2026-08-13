@@ -11,8 +11,8 @@ in historical exports). Re-running is a no-op once the table is populated.
 
 from __future__ import annotations
 
-from . import db
-from .auth import hash_password
+from .core import db
+from .core.auth import hash_password
 
 # (name, base_salary, pf, esi, overtime_eligible, dept) — all shift 'D'.
 # Ported from add_emp_data_sys.py; 'Y'->True, 'N'->False.

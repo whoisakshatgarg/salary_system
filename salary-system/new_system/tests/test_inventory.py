@@ -10,7 +10,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from backend import db, inventory  # noqa: E402
+from backend import inventory  # noqa: E402
+from backend.core import db  # noqa: E402
 
 
 def heat_data(**kw):
@@ -275,7 +276,7 @@ class Attachments(InventoryBase):
         stored = self.conn.execute(
             "SELECT stored_name FROM heat_attachment WHERE id=?",
             (meta["id"],)).fetchone()["stored_name"]
-        from backend import paths
+        from backend.core import paths
         self.assertTrue((paths.inventory_files_dir() / stored).is_file())
         inventory.delete_attachment(self.conn, meta["id"])
         self.assertFalse((paths.inventory_files_dir() / stored).exists())
@@ -297,7 +298,7 @@ class Attachments(InventoryBase):
     def test_deleting_heat_removes_files(self):
         inventory.save_attachment(self.conn, self.hid, "invoice", "inv.jpg",
                                   "image/jpeg", b"jpegbytes")
-        from backend import paths
+        from backend.core import paths
         files = list(paths.inventory_files_dir().iterdir())
         self.assertEqual(len(files), 1)
         inventory.delete_heat(self.conn, self.hid)
@@ -340,7 +341,7 @@ class ReviewRegressions(InventoryBase):
         self.assertNotIn("Brass", inventory.list_options(self.conn)["material_class"])
 
     def test_upload_batch_atomicity(self):
-        from backend import paths
+        from backend.core import paths
         hid = inventory.create_heat(self.conn, heat_data())
         with self.assertRaises(ValueError):
             inventory.save_attachments(self.conn, hid, "invoice", [

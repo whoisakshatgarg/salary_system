@@ -38,7 +38,8 @@ def resource_dir() -> Path:
     """
     if is_frozen():
         return Path(getattr(sys, "_MEIPASS"))
-    return Path(__file__).resolve().parent.parent
+    # backend/core/paths.py -> backend/core -> backend -> new_system
+    return Path(__file__).resolve().parent.parent.parent
 
 
 def data_dir() -> Path:
@@ -59,7 +60,7 @@ def data_dir() -> Path:
             root = Path(os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share"))
         base = root / APP_DIR_NAME
     else:
-        base = Path(__file__).resolve().parent.parent / "data"
+        base = Path(__file__).resolve().parent.parent.parent / "data"
     base.mkdir(parents=True, exist_ok=True)
     return base
 

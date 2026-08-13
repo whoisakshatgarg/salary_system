@@ -19,7 +19,7 @@ from backend.payroll import (  # noqa: E402
     days_in_period,
     summarize_attendance,
 )
-from backend.rules import load_rules  # noqa: E402
+from backend.core.rules import load_rules  # noqa: E402
 
 RULES = load_rules()
 YEAR, MONTH = 2025, 6  # June 2025, 30 days
