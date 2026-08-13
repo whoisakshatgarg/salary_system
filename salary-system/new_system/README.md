@@ -1,5 +1,10 @@
 # APEX THERMOCON — Salary System (new_system)
 
+
+> **Start here for the big picture:** this repo is documented in [`../../docs/`](../../docs/) —
+> read [`docs/START_HERE.md`](../../docs/START_HERE.md) first. Layout details in this file may
+> lag behind; the docs folder is kept current.
+
 A clean rewrite of `old_system/Payroll-System`. Same business rules, none of the
 pain: **no MySQL** (single SQLite file), no 20-script-`os.system`-maze, no
 hardcoded credentials, no plaintext passwords, no schema drift — and a friendly,
@@ -68,7 +73,7 @@ and the current-vs-previous-month export mismatch (uniform `YYYY-MM` everywhere)
 ```bash
 # 1. core works with the stdlib only — no install needed:
 ../venv/bin/python -m unittest discover -s tests       # 17 tests
-../venv/bin/python -m backend.seed                     # create + populate data/salary.db
+../venv/bin/python -m backend.modules.employees.seed                     # create + populate data/salary.db
 
 # 2. web app (next phase, after deps land):
 ../venv/bin/pip install -r requirements.txt

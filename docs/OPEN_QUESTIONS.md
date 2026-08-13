@@ -1,0 +1,19 @@
+# Open questions
+
+Unresolved items + the default currently in use. When one is answered, move it
+to [DECISIONS.md](DECISIONS.md) with the date.
+
+| # | Question | Default in use until answered |
+|---|----------|-------------------------------|
+| 1 | **Pricing details** — the owner wants "as extensive as you can" (per-operation + totals). What operation list should seed the routing (turning, milling, drilling, threading…)? Are machine-hour rates per machine or per operation type? | Seed a generic operation list, editable in Settings; one ₹/hr rate per operation type; material cost from Inventory rates where linkable. |
+| 2 | **Employee Management UI split** — exact fields editable in Employee Mgmt vs Salary. Owner said profile/status in EM, "financial stuff (PF/ESI, advances)" in Salary, rest to my judgment. | EM edits: name, dept, shift, joining date, active, documents, leave balance view. Salary edits: base salary, PF/ESI applicability + amounts, advances. Attendance entry moves to EM when its UI ships. |
+| 3 | **Excel byte-matching** — the CEO/Distribution exports follow the legacy layout but were never compared against a real sample sheet. | Current layouts ship as-is; need one real sample `.xlsx` from the office to fine-tune. |
+| 4 | **E-way bill threshold** — should the app warn when a consignment's invoice value crosses the e-way-bill threshold? | Free-text e-way number only, no threshold logic. |
+| 5 | **Multi-user beyond two machines** — more accounts now exist; if a third PC is needed, LAN mode (one server, browsers connect) is the natural step. | Single-PC installs + shared-folder sync only. |
+| 6 | **Repo visibility for self-update** — repo must be public or a token pasted into `config/update.json` on each install. Which will it be? | Assumed public at release time; token path documented in DEPLOY.md. |
+
+## Known issues (accepted for now)
+- `frontend/payroll.html` logs ~19 harmless console errors on load (null-model
+  bindings that predate the shell; the UI recovers). Fix queued in ROADMAP "Next".
+- Existing installs that still have the old `temp` account keep it until deleted
+  in Users & Access (new seeds don't create it).

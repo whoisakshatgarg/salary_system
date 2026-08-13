@@ -62,7 +62,7 @@ touched (the DB/config live in the per-user folder, not in the `.exe`).
 
 ### To publish a new version
 1. Make your code changes.
-2. Bump the version in [`backend/version.py`](backend/version.py) — e.g. `__version__ = "1.0.1"`.
+2. Bump the version in [`backend/core/version.py`](backend/core/version.py) — e.g. `__version__ = "1.0.1"`.
 3. Commit and push to `main`.
 4. Tag and push the tag:
    ```bash
