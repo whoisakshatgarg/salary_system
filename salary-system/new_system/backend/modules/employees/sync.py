@@ -21,8 +21,8 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from .modules.payroll import repo
-from .core import paths
+from . import repo
+from ...core import paths
 
 CONFIG_PATH = paths.config_dir() / "sync.json"
 APP_TAG = "apex-salary-sync"
