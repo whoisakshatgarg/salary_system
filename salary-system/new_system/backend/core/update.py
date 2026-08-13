@@ -2,7 +2,7 @@
 
 How a new version reaches the two laptops:
 
-1. The developer bumps ``backend/version.py``, pushes, and tags ``v<version>``.
+1. The developer bumps ``backend/core/version.py``, pushes, and tags ``v<version>``.
 2. GitHub Actions builds both ``.exe``s and attaches them to a GitHub Release.
 3. On every launch each app calls :func:`check` (via ``/api/update/check``),
    which compares its own version against the newest release tag of the repo

@@ -101,6 +101,13 @@ def days_in_period(year: int, month: int) -> int:
     return calendar.monthrange(year, month)[1]
 
 
+def period_parts(period: str) -> tuple[int, int]:
+    """'YYYY-MM' -> (year, month). Shared by every module that keys on periods
+    (one definition, so period handling can never silently diverge)."""
+    y, m = period.split("-")
+    return int(y), int(m)
+
+
 def _maximal_runs(sorted_days: list[date], min_len: int) -> list[list[date]]:
     """Maximal runs of consecutive calendar days with length >= min_len.
 

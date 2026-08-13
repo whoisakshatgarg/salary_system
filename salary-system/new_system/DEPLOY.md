@@ -17,7 +17,7 @@ The two-machine model maps cleanly: **operator laptop → Operator app, CEO lapt
 
 - Double-clicking the `.exe` starts a private local web server (on `127.0.0.1`, a random port) and opens it in a **native window** (no browser address bar). Closing the window quits everything.
 - **Operator app** signs in automatically (kiosk) straight into attendance — no login prompt.
-- **Admin app** shows the CEO login (default `admin` / `admin123` — change it after first sign-in).
+- **Admin app** opens the shared login (default `admin` / `admin123` — change it after first sign-in); any account created in **Users & Access** can sign in and lands on the Home launcher showing only its granted modules.
 
 ### Where data is stored
 The database, the editable config, backups, and the session secret live in a normal per-user folder (created on first run, survives app updates):

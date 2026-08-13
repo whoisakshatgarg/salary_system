@@ -13,7 +13,7 @@ Each is a single self-contained .exe — the target laptop needs no Python.
 from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 # Bundle the UI and the default config templates. They land in the frozen
-# bundle root; backend/paths.py reads them from there (sys._MEIPASS) and copies
+# bundle root; backend/core/paths.py reads them from there (sys._MEIPASS) and copies
 # config into a writable per-user folder on first run.
 datas = [
     ("frontend", "frontend"),

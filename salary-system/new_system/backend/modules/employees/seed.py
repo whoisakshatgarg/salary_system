@@ -2,7 +2,7 @@
 default users forward from the legacy `old_system` into the new SQLite store.
 
 Ported verbatim from ``old_system/Payroll-System/add_emp_data_sys.py`` (employee
-master + per-employee leave balances). Run once:  ``python -m backend.seed``.
+master + per-employee leave balances). Run once:  ``python -m backend.modules.employees.seed``.
 
 Employees are inserted in their original emp_id order into an empty table, so
 each new ``employee.id`` equals the old ``emp_id`` (preserving every reference

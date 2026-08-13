@@ -11,19 +11,10 @@ permitted cross-module import (engine has no I/O and no state).
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import date, datetime
 
-from ..payroll.engine import DayMark, summarize_attendance
-
-
-def _period_parts(period: str) -> tuple[int, int]:
-    y, m = period.split("-")
-    return int(y), int(m)
-
-
-def row_to_dict(r: sqlite3.Row | None):
-    return dict(r) if r is not None else None
+from ...core.db import row_to_dict
+from ..payroll.engine import DayMark, period_parts, summarize_attendance
 
 
 # --------------------------------------------------------------------------- #
@@ -174,7 +165,7 @@ def save_attendance(conn, employee_id: int, period: str, days: list[dict], rules
     if not emp:
         raise ValueError("Employee not found")
 
-    year, month = _period_parts(period)
+    year, month = period_parts(period)
     marks = [
         DayMark(
             day=date(year, month, int(d["day"])),
@@ -399,7 +390,7 @@ def compute_attendance_grid(conn, period: str, entries: list[dict], rules: dict)
     computed stats + penalised days per employee — WITHOUT writing anything.
     Mirrors save_attendance's leave-bank handling so the preview equals what
     Publish would store."""
-    year, month = _period_parts(period)
+    year, month = period_parts(period)
     rows = []
     for e in entries:
         emp = get_employee(conn, e["employee_id"])

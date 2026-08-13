@@ -73,8 +73,8 @@ function shell() {
       try {
         this.user = await api("/api/login", { method: "POST", body: this.login });
         this.login.password = "";
-        await this.enter();
-      } catch (e) { this.loginError = e.message; }
+      } catch (e) { this.loginError = e.message; return; }
+      await this.enter();   // login succeeded — enter() reports its own failures
     },
     async kioskRetry() {
       try {
@@ -82,8 +82,14 @@ function shell() {
         window.location.href = "/payroll.html";
       } catch (e) { this.loginError = e.message; }
     },
+    homeError: "",
     async enter() {
-      this.data = await api("/api/modules");
+      // A signed-in user must never face a silent blank Home — surface the
+      // failure with a retry instead.
+      this.homeError = "";
+      try {
+        this.data = await api("/api/modules");
+      } catch (e) { this.homeError = e.message || "Couldn't load your modules"; }
       this.view = "home";
     },
     open(m) {

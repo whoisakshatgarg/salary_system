@@ -26,23 +26,19 @@ dynamic browser UI instead of pixel-positioned Tkinter windows.
 
 ```
 new_system/
-├── config/rules.json     # all configurable business rules (defaults = old system)
+├── config/               # rules.json (payroll policy) · sync.json · update.json
 ├── backend/
-│   ├── payroll.py        # ★ pure calculation engine (attendance → pay, no I/O)
-│   ├── rules.py          # load/save rules.json
-│   ├── db.py             # SQLite schema + connection (stdlib sqlite3)
-│   ├── auth.py           # PBKDF2 password hashing (stdlib)
-│   ├── seed.py           # migrate the 70 real employees + default logins
-│   ├── exporters.py      # CEO + Distribution .xlsx   (TODO — needs openpyxl)
-│   └── main.py           # FastAPI app + JSON API + serves the UI   (TODO)
-├── frontend/             # zero-build SPA (Tailwind + Alpine via CDN)   (TODO)
-├── data/                 # salary.db lives here (gitignore)
-├── tests/test_payroll.py # executable spec of the business rules (17 tests, green)
-└── requirements.txt
+│   ├── core/             # infrastructure: db, auth, deps, paths, registry,
+│   │                     # rules loader, edition, self-update, version
+│   ├── modules/          # employees/ · payroll/ · inventory.py · users.py
+│   └── main.py           # app assembly: session, update, backup, static mount
+├── frontend/             # index.html (shell) · payroll.html · inventory.html
+│                         # + shell.js / app.js / inventory.js · vendor/ (offline)
+├── data/                 # runtime state (gitignored)
+└── tests/                # unittest suite (payroll rules, inventory, users)
 ```
 
-`★` and the data layer are **done and tested today** using only the standard
-library. `TODO` items are the next phase (they need `pip install`).
+Full tree with one-liners: [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
 
 ## Business rules (all in `config/rules.json`)
 
@@ -56,11 +52,12 @@ All editable in `config/rules.json`; each is locked by a test in
   the leave/penalty scheme below.
 - **Non-overtime-eligible** employees: a **12-day/year paid-leave bank** (reset
   every January); absences beyond the bank are unpaid.
-- **Overtime-eligible** employees: no bank; **penalty days = consecutive-run
-  penalty + monthly-volume tier, stacked**:
-  - +1 per maximal run of **≥3 consecutive** non-Sunday absences (a 6-in-a-row is
-    one run = +1; a paid Sunday breaks a run).
-  - tier on **total** non-Sunday absences: 4–6 → +1, 7–12 → +2, **13+** → +3.
+- **Overtime-eligible** employees: no bank; **penalty days on a single
+  escalating scale — the highest applicable penalty applies (they never add)**:
+  - tier on **total** non-Sunday absences: 4–6 → 2, 7–12 → 3, **13+** → 4
+    (matched by lower bound, so 19 absences still lands in the top tier);
+  - below the lowest tier, a run of **≥3 consecutive** non-Sunday absences
+    costs 1 penalty day (a paid Sunday breaks a run).
 - Flat **CNC perfect-attendance bonus** (₹200), with name exclusions (slated to
   become a per-employee flag).
 
@@ -71,13 +68,11 @@ and the current-vs-previous-month export mismatch (uniform `YYYY-MM` everywhere)
 ## Run
 
 ```bash
-# 1. core works with the stdlib only — no install needed:
-../venv/bin/python -m unittest discover -s tests       # 17 tests
-../venv/bin/python -m backend.modules.employees.seed                     # create + populate data/salary.db
-
-# 2. web app (next phase, after deps land):
 ../venv/bin/pip install -r requirements.txt
-../venv/bin/uvicorn backend.main:app --reload
+../venv/bin/uvicorn backend.main:app --reload     # http://127.0.0.1:8000
+# (first start creates + seeds data/salary.db automatically; manual seed:
+#  ../venv/bin/python -m backend.modules.employees.seed)
+../venv/bin/python -m unittest discover -s tests  # the full suite
 ```
 
 ### Two machines (operator + CEO) — offline sync
@@ -110,12 +105,16 @@ under `/api/sync/*`, `/api/backup*`, `/api/attendance-status/*`; import history 
 the `sync_log` table. Both DBs start from the same seed so employee IDs line up
 from day one.
 
-### Roles & logins (created by the seed — CHANGE THESE)
+### Accounts (created by the seed — CHANGE THESE)
 
-| Login | Role | Can do |
+Sign-in happens once, in the app shell (`/`); after login the Home launcher
+shows one tile per module the account is granted. The owner manages accounts
+and grants in **Users & Access** (see `docs/USER_GUIDE.md`).
+
+| Login | Role | Can open |
 |---|---|---|
-| `admin` / `admin123` | **CEO** | Everything: employees, advances, salary calc + publish, exports, rules — and may override attendance metrics at calc time |
-| `operator` / `operator123` | **Attendance operator** | Attendance entry/view only. Cannot see advances, salaries, exports, or rules |
+| `admin` / `admin123` | **Owner/admin** | Every module + Users & Access; may override attendance metrics at calc time |
+| `operator` / `operator123` | **Staff** | Salary & Attendance only (attendance entry/view; no advances, salaries, exports or rules) |
 
 The operator records each month's attendance for every employee; the CEO then
 runs the salary calculation.
@@ -146,12 +145,12 @@ attendance record and the exported slip on **Publish**.
 - [x] Configurable rules file
 - [x] Pure payroll engine (attendance, leave, salary, bonus, advances)
 - [x] Employee + user migration (70 employees)
-- [x] Rule test suite (17 green)
-- [x] FastAPI JSON API (24 routes: employees, attendance, advances, calculate, publish, exports, rules)
+- [x] Test suite (payroll rules, inventory, users & access)
+- [x] FastAPI JSON API (modular routers: employees, payroll, inventory, users)
 - [x] CEO + Distribution `.xlsx` exporters (legacy layout; needs a real sample to byte-match)
 - [x] Browser UI (login, dashboard, employees, attendance grid, advances, salary table, history, exports, rules)
-- [x] Auth/session + role gating (admin vs temp)
-- [x] Self-update from GitHub Releases (`backend/version.py` + `backend/update.py` + `config/update.json`; release flow in `DEPLOY.md`)
+- [x] Auth/session + per-account module grants (shell login → Home launcher)
+- [x] Self-update from GitHub Releases (`backend/core/version.py` + `backend/core/update.py` + `config/update.json`; release flow in `DEPLOY.md`)
 
 ### Verified end-to-end (smoke test)
 

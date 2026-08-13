@@ -19,10 +19,19 @@ def get_db():
         conn.close()
 
 
-def current_user(session: str | None = Cookie(default=None)) -> dict:
+def current_user(session: str | None = Cookie(default=None),
+                 conn=Depends(get_db)) -> dict:
     user = auth.read_token(session)
     if not user:
         raise HTTPException(status_code=401, detail="Not logged in")
+    # The cookie lives 7 days — the DB is the authority, not the token: a
+    # deleted account dies instantly, a demoted admin loses admin instantly.
+    row = conn.execute(
+        "SELECT role FROM app_user WHERE username=?", (user["username"],)
+    ).fetchone()
+    if not row:
+        raise HTTPException(status_code=401, detail="This account no longer exists")
+    user["role"] = row["role"]
     return user
 
 

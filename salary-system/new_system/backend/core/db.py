@@ -202,6 +202,11 @@ CREATE INDEX IF NOT EXISTS idx_pay_period ON pay(period);
 """
 
 
+def row_to_dict(r: sqlite3.Row | None):
+    """sqlite3.Row -> plain dict (None passes through)."""
+    return dict(r) if r is not None else None
+
+
 def connect(db_path: str | Path | None = None) -> sqlite3.Connection:
     """Open a connection with row access by column name and FK enforcement."""
     path = Path(db_path) if db_path else DB_PATH

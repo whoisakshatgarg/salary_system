@@ -121,5 +121,51 @@ class AccountGuards(UsersBase):
         self.assertEqual(self.row("admin")["role"], "operator")
 
 
+class ReviewRegressions(UsersBase):
+    """Each test pins a defect confirmed (and fixed) in the adversarial review."""
+
+    def test_salary_grant_gates_the_whole_employees_router(self):
+        # A grants-less account must not reach roster/attendance/sync routes.
+        from backend.modules.employees.router import router as emp_router
+        self.assertTrue(emp_router.dependencies, "employees router must carry a gate")
+        users.create_user(users.UserIn(username="nogrants", password="secret1",
+                                       grants=[]), ADMIN, self.conn)
+        dep = require_module("salary")
+        with self.assertRaises(HTTPException) as cm:
+            dep(user={"username": "nogrants", "role": "operator"}, conn=self.conn)
+        self.assertEqual(cm.exception.status_code, 403)
+
+    def test_deleted_account_loses_access_instantly(self):
+        from backend.core.auth import create_token
+        from backend.core.deps import current_user
+        users.create_user(users.UserIn(username="gone", password="secret1"),
+                          ADMIN, self.conn)
+        token = create_token("gone", "operator")
+        self.assertEqual(current_user(session=token, conn=self.conn)["username"], "gone")
+        uid = self.row("gone")["id"]
+        users.delete_user(uid, ADMIN, self.conn)
+        with self.assertRaises(HTTPException) as cm:  # valid cookie, dead account
+            current_user(session=token, conn=self.conn)
+        self.assertEqual(cm.exception.status_code, 401)
+
+    def test_demoted_admin_role_comes_from_db_not_cookie(self):
+        from backend.core.auth import create_token
+        from backend.core.deps import current_user
+        users.create_user(users.UserIn(username="boss2", password="secret1",
+                                       role="admin"), ADMIN, self.conn)
+        token = create_token("boss2", "admin")   # 7-day cookie stamped 'admin'
+        uid = self.row("boss2")["id"]
+        users.update_user(uid, users.UserUpdateIn(role="operator"), ADMIN, self.conn)
+        self.assertEqual(current_user(session=token, conn=self.conn)["role"], "operator")
+
+    def test_username_charset_protects_token_format(self):
+        for bad in ("a|b", "x\ny", "há¡"):
+            with self.assertRaises(HTTPException):
+                users.create_user(users.UserIn(username=bad, password="secret1"),
+                                  ADMIN, self.conn)
+        users.create_user(users.UserIn(username="R.K. Sharma-2", password="secret1"),
+                          ADMIN, self.conn)  # spaces, dots, dashes stay legal
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

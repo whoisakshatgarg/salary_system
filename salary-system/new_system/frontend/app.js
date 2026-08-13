@@ -74,6 +74,9 @@ function app() {
         this.edition = ed.edition;
         this.version = ed.version;
       } catch (_) {}
+      // The kiosk laptop never sees the shell (it lands here directly), so it
+      // must run the launch-time update check itself. Admin gets it in the shell.
+      if (this.isOperatorEdition) this.checkUpdates();   // not awaited
       try {
         // Operator app: sign in automatically (kiosk). Admin: resume the
         // shell's session — never show a second login here.

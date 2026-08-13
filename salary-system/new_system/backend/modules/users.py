@@ -10,6 +10,7 @@ Admin-only, and dead in the Operator edition (require_admin already blocks it).
 from __future__ import annotations
 
 import json
+import re
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -96,6 +97,11 @@ def create_user(body: UserIn, user: dict = Depends(require_admin), conn=Depends(
     username = body.username.strip()
     if not username:
         raise HTTPException(status_code=400, detail="Username is required")
+    # The session token is '|'-delimited (core/auth.py) — keep usernames to a
+    # safe character set so a name can never corrupt its own token.
+    if not re.fullmatch(r"[A-Za-z0-9_.\- ]{1,40}", username):
+        raise HTTPException(status_code=400,
+                            detail="Username may only use letters, digits, spaces and _ . -")
     if len(body.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     _validate(body.role, body.grants)
@@ -112,35 +118,48 @@ def create_user(body: UserIn, user: dict = Depends(require_admin), conn=Depends(
 @router.put("/api/users/{uid}")
 def update_user(uid: int, body: UserUpdateIn, user: dict = Depends(require_admin),
                 conn=Depends(get_db)):
-    row = conn.execute("SELECT * FROM app_user WHERE id=?", (uid,)).fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail="Account not found")
     _validate(body.role, body.grants)
-    if (body.role == "operator" and row["role"] == "admin" and _count_admins(conn) <= 1):
-        raise HTTPException(status_code=400,
-                            detail="This is the only admin account — make another admin first")
-    if body.role is not None:
-        conn.execute("UPDATE app_user SET role=? WHERE id=?", (body.role, uid))
-    if body.grants is not None:
-        conn.execute("UPDATE app_user SET grants=? WHERE id=?", (json.dumps(body.grants), uid))
-    if body.password:
-        if len(body.password) < 6:
-            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
-        conn.execute("UPDATE app_user SET password_hash=? WHERE id=?",
-                     (hash_password(body.password), uid))
-    conn.commit()
+    if body.password and len(body.password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    # BEGIN IMMEDIATE makes the last-admin check atomic with the write — two
+    # concurrent demotes can't slip past each other and leave zero admins.
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        row = conn.execute("SELECT * FROM app_user WHERE id=?", (uid,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Account not found")
+        if (body.role == "operator" and row["role"] == "admin" and _count_admins(conn) <= 1):
+            raise HTTPException(status_code=400,
+                                detail="This is the only admin account — make another admin first")
+        if body.role is not None:
+            conn.execute("UPDATE app_user SET role=? WHERE id=?", (body.role, uid))
+        if body.grants is not None:
+            conn.execute("UPDATE app_user SET grants=? WHERE id=?", (json.dumps(body.grants), uid))
+        if body.password:
+            conn.execute("UPDATE app_user SET password_hash=? WHERE id=?",
+                         (hash_password(body.password), uid))
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
     return [_user_out(r) for r in conn.execute("SELECT * FROM app_user ORDER BY id")]
 
 
 @router.delete("/api/users/{uid}")
 def delete_user(uid: int, user: dict = Depends(require_admin), conn=Depends(get_db)):
-    row = conn.execute("SELECT * FROM app_user WHERE id=?", (uid,)).fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail="Account not found")
-    if row["username"] == user["username"]:
-        raise HTTPException(status_code=400, detail="You can't delete the account you're signed in with")
-    if row["role"] == "admin" and _count_admins(conn) <= 1:
-        raise HTTPException(status_code=400, detail="This is the only admin account")
-    conn.execute("DELETE FROM app_user WHERE id=?", (uid,))
-    conn.commit()
+    conn.execute("BEGIN IMMEDIATE")  # atomic with the last-admin check (see update)
+    try:
+        row = conn.execute("SELECT * FROM app_user WHERE id=?", (uid,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Account not found")
+        if row["username"] == user["username"]:
+            raise HTTPException(status_code=400,
+                                detail="You can't delete the account you're signed in with")
+        if row["role"] == "admin" and _count_admins(conn) <= 1:
+            raise HTTPException(status_code=400, detail="This is the only admin account")
+        conn.execute("DELETE FROM app_user WHERE id=?", (uid,))
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
     return [_user_out(r) for r in conn.execute("SELECT * FROM app_user ORDER BY id")]

@@ -99,6 +99,9 @@ salary_system/                        repo root
 - Dev: `../venv/bin/uvicorn backend.main:app --reload` from `new_system/`
   (auto-creates + seeds `data/salary.db`). Force an edition:
   `SALARY_EDITION=operator`. Isolated data for experiments: `SALARY_DATA_DIR=/tmp/x`.
+- **Rule: live smoke/E2E/screenshot runs MUST point `SALARY_DATA_DIR` at a
+  scratch directory** — never the real `data/` (copy `data/salary.db` into the
+  scratch dir first if realistic data is wanted). The unit tests already do this.
 - Tests: `../venv/bin/python -m unittest discover -s tests`.
 - Build/ship: see `salary-system/new_system/DEPLOY.md` (tag `vX.Y.Z` after bumping
   `backend/core/version.py`; CI publishes the Release the apps auto-update from).

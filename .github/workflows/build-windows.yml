@@ -8,7 +8,7 @@
 #     the update on its next launch.
 #
 # Publishing a new version, start to finish:
-#   1. Edit salary-system/new_system/backend/version.py  →  __version__ = "1.0.1"
+#   1. Edit salary-system/new_system/backend/core/version.py  →  __version__ = "1.0.1"
 #   2. Commit and push your changes to main.
 #   3. git tag v1.0.1 && git push origin v1.0.1
 # The guard step below fails the build if the tag and version.py disagree,
@@ -46,7 +46,7 @@ jobs:
           version = re.search(r'__version__\s*=\s*"([^"]+)"', code).group(1)
           tag = os.environ["TAG"].lstrip("v")
           if version != tag:
-              sys.exit(f"backend/version.py says {version} but the tag is v{tag} — "
+              sys.exit(f"backend/core/version.py says {version} but the tag is v{tag} — "
                        f"bump version.py (and commit) before tagging.")
           print(f"OK: releasing v{version}")
         working-directory: ${{ github.workspace }}

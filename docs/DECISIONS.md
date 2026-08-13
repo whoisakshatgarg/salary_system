@@ -59,3 +59,9 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   removed; zero URL/behavior changes (verified per step).
 - **Shell built** (login, launcher, placeholders, Users & Access, update popup
   moved to shell); payroll SPA relocated to `/payroll.html`.
+- **Post-review hardening** (32-agent adversarial review): the `salary` grant is
+  now enforced server-side (whole employees router behind `require_module`);
+  `current_user` re-checks the DB every request so deleted/demoted accounts lose
+  access instantly (not after the 7-day cookie); last-admin guards made atomic;
+  username charset restricted (token safety); operator kiosk regained the
+  launch-time update check; shared period/row helpers deduplicated.

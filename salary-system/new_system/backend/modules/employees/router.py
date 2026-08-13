@@ -13,11 +13,16 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from ...core.deps import current_user, get_db, require_admin
+from ...core.deps import current_user, get_db, require_admin, require_module
 from ...core.rules import get_rules
 from . import repo, sync
 
-router = APIRouter()
+# Router-level gate: EVERY route here needs the 'salary' grant (admins pass
+# implicitly; the Operator edition is allowed exactly this key). Without this,
+# any signed-in account could read the roster — salaries included — over the
+# API even when its launcher showed no Salary tile. Admin-only routes keep
+# their explicit require_admin on top.
+router = APIRouter(dependencies=[Depends(require_module("salary"))])
 
 
 class EmployeeIn(BaseModel):

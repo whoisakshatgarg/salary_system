@@ -132,6 +132,15 @@
       <section x-show="view === 'home'">
         <h1 class="text-2xl font-bold mb-1">Home</h1>
         <p class="text-slate-500 text-sm mb-6">Pick a module. Your account sees only what it has access to.</p>
+        <div x-show="homeError" class="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-4 mb-4 text-sm flex items-center gap-3">
+          <span x-text="homeError"></span>
+          <button @click="enter()" class="ml-auto bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium">Try again</button>
+        </div>
+        <div x-show="data && !isAdmin && !grantedModules.length"
+             class="bg-white rounded-xl shadow-sm p-8 text-center text-slate-500 text-sm mb-4">
+          Your account doesn't have access to any modules yet — ask the owner to
+          grant some in <b>Users &amp; Access</b>.
+        </div>
         <div class="grid grid-cols-3 gap-4">
           <template x-for="m in grantedModules" :key="m.key">
             <button @click="open(m)"

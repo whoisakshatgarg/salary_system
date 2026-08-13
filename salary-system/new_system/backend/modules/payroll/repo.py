@@ -9,20 +9,11 @@ rules live in engine.py.
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import date
 
+from ...core.db import row_to_dict
 from ..employees import repo as employees_repo
-from .engine import SalaryBreakdown, compute_salary, days_in_period
-
-
-def _period_parts(period: str) -> tuple[int, int]:
-    y, m = period.split("-")
-    return int(y), int(m)
-
-
-def row_to_dict(r: sqlite3.Row | None):
-    return dict(r) if r is not None else None
+from .engine import SalaryBreakdown, compute_salary, days_in_period, period_parts
 
 
 # --------------------------------------------------------------------------- #
@@ -75,7 +66,7 @@ def advances_by_period(conn, period: str) -> list[dict]:
 def prepare_payroll(conn, period: str, rules: dict) -> dict:
     """Build the editable salary table for a period: one row per active
     employee, pre-filled from attendance + advances."""
-    year, month = _period_parts(period)
+    year, month = period_parts(period)
     period_days = days_in_period(year, month)
     rows = []
     for emp in employees_repo.list_employees(conn, active_only=True):
@@ -123,7 +114,7 @@ def prepare_payroll(conn, period: str, rules: dict) -> dict:
 def compute_row(row: dict, period: str, rules: dict) -> dict:
     """Run one editable row through the engine and return the computed result
     (preview, no persistence)."""
-    year, month = _period_parts(period)
+    year, month = period_parts(period)
     period_days = days_in_period(year, month)
     att_pct = float(row.get("attendance_percentage") or 0)
     fraction = att_pct / 100.0
@@ -176,7 +167,7 @@ def compute_row(row: dict, period: str, rules: dict) -> dict:
 
 def publish_payroll(conn, period: str, rows: list[dict], rules: dict) -> dict:
     """Persist computed pay for a period and post the advance ledger entries."""
-    year, month = _period_parts(period)
+    year, month = period_parts(period)
     today = date.today().isoformat()
     last_day = f"{period}-{days_in_period(year, month):02d}"
     published = 0
