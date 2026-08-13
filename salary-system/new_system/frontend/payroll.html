@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APEX THERMOCON — Salary System</title>
+  <!-- Vendored locally so the app works fully offline (no CDN needed). -->
+  <script src="vendor/tailwind.js"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { brand: { 600: "#1d4ed8", 700: "#1e40af" } } } } };
+  </script>
+  <script defer src="app.js"></script>
+  <script defer src="vendor/alpine.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    .nav-btn { @apply w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition; }
+    input, select { @apply outline-none; }
+    table { border-collapse: collapse; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800" x-data="app()" x-init="boot()" x-cloak>
+
+  <!-- Toast (above the update modal's z-[60], so apply errors stay visible) -->
+  <div x-show="toast.show" x-transition
+       class="fixed top-4 right-4 z-[70] px-4 py-3 rounded-lg shadow-lg text-white text-sm"
+       :class="toast.kind === 'err' ? 'bg-rose-600' : 'bg-emerald-600'"
+       x-text="toast.msg"></div>
+
+  <!-- ====================== UPDATE-AVAILABLE POPUP ====================== -->
+  <!-- Shown only when a newer release exists (checked quietly at startup). -->
+  <div x-show="upd.show" x-cloak
+       class="fixed inset-0 z-[60] bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+      <template x-if="!upd.done">
+        <div>
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-full bg-brand-600/10 text-brand-700 flex items-center justify-center text-xl">⬆</div>
+            <div>
+              <div class="text-lg font-bold text-slate-800">Update available</div>
+              <div class="text-sm text-slate-500">
+                Version <b x-text="'v' + (upd.info?.latest || '')"></b> is ready —
+                you have <span x-text="'v' + (upd.info?.current || '')"></span>.
+              </div>
+            </div>
+          </div>
+          <p x-show="upd.info?.notes" class="text-xs text-slate-500 bg-slate-50 rounded-lg p-3 mb-3 max-h-28 overflow-auto whitespace-pre-line"
+             x-text="upd.info?.notes"></p>
+          <p x-show="upd.info && !upd.info.can_apply" class="text-xs text-amber-700 bg-amber-50 rounded-lg p-3 mb-3">
+            This copy can't update itself (it runs from source or the new build isn't
+            finished yet). On the installed Windows app this button does everything.
+          </p>
+          <p class="text-xs text-slate-400 mb-4">
+            Your data is safe — employees, attendance and salaries live outside the app
+            and are untouched by updates.
+          </p>
+          <div class="flex gap-3">
+            <button @click="applyUpdate()" :disabled="upd.busy || !upd.info?.can_apply"
+                    class="flex-1 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg"
+                    x-text="upd.busy ? 'Downloading…' : 'Update now'"></button>
+            <button @click="upd.show = false" :disabled="upd.busy"
+                    class="flex-1 border border-slate-300 hover:bg-slate-50 disabled:opacity-50 text-slate-600 font-medium py-2.5 rounded-lg">
+              Not now
+            </button>
+          </div>
+        </div>
+      </template>
+      <template x-if="upd.done">
+        <div class="text-center py-4">
+          <div class="text-3xl mb-2">✅</div>
+          <div class="text-lg font-bold text-slate-800 mb-1">Update downloaded</div>
+          <p class="text-sm text-slate-500">
+            The app will now close and reopen itself with the new version.<br />
+            If it doesn't come back in ~15 seconds, just double-click it again.
+          </p>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- ============================= LOGIN ============================= -->
+  <!-- Operator app signs in automatically (kiosk); this form is the CEO app's. -->
+  <div x-show="booted && !user && !isOperatorEdition" class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+      <div class="text-center mb-6">
+        <div class="text-2xl font-bold text-brand-700">APEX THERMOCON</div>
+        <div class="text-slate-500 text-sm mt-1">Salary Management System — CEO</div>
+      </div>
+      <form @submit.prevent="doLogin()" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Username</label>
+          <input x-model="login.username" type="text" autocomplete="username"
+                 class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-600" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Password</label>
+          <input x-model="login.password" type="password" autocomplete="current-password"
+                 class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-600" />
+        </div>
+        <p x-show="loginError" x-text="loginError" class="text-rose-600 text-sm"></p>
+        <button class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg">
+          Sign in
+        </button>
+      </form>
+      <p class="text-xs text-slate-400 mt-4 text-center">Default CEO login: admin / admin123 — change it after first sign-in.</p>
+    </div>
+  </div>
+
+  <!-- Operator app: shown only if the automatic (kiosk) sign-in fails. -->
+  <div x-show="booted && !user && isOperatorEdition" class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 text-center">
+      <div class="text-2xl font-bold text-brand-700">APEX THERMOCON</div>
+      <div class="text-slate-500 text-sm mt-1 mb-5">Attendance — Operator</div>
+      <p x-show="loginError" x-text="loginError" class="text-rose-600 text-sm mb-3"></p>
+      <button @click="kioskSignIn()"
+              class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg">
+        Start
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================= APP SHELL ============================= -->
+  <div x-show="user" class="min-h-screen flex">
+    <!-- Sidebar -->
+    <aside class="w-60 bg-slate-900 text-slate-300 flex flex-col p-4 shrink-0">
+      <div class="px-2 mb-6">
+        <div class="text-white font-bold text-lg leading-tight" x-text="meta.company_name"></div>
+        <div class="text-xs mt-0.5">
+          <span class="inline-block px-1.5 py-0.5 rounded font-medium"
+                :class="isOperatorEdition ? 'bg-amber-500/20 text-amber-300' : 'bg-brand-600/30 text-brand-200'"
+                x-text="isOperatorEdition ? 'Operator' : 'CEO / Admin'"></span>
+        </div>
+      </div>
+      <nav class="space-y-1 flex-1">
+        <template x-for="item in [
+            {k:'dashboard', label:'Dashboard', admin:true},
+            {k:'employees', label:'Employees', admin:true},
+            {k:'attendance', label:'Attendance', admin:false},
+            {k:'advances', label:'Advances', admin:true},
+            {k:'salary', label:'Calculate Salary', admin:true},
+            {k:'history', label:'View Salaries', admin:true},
+            {k:'exports', label:'Export Slips', admin:true},
+            {k:'sync', label:'Sync / Exchange', admin:false},
+            {k:'rules', label:'Rules', admin:true}]">
+          <button x-show="!item.admin || isAdmin" @click="go(item.k)"
+                  class="nav-btn block"
+                  :class="view === item.k ? 'bg-brand-600 text-white' : 'hover:bg-slate-800'"
+                  x-text="item.label"></button>
+        </template>
+      </nav>
+      <div class="border-t border-slate-700 pt-3 px-2">
+        <a x-show="!isOperatorEdition" href="/" class="block mb-2 text-sm text-slate-300 hover:text-white font-medium">⌂ All modules</a>
+        <div class="text-sm text-white" x-text="user?.username"></div>
+        <div class="text-xs text-slate-400 mb-2 capitalize" x-text="user?.role"></div>
+        <button x-show="!isOperatorEdition" @click="logout()" class="text-sm text-rose-400 hover:text-rose-300">Logout</button>
+        <!-- Click the version to check for updates on demand. -->
+        <button @click="checkUpdates(true)" title="Check for updates"
+                class="block mt-2 text-[11px] text-slate-500 hover:text-slate-300"
+                x-text="version ? 'v' + version + ' · check for updates' : ''"></button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 p-8 overflow-auto h-screen">
+
+      <!-- incoming-sync banner (auto-check on login) -->
+      <div x-show="sync.incoming.length" x-cloak
+           class="mb-5 rounded-lg bg-blue-50 border border-blue-200 p-3 flex items-center justify-between">
+        <div class="text-sm text-blue-800">
+          📥 <b x-text="sync.incoming.length"></b> update<span x-show="sync.incoming.length>1">s</span> ready to import
+          (<span x-text="sync.incoming.map(i => incomingLabel(i)).join(', ')"></span>)
+        </div>
+        <button @click="go('sync')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium">Review &amp; import</button>
+      </div>
+
+      <!-- operator attendance-deadline reminder (operator only) -->
+      <div x-show="reminder && !isAdmin" x-cloak class="mb-5 rounded-lg p-3 flex items-center justify-between"
+           :class="reminder && reminder.daysLeft < 0 ? 'bg-rose-50 border border-rose-200' : 'bg-amber-50 border border-amber-200'">
+        <div class="text-sm" :class="reminder && reminder.daysLeft < 0 ? 'text-rose-800' : 'text-amber-800'">
+          ⏰ <b x-text="'Fill ' + periodName(reminder?.period) + ' attendance'"></b>
+          — <span x-text="(reminder?.filled||0) + '/' + (reminder?.total_active||0) + ' employees done'"></span>.
+          <span x-show="reminder && reminder.daysLeft > 0" x-text="'Due by the 7th — ' + reminder.daysLeft + ' day' + (reminder.daysLeft===1?'':'s') + ' left.'"></span>
+          <span x-show="reminder && reminder.daysLeft === 0"><b>Due today (the 7th).</b></span>
+          <span x-show="reminder && reminder.daysLeft < 0" x-text="'Overdue by ' + (-reminder.daysLeft) + ' day' + ((-reminder.daysLeft)===1?'':'s') + '.'"></span>
+        </div>
+        <button @click="go('attendance')" class="px-3 py-1.5 rounded-lg text-xs font-medium text-white"
+                :class="reminder && reminder.daysLeft < 0 ? 'bg-rose-600 hover:bg-rose-700' : 'bg-amber-600 hover:bg-amber-700'">Fill now</button>
+      </div>
+
+      <!-- DASHBOARD -->
+      <section x-show="view==='dashboard'">
+        <h1 class="text-2xl font-bold mb-6">Dashboard</h1>
+        <div class="grid grid-cols-4 gap-4">
+          <template x-for="card in [
+              {label:'Employees', val: dash.total},
+              {label:'CNC Staff', val: dash.cnc},
+              {label:'Overtime-eligible', val: dash.ot},
+              {label:'Outstanding Advance', val: money(dash.advance)}]">
+            <div class="bg-white rounded-xl shadow-sm p-5">
+              <div class="text-slate-500 text-sm" x-text="card.label"></div>
+              <div class="text-2xl font-bold mt-1" x-text="card.val"></div>
+            </div>
+          </template>
+        </div>
+        <!-- Inventory opens in its own window (separate module, same session) -->
+        <button @click="openInventory()"
+                class="mt-6 bg-white rounded-xl shadow-sm hover:shadow-md transition p-5 flex items-center gap-4 text-left w-full max-w-lg">
+          <div class="w-12 h-12 rounded-xl bg-brand-600/10 text-brand-700 flex items-center justify-center text-2xl">⛭</div>
+          <div>
+            <div class="font-bold text-slate-800">Raw Material Inventory</div>
+            <div class="text-sm text-slate-500">Heats, rod stock, usage log &amp; mill certificates</div>
+          </div>
+          <div class="ml-auto text-slate-400 text-lg">↗</div>
+        </button>
+        <p class="text-slate-500 mt-8 text-sm">Pick a section from the left to manage employees, enter attendance, issue advances, calculate the monthly salary, or export the CEO / Distribution slips.</p>
+      </section>
+
+      <!-- EMPLOYEES -->
+      <section x-show="view==='employees'">
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-2xl font-bold">Employees</h1>
+          <div class="flex gap-3">
+            <input x-model="empSearch" placeholder="Search name / dept / id"
+                   class="border rounded-lg px-3 py-2 text-sm w-64" />
+            <button x-show="isAdmin" @click="newEmployee()"
+                    class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">+ Add</button>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-left">
+              <tr>
+                <th class="px-4 py-3">ID</th><th class="px-4 py-3">Name</th>
+                <th class="px-4 py-3">Dept</th><th class="px-4 py-3 text-right">Base</th>
+                <th class="px-4 py-3 text-center">PF</th><th class="px-4 py-3 text-center">ESI</th>
+                <th class="px-4 py-3 text-center">OT</th><th class="px-4 py-3 text-right">Advance</th>
+                <th class="px-4 py-3 text-right">Leave</th><th class="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="e in filteredEmployees" :key="e.id">
+                <tr class="border-t hover:bg-slate-50" :class="!e.active && 'opacity-40'">
+                  <td class="px-4 py-2.5" x-text="e.id"></td>
+                  <td class="px-4 py-2.5">
+                    <button @click="openProfile(e.id)" class="font-medium text-brand-600 hover:underline text-left"
+                            title="View full profile" x-text="e.name"></button>
+                  </td>
+                  <td class="px-4 py-2.5" x-text="e.dept"></td>
+                  <td class="px-4 py-2.5 text-right" x-text="money(e.base_salary)"></td>
+                  <td class="px-4 py-2.5 text-center" x-text="e.pf_applicable?'✓':'—'"></td>
+                  <td class="px-4 py-2.5 text-center" x-text="e.esi_applicable?'✓':'—'"></td>
+                  <td class="px-4 py-2.5 text-center" x-text="e.overtime_eligible?'✓':'—'"></td>
+                  <td class="px-4 py-2.5 text-right" x-text="money(e.rem_advance)"></td>
+                  <td class="px-4 py-2.5 text-right" x-text="e.overtime_eligible?'—':e.leave_balance"></td>
+                  <td class="px-4 py-2.5 text-right whitespace-nowrap" x-show="isAdmin">
+                    <button @click="editEmployee(e)" class="text-brand-600 hover:underline mr-3">Edit</button>
+                    <button @click="toggleActive(e)" class="text-slate-400 hover:text-rose-600"
+                            x-text="e.active?'Disable':'Enable'"></button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ATTENDANCE -->
+      <section x-show="view==='attendance'">
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-2xl font-bold">Attendance</h1>
+          <div class="inline-flex rounded-lg border bg-white p-1 text-sm">
+            <button @click="attMode='grid'; if(!grid.rows.length) loadGrid()"
+                    class="px-3 py-1.5 rounded-md font-medium"
+                    :class="attMode==='grid' ? 'bg-brand-600 text-white' : 'text-slate-600'">All employees</button>
+            <button @click="attMode='single'"
+                    class="px-3 py-1.5 rounded-md font-medium"
+                    :class="attMode==='single' ? 'bg-brand-600 text-white' : 'text-slate-600'">Single employee</button>
+          </div>
+        </div>
+
+        <!-- ===================== GRID MODE (all employees) ===================== -->
+        <div x-show="attMode==='grid'">
+          <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-3 items-end">
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">Month</label>
+              <input type="month" x-model="grid.period" class="border rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <button @click="loadGrid()" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Load month</button>
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">Department</label>
+              <select x-model="grid.dept" class="border rounded-lg px-3 py-2 text-sm">
+                <option value="">All departments</option>
+                <template x-for="d in meta.departments" :key="d"><option x-text="d"></option></template>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">Find</label>
+              <input x-model="grid.search" placeholder="name or id" class="border rounded-lg px-3 py-2 text-sm w-44" />
+            </div>
+            <div class="ml-auto flex items-center gap-2">
+              <span x-show="grid.rows.length" class="text-xs text-slate-400 mr-1" x-text="`${gridFiltered.length} of ${grid.rows.length} shown`"></span>
+              <!-- CEO: Calculate → review → Publish (nothing saved until Publish) -->
+              <template x-if="isAdmin">
+                <span class="flex items-center gap-2">
+                  <button @click="calculateGrid()" :disabled="!grid.rows.length"
+                          class="bg-slate-700 hover:bg-slate-800 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium">Calculate</button>
+                  <button @click="reloadGrid()" :disabled="!grid.rows.length"
+                          class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium">Reload</button>
+                  <button @click="saveGrid()" :disabled="!grid.rows.length || grid.loading"
+                          class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white px-5 py-2 rounded-lg text-sm font-semibold"
+                          x-text="grid.loading ? 'Publishing…' : 'Publish'"></button>
+                </span>
+              </template>
+              <!-- Operator: enter + save -->
+              <template x-if="!isAdmin">
+                <span class="flex items-center gap-2">
+                  <button @click="calculateGridOperator()" :disabled="!grid.rows.length"
+                          class="bg-slate-700 hover:bg-slate-800 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium">Calculate</button>
+                  <button @click="reloadGrid()" :disabled="!grid.rows.length"
+                          class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium">Reload</button>
+                  <button @click="saveGrid()" :disabled="!grid.rows.length || grid.loading"
+                          class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white px-5 py-2 rounded-lg text-sm font-semibold"
+                          x-text="grid.loading ? 'Saving…' : 'Save all'"></button>
+                </span>
+              </template>
+            </div>
+          </div>
+          <p x-show="isAdmin && grid.rows.length" class="text-xs text-slate-500 mb-2">
+            <b>Calculate</b> previews the stats &amp; penalty boxes from your current edits without saving · <b>Publish</b> saves · <b>Reload</b> reverts to the last saved attendance.
+            <span x-show="grid.calculated" class="text-amber-600">Showing calculated (unsaved) figures — Publish to keep them.</span>
+          </p>
+
+          <div x-show="grid.rows.length" class="bg-white rounded-xl shadow-sm overflow-auto max-h-[72vh]">
+            <table class="text-xs border-separate" style="border-spacing:0">
+              <thead>
+                <tr>
+                  <th class="sticky top-0 left-0 z-30 bg-slate-100 px-3 py-2 text-left border-b border-r min-w-[170px]">Employee</th>
+                  <template x-for="dm in grid.days" :key="dm.day">
+                    <th class="sticky top-0 z-20 px-1 py-1 text-center border-b font-medium"
+                        :class="dm.sun ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'">
+                      <div x-text="dm.day"></div>
+                      <div class="text-[9px] font-normal opacity-70" x-text="dm.wd"></div>
+                    </th>
+                  </template>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="r in gridFiltered" :key="r.employee_id">
+                  <tr>
+                    <td class="sticky left-0 z-10 bg-white px-3 py-1 border-b border-r whitespace-nowrap">
+                      <button @click="openSingle(r.employee_id)"
+                              class="font-medium text-brand-600 hover:underline text-left"
+                              title="Open this employee's calendar" x-text="r.name"></button>
+                      <div class="text-[10px] text-slate-400 flex gap-2 items-center">
+                        <span x-text="r.dept"></span>
+                        <button x-show="!isAdmin" @click="gridRowAllPresent(r)" class="text-brand-600 hover:underline">all P</button>
+                        <button x-show="!isAdmin && r.overtime_eligible" @click="gridRowOT(r)" class="text-brand-600 hover:underline">OT…</button>
+                      </div>
+                      <!-- CEO audit: 2×2 computed stats per employee -->
+                      <div x-show="isAdmin && r.summary" class="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-slate-500 w-[160px]">
+                        <span>Present <b class="text-emerald-700" x-text="r.summary?.present_days"></b></span>
+                        <span>OT <b class="text-blue-700" x-text="r.summary?.overtime_hours"></b></span>
+                        <span>Holidays <b class="text-amber-700" x-text="r.summary?.holidays"></b></span>
+                        <span>Penalty <b class="text-rose-700" x-text="r.summary?.penalty_days"></b></span>
+                      </div>
+                      <!-- Operator tally: Present/Absent/OT (after Calculate) -->
+                      <div x-show="!isAdmin && r.opStats" class="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-slate-500 w-[160px]">
+                        <span>Present <b class="text-emerald-700" x-text="r.opStats?.present"></b></span>
+                        <span>Absent <b class="text-rose-700" x-text="r.opStats?.absent"></b></span>
+                        <span class="col-span-2">Overtime <b class="text-blue-700" x-text="r.opStats?.overtime"></b></span>
+                      </div>
+                    </td>
+                    <template x-for="dm in grid.days" :key="dm.day">
+                      <td class="p-0.5 text-center border-b align-top" :class="dm.sun ? 'bg-amber-50' : ''">
+                        <button @click="gridToggle(r.cells[dm.day])"
+                                class="block w-9 rounded text-[10px] font-bold leading-4"
+                                :class="statusClass(grid.period, dm.day, r.cells[dm.day].status) + (isAdmin && r.penalized_days && r.penalized_days.includes(dm.day) && r.cells[dm.day].status==='A' ? ' ring-2 ring-rose-500' : '')"
+                                x-text="statusLabel(grid.period, dm.day, r.cells[dm.day].status)"></button>
+                        <input type="number" step="0.5"
+                               :disabled="r.cells[dm.day].status==='A' || !r.overtime_eligible"
+                               x-model="r.cells[dm.day].overtime" placeholder="·"
+                               class="w-9 mt-0.5 border rounded text-[10px] text-center px-0.5 py-0.5 disabled:bg-slate-100 disabled:text-slate-300" />
+                      </td>
+                    </template>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">
+            Everyone defaults to <b>Present</b> — just toggle absences to <b>A</b> and type overtime hours where needed, then <b>Save all</b>.
+            Use the per-row <b>all P</b> / <b>OT…</b> shortcuts, and the department filter to focus. Sunday columns are shaded and show <b>S</b> (paid weekly-off — still counts as present; absent Sundays stay paid too).
+          </p>
+        </div>
+
+        <!-- ===================== SINGLE MODE (calendar) ===================== -->
+        <div x-show="attMode==='single'">
+        <div class="bg-white rounded-xl shadow-sm p-5 mb-5 flex flex-wrap gap-4 items-end">
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Find</label>
+            <input x-model="att.search" placeholder="name or id" class="border rounded-lg px-3 py-2 text-sm w-40" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Department</label>
+            <select x-model="att.dept" class="border rounded-lg px-3 py-2 text-sm">
+              <option value="">All departments</option>
+              <template x-for="d in meta.departments" :key="d"><option x-text="d"></option></template>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Employee <span class="text-slate-300" x-text="`(${singleEmployees.length})`"></span></label>
+            <select x-model.number="att.empId" class="border rounded-lg px-3 py-2 text-sm w-72">
+              <template x-for="e in singleEmployees" :key="e.id">
+                <option :value="e.id" x-text="`${e.name} — ${e.dept} (#${e.id})`"></option>
+              </template>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Month</label>
+            <input type="month" x-model="att.period" class="border rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <button @click="loadAttendance()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Load Days</button>
+          <span x-show="att.emp"
+                class="inline-block px-3 py-2 rounded-lg text-sm font-medium border"
+                :class="att.emp && att.emp.overtime_eligible
+                          ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                          : 'bg-amber-100 text-amber-700 border-amber-200'"
+                x-text="att.emp && (att.emp.overtime_eligible
+                          ? 'Overtime-eligible — enter OT hours'
+                          : ('No overtime' + (isAdmin ? ' — leave bank: ' + att.emp.leave_balance : '')))"></span>
+        </div>
+
+        <div x-show="att.days.length" class="bg-white rounded-xl shadow-sm p-5">
+          <div x-show="isAdmin" class="mb-4">
+            <div class="text-xs text-slate-400 mb-1.5">Financial year
+              <span class="font-medium text-slate-500" x-text="att.fyStats?.fy_label"></span> · to date</div>
+            <div class="flex flex-wrap gap-3">
+              <div class="px-4 py-2 rounded-lg bg-emerald-50 border border-emerald-200">
+                <div class="text-xs text-emerald-600">Present days</div>
+                <div class="text-lg font-bold text-emerald-700" x-text="att.fyStats?.present_days ?? '—'"></div>
+              </div>
+              <div class="px-4 py-2 rounded-lg bg-rose-50 border border-rose-200">
+                <div class="text-xs text-rose-600">Absent days</div>
+                <div class="text-lg font-bold text-rose-700" x-text="att.fyStats?.absent_days ?? '—'"></div>
+              </div>
+              <div class="px-4 py-2 rounded-lg bg-blue-50 border border-blue-200">
+                <div class="text-xs text-blue-600">Overtime hours</div>
+                <div class="text-lg font-bold text-blue-700" x-text="att.fyStats?.overtime_hours ?? '—'"></div>
+              </div>
+              <div x-show="isAdmin" class="px-4 py-2 rounded-lg bg-amber-50 border border-amber-200">
+                <div class="text-xs text-amber-600">Penalty days taken</div>
+                <div class="text-lg font-bold text-amber-700" x-text="att.fyStats?.penalty_days ?? '—'"></div>
+              </div>
+              <div x-show="isAdmin" class="px-4 py-2 rounded-lg bg-violet-50 border border-violet-200">
+                <div class="text-xs text-violet-600">Remaining holidays</div>
+                <div class="text-lg font-bold text-violet-700"
+                     x-text="att.emp ? (att.emp.overtime_eligible ? 'N/A' : att.emp.leave_balance) : '—'"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Operator: current-month aggregate, shown only after Calculate -->
+          <div x-show="!isAdmin && att.statsShown" class="mb-4">
+            <div class="text-xs text-slate-400 mb-1.5">This month
+              (<span x-text="periodName(att.period)"></span>) — click Calculate again after edits to refresh</div>
+            <div class="flex flex-wrap gap-3">
+              <div class="px-4 py-2 rounded-lg bg-emerald-50 border border-emerald-200">
+                <div class="text-xs text-emerald-600">Present days</div>
+                <div class="text-lg font-bold text-emerald-700" x-text="opMonthPresent"></div>
+              </div>
+              <div class="px-4 py-2 rounded-lg bg-blue-50 border border-blue-200">
+                <div class="text-xs text-blue-600">Overtime hours</div>
+                <div class="text-lg font-bold text-blue-700" x-text="opMonthOvertime"></div>
+              </div>
+            </div>
+          </div>
+          <!-- CEO: this-month computed stats (2×2) for the selected employee -->
+          <div x-show="isAdmin" class="mb-4">
+            <div class="text-xs text-slate-400 mb-1.5">This month
+              (<span x-text="periodName(att.period)"></span>) ·
+              <b class="text-slate-600" x-text="att.emp && att.emp.name"></b></div>
+            <div class="grid grid-cols-2 gap-3 max-w-md">
+              <div class="rounded-lg border bg-emerald-50 border-emerald-200 px-4 py-2.5">
+                <div class="text-xs text-emerald-600">Present days</div>
+                <div class="text-xl font-bold text-emerald-700" x-text="monthStats.present"></div>
+              </div>
+              <div class="rounded-lg border bg-blue-50 border-blue-200 px-4 py-2.5">
+                <div class="text-xs text-blue-600">Overtime hours</div>
+                <div class="text-xl font-bold text-blue-700" x-text="monthStats.ot"></div>
+              </div>
+              <div class="rounded-lg border bg-amber-50 border-amber-200 px-4 py-2.5">
+                <div class="text-xs text-amber-600">Holidays taken</div>
+                <div class="text-xl font-bold text-amber-700" x-text="monthStats.holidays"></div>
+              </div>
+              <div class="rounded-lg border bg-rose-50 border-rose-200 px-4 py-2.5">
+                <div class="text-xs text-rose-600">Penalty days</div>
+                <div class="text-xl font-bold text-rose-700" x-text="monthStats.penalty"></div>
+              </div>
+            </div>
+            <p class="text-xs text-slate-400 mt-2" x-show="penalizedDays.size">
+              Leaves outlined in <span class="text-rose-600 font-medium">red</span> on the calendar are the consecutive-day leaves that triggered the penalty — verify before publishing.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <span class="text-xs text-slate-500">Calendar reads <b>top→bottom (Mon→Sun)</b>, then the next column is the next week. Toggle <b>P</b>/<b>A</b> and enter OT.</span>
+            <button @click="bulkSetOT()" :disabled="!(att.emp && att.emp.overtime_eligible)"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed">
+              Apply OT to all present days
+            </button>
+          </div>
+          <div class="flex gap-2 overflow-x-auto pb-2 mb-4">
+            <div class="flex flex-col gap-2 shrink-0">
+              <div class="h-5"></div>
+              <template x-for="(wd,i) in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']" :key="i">
+                <div class="h-[66px] flex items-center text-xs font-medium pr-1"
+                     :class="i===6 ? 'text-amber-600' : 'text-slate-400'" x-text="wd"></div>
+              </template>
+            </div>
+            <template x-for="(week,wi) in calendarWeeks()" :key="wi">
+              <div class="flex flex-col gap-2 shrink-0">
+                <div class="h-5 text-center text-[10px] text-slate-400" x-text="'Wk '+(wi+1)"></div>
+                <template x-for="(cell,ci) in week" :key="ci">
+                  <div class="w-16 h-[66px]">
+                    <template x-if="cell">
+                      <div class="border rounded-lg h-full p-1 flex flex-col items-center justify-between gap-0.5"
+                           :class="(ci===6 ? 'bg-amber-50 border-amber-200' : 'bg-slate-50') + (isAdmin && cell.status==='A' && penalizedDays.has(cell.day) ? ' ring-2 ring-rose-500 ring-inset' : '')">
+                        <div class="text-[10px] font-semibold text-slate-500" x-text="cell.day"></div>
+                        <button @click="cell.status = cell.status==='P'?'A':'P'"
+                                class="w-full rounded text-xs font-bold leading-5"
+                                :class="statusClass(att.period, cell.day, cell.status)"
+                                x-text="statusLabel(att.period, cell.day, cell.status)"></button>
+                        <input type="number" step="0.5"
+                               :disabled="cell.status==='A' || !(att.emp && att.emp.overtime_eligible)" x-model="cell.overtime"
+                               placeholder="OT"
+                               class="w-full border rounded text-[10px] text-center px-0.5 disabled:bg-slate-100 disabled:text-slate-300" />
+                      </div>
+                    </template>
+                    <template x-if="!cell"><div class="h-full"></div></template>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+          <div class="flex gap-3">
+            <button x-show="!isAdmin" @click="att.statsShown = true"
+                    class="bg-slate-700 hover:bg-slate-800 text-white px-5 py-2 rounded-lg text-sm font-semibold">Calculate</button>
+            <button @click="submitAttendance()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-semibold">Save &amp; Summarise</button>
+          </div>
+        </div>
+
+        <div x-show="att.summary && isAdmin" class="bg-white rounded-xl shadow-sm p-5 mt-5">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-semibold">This month — CEO adjustments</h2>
+            <span class="text-xs text-slate-400">metrics are editable — adjust and Save</span>
+          </div>
+
+          <!-- which penalty rules fired automatically -->
+          <div x-show="att.summary && att.summary.applied_rules && att.summary.applied_rules.length"
+               class="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm">
+            <div class="font-medium text-amber-800 mb-1">⚠ Penalty rules applied automatically</div>
+            <ul class="list-disc pl-5 text-amber-700">
+              <template x-for="r in (att.summary?.applied_rules || [])">
+                <li x-text="r.detail"></li>
+              </template>
+            </ul>
+          </div>
+
+          <!-- CEO: editable metrics -->
+          <template x-if="isAdmin">
+            <div>
+              <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                <div>
+                  <div class="text-slate-500 mb-1">Paid days (/<span x-text="att.summary?.total_days"></span>)</div>
+                  <input type="number" step="0.5" x-model.number="att.summary.present_days"
+                         class="w-full border rounded px-2 py-1" />
+                </div>
+                <div>
+                  <div class="text-slate-500 mb-1">Penalty days</div>
+                  <input type="number" x-model.number="att.summary.penalty_days" @input="editorRecalcPresent()"
+                         class="w-full border rounded px-2 py-1" />
+                </div>
+                <div>
+                  <div class="text-slate-500 mb-1">Overtime hrs</div>
+                  <input type="number" step="0.5" x-model.number="att.summary.total_overtime_hours"
+                         class="w-full border rounded px-2 py-1" />
+                </div>
+                <div>
+                  <div class="text-slate-500 mb-1">Refreshment days</div>
+                  <input type="number" x-model.number="att.summary.refreshment_days"
+                         class="w-full border rounded px-2 py-1" />
+                </div>
+                <div>
+                  <div class="text-slate-500 mb-1">Attendance %</div>
+                  <div class="text-lg font-bold pt-0.5"
+                       x-text="att.summary && att.summary.total_days ? (att.summary.present_days/att.summary.total_days*100).toFixed(1)+'%' : '—'"></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-4 mt-4 text-sm text-slate-500">
+                <span>Leave used: <b x-text="att.summary?.leave_used"></b></span>
+                <span>Leave balance left: <b x-text="att.summary?.new_leave_balance ?? '—'"></b></span>
+                <button @click="saveAttendanceOverride()"
+                        class="ml-auto bg-brand-600 hover:bg-brand-700 text-white px-4 py-1.5 rounded-lg font-medium">Save adjustments</button>
+              </div>
+            </div>
+          </template>
+        </div>
+        </div><!-- /single mode -->
+      </section>
+
+      <!-- ADVANCES -->
+      <section x-show="view==='advances'">
+        <h1 class="text-2xl font-bold mb-6">Advances</h1>
+        <div class="grid grid-cols-2 gap-6">
+          <div class="bg-white rounded-xl shadow-sm p-5">
+            <h2 class="font-semibold mb-4">Issue Advance</h2>
+            <div class="space-y-3 text-sm">
+              <div>
+                <label class="block text-xs text-slate-500 mb-1">Employee</label>
+                <select x-model.number="adv.empId" class="border rounded-lg px-3 py-2 w-full">
+                  <template x-for="e in employees" :key="e.id">
+                    <option :value="e.id" x-text="`${e.name} — ${e.dept} (#${e.id})`"></option>
+                  </template>
+                </select>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div><label class="block text-xs text-slate-500 mb-1">Amount</label>
+                  <input type="number" x-model.number="adv.amount" class="border rounded-lg px-3 py-2 w-full" /></div>
+                <div><label class="block text-xs text-slate-500 mb-1">Date</label>
+                  <input type="date" x-model="adv.txn_date" class="border rounded-lg px-3 py-2 w-full" /></div>
+                <div><label class="block text-xs text-slate-500 mb-1">Cheque</label>
+                  <input type="number" x-model.number="adv.cheque" class="border rounded-lg px-3 py-2 w-full" /></div>
+                <div><label class="block text-xs text-slate-500 mb-1">Cash</label>
+                  <input type="number" x-model.number="adv.cash" class="border rounded-lg px-3 py-2 w-full" /></div>
+              </div>
+              <button @click="issueAdvance()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium w-full">Issue</button>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm p-5">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="font-semibold">Ledger</h2>
+              <button @click="viewLedger()" class="text-brand-600 text-sm hover:underline">Refresh</button>
+            </div>
+            <div x-show="adv.ledger" class="text-sm">
+              <div class="mb-3 text-slate-600">Outstanding: <span class="font-bold" x-text="money(adv.ledger?.rem_advance)"></span></div>
+              <table class="w-full">
+                <thead class="text-slate-400 text-left text-xs"><tr><th class="py-1">Date</th><th>Type</th><th class="text-right">Amount</th></tr></thead>
+                <tbody>
+                  <template x-for="r in (adv.ledger?.rows||[])" :key="r.id">
+                    <tr class="border-t"><td class="py-1.5" x-text="r.txn_date"></td>
+                      <td><span class="px-2 py-0.5 rounded text-xs" :class="r.type==='CR'?'bg-blue-100 text-blue-700':'bg-emerald-100 text-emerald-700'" x-text="r.type==='CR'?'Issued':'Recovered'"></span></td>
+                      <td class="text-right" x-text="money(r.amount)"></td></tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SALARY -->
+      <section x-show="view==='salary'">
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-2xl font-bold">Calculate Salary</h1>
+          <div class="flex gap-3 items-end">
+            <div><label class="block text-xs text-slate-500 mb-1">Period</label>
+              <input type="month" x-model="pay.period" class="border rounded-lg px-3 py-2 text-sm" /></div>
+            <button @click="preparePay()" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Prepare</button>
+            <button @click="calculatePay()" :disabled="!pay.rows.length" class="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium">Calculate</button>
+            <button @click="publishPay()" :disabled="!pay.computed || pay.publishing" class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium">Publish</button>
+          </div>
+        </div>
+        <div x-show="pay.rows.length" class="flex flex-wrap items-center gap-2 mb-3">
+          <span class="text-xs text-slate-500">Bulk set (eligible only — disabled cells stay 0):</span>
+          <button @click="setPfAll()" class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium">Set PF for all eligible…</button>
+          <button @click="setEsiAll()" class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium">Set ESI for all eligible…</button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-x-auto">
+          <table class="w-full text-xs whitespace-nowrap">
+            <thead class="bg-slate-50 text-slate-500 text-left">
+              <tr>
+                <th class="px-2 py-2">Employee</th><th class="px-2 py-2 text-right">Base</th>
+                <th class="px-2 py-2 text-right bg-amber-50">Days</th>
+                <th class="px-2 py-2 text-right bg-amber-50">Att%</th>
+                <th class="px-2 py-2 text-right bg-amber-50">Penalty</th>
+                <th class="px-2 py-2 text-center bg-amber-50">Rules</th>
+                <th class="px-2 py-2 text-right bg-amber-50">OT hrs</th>
+                <th class="px-2 py-2 text-right bg-amber-50">Refr</th>
+                <th class="px-2 py-2 text-right">Old Adv</th>
+                <th class="px-2 py-2 text-right">PF</th><th class="px-2 py-2 text-right">ESI</th>
+                <th class="px-2 py-2 text-right">New Adv</th><th class="px-2 py-2 text-right">Adj Adv</th>
+                <th class="px-2 py-2 text-right">Cheque</th><th class="px-2 py-2 text-right">Cash</th>
+                <th class="px-2 py-2 text-right">Total</th><th class="px-2 py-2 text-center">Bonus</th>
+                <th class="px-2 py-2 text-right">Rem Adv</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="r in pay.rows" :key="r.employee_id">
+                <tr class="border-t" :class="(r.error || (r.total!=null && (Number(r.cheque)+Number(r.cash))!==r.total)) && 'bg-rose-50'">
+                  <td class="px-2 py-1.5 font-medium" x-text="r.name"></td>
+                  <td class="px-2 py-1.5 text-right" x-text="r.base"></td>
+                  <!-- editable attendance metrics (CEO discretion) -->
+                  <td class="px-2 py-1 bg-amber-50/60">
+                    <input type="number" step="0.5" x-model.number="r.present_days"
+                           :class="!r.has_attendance && 'border-rose-300'"
+                           class="w-14 border rounded px-1 py-0.5 text-right" />
+                  </td>
+                  <td class="px-2 py-1.5 text-right bg-amber-50/60" x-text="attPctText(r)"></td>
+                  <td class="px-2 py-1 bg-amber-50/60">
+                    <input type="number" x-model.number="r.penalty_days" @input="recalcFromPenalty(r)"
+                           class="w-12 border rounded px-1 py-0.5 text-right" />
+                  </td>
+                  <td class="px-2 py-1.5 text-center bg-amber-50/60">
+                    <span x-show="r.applied_rules && r.applied_rules.length"
+                          :title="rulesSummary(r)"
+                          class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-200 text-amber-800 cursor-help font-medium">
+                      ⚠ <span x-text="r.applied_rules && r.applied_rules.length"></span>
+                    </span>
+                    <span x-show="!(r.applied_rules && r.applied_rules.length)" class="text-slate-300">—</span>
+                  </td>
+                  <td class="px-2 py-1 bg-amber-50/60"><input type="number" step="0.5" x-model.number="r.overtime_hours" :disabled="!r.overtime_eligible" :title="r.overtime_eligible ? '' : 'Not overtime-eligible'" class="w-14 border rounded px-1 py-0.5 text-right disabled:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed" /></td>
+                  <td class="px-2 py-1 bg-amber-50/60"><input type="number" x-model.number="r.refreshment_days" class="w-12 border rounded px-1 py-0.5 text-right" /></td>
+                  <td class="px-2 py-1.5 text-right" x-text="r.old_advance"></td>
+                  <td class="px-2 py-1">
+                    <input type="number" x-model.number="r.pf" :disabled="!r.pf_applicable"
+                           :title="r.pf_applicable ? '' : 'Not PF-eligible'"
+                           class="w-16 border rounded px-1 py-0.5 text-right disabled:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed" />
+                  </td>
+                  <td class="px-2 py-1">
+                    <input type="number" x-model.number="r.esi" :disabled="!r.esi_applicable"
+                           :title="r.esi_applicable ? '' : 'Not ESI-eligible'"
+                           class="w-16 border rounded px-1 py-0.5 text-right disabled:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed" />
+                  </td>
+                  <td class="px-2 py-1"><input type="number" x-model.number="r.new_advance" class="w-16 border rounded px-1 py-0.5 text-right" /></td>
+                  <td class="px-2 py-1"><input type="number" x-model.number="r.adj_advance" class="w-16 border rounded px-1 py-0.5 text-right" /></td>
+                  <td class="px-2 py-1"><input type="number" x-model.number="r.cheque" class="w-16 border rounded px-1 py-0.5 text-right" /></td>
+                  <td class="px-2 py-1.5 text-right font-medium" x-text="r.cash"></td>
+                  <td class="px-2 py-1.5 text-right font-bold" x-text="r.total"></td>
+                  <td class="px-2 py-1.5 text-center" x-text="r.bonus_status"></td>
+                  <td class="px-2 py-1.5 text-right" x-text="r.rem_advance_after"></td>
+                </tr>
+              </template>
+              <tr x-show="!pay.rows.length"><td colspan="18" class="text-center text-slate-400 py-8">Press Prepare to load employees for the period.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">
+          The <span class="bg-amber-100 px-1 rounded">amber</span> columns are the attendance metrics — editable at the CEO's discretion.
+          A ⚠ badge marks rows where penalty rules fired automatically (hover to see which); adjust <b>Penalty</b> to add/remove punishment days and
+          <b>Days</b> recomputes. Edits are saved into the slip on Publish. Rows in red have an advance error or Cheque+Cash ≠ Total.
+        </p>
+      </section>
+
+      <!-- HISTORY -->
+      <section x-show="view==='history'">
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-2xl font-bold">Published Salaries</h1>
+          <div class="flex gap-3 items-end">
+            <input type="month" x-model="history.period" class="border rounded-lg px-3 py-2 text-sm" />
+            <button @click="loadHistory()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Load</button>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-x-auto">
+          <table class="w-full text-sm whitespace-nowrap">
+            <thead class="bg-slate-50 text-slate-500 text-left">
+              <tr><th class="px-3 py-2">ID</th><th class="px-3 py-2">Name</th><th class="px-3 py-2 text-right">Base</th>
+                <th class="px-3 py-2 text-right">PF</th><th class="px-3 py-2 text-right">ESI</th>
+                <th class="px-3 py-2 text-right">Adv</th><th class="px-3 py-2 text-center">Bonus</th>
+                <th class="px-3 py-2 text-right">Total</th><th class="px-3 py-2 text-right">Cheque</th><th class="px-3 py-2 text-right">Cash</th></tr>
+            </thead>
+            <tbody>
+              <template x-for="r in history.rows" :key="r.id">
+                <tr class="border-t"><td class="px-3 py-2" x-text="r.employee_id"></td><td class="px-3 py-2 font-medium" x-text="r.emp_name"></td>
+                  <td class="px-3 py-2 text-right" x-text="money(r.base)"></td><td class="px-3 py-2 text-right" x-text="r.pf"></td>
+                  <td class="px-3 py-2 text-right" x-text="r.esi"></td><td class="px-3 py-2 text-right" x-text="r.adv_deducted"></td>
+                  <td class="px-3 py-2 text-center" x-text="r.bonus_status"></td><td class="px-3 py-2 text-right font-bold" x-text="money(r.total)"></td>
+                  <td class="px-3 py-2 text-right" x-text="r.cheque"></td><td class="px-3 py-2 text-right" x-text="r.cash"></td></tr>
+              </template>
+              <tr x-show="!history.rows.length"><td colspan="10" class="text-center text-slate-400 py-8">No published salaries for this period yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- EXPORTS -->
+      <section x-show="view==='exports'">
+        <h1 class="text-2xl font-bold mb-6">Export Salary Slips</h1>
+        <div class="bg-white rounded-xl shadow-sm p-6 max-w-lg">
+          <label class="block text-xs text-slate-500 mb-1">Period</label>
+          <input type="month" x-model="exp.period" class="border rounded-lg px-3 py-2 text-sm mb-5" />
+          <div class="flex gap-4">
+            <button @click="download('ceo')" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white px-4 py-3 rounded-lg font-medium">⬇ CEO Sheet</button>
+            <button @click="download('distribution')" class="flex-1 bg-slate-700 hover:bg-slate-800 text-white px-4 py-3 rounded-lg font-medium">⬇ Distribution Slip</button>
+          </div>
+          <p class="text-xs text-slate-500 mt-4">Exports the published <code>pay</code> rows for the selected period as the two .xlsx formats — same layout as the legacy sheets.</p>
+        </div>
+      </section>
+
+      <!-- RULES -->
+      <section x-show="view==='rules'">
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-2xl font-bold">Business Rules</h1>
+          <button @click="saveRules()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Save</button>
+        </div>
+        <p class="text-sm text-slate-500 mb-3">Edit the configurable rules (leave bank, bonus amount, refreshment rate, penalty tiers, departments…). These take effect immediately for new calculations.</p>
+        <p x-show="rulesError" x-text="rulesError" class="text-rose-600 text-sm mb-2"></p>
+        <textarea x-model="rulesText" spellcheck="false"
+                  class="w-full h-[60vh] font-mono text-xs border rounded-xl p-4 bg-slate-900 text-slate-100"></textarea>
+      </section>
+
+      <!-- SYNC / EXCHANGE -->
+      <section x-show="view==='sync'">
+        <h1 class="text-2xl font-bold mb-6">Sync / Exchange</h1>
+
+        <!-- shared-folder status -->
+        <div class="bg-white rounded-xl shadow-sm p-5 mb-5">
+          <h2 class="font-semibold mb-2">Shared folder</h2>
+          <template x-if="sync.status && sync.status.configured">
+            <div class="text-sm">
+              <div class="font-mono text-slate-600 break-all" x-text="sync.status.path"></div>
+              <div class="mt-1" x-show="sync.status.writable"><span class="text-emerald-600 font-medium">● Reachable</span> — files exchange through this folder automatically.</div>
+              <div class="mt-1 text-rose-600" x-show="!sync.status.writable">● Configured but not reachable — check the path in <code>config/sync.json</code> and that your cloud client is running. Manual download/upload still works below.</div>
+            </div>
+          </template>
+          <template x-if="sync.status && !sync.status.configured">
+            <div class="text-sm text-amber-700">No shared folder set. Add a path to <code>shared_folder</code> in <code>config/sync.json</code> (then reload), or just use manual download/upload below.</div>
+          </template>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-5">
+          <!-- export (role-specific) -->
+          <div class="bg-white rounded-xl shadow-sm p-5">
+            <h2 class="font-semibold mb-3" x-text="isAdmin ? 'Send roster → operator' : 'Send attendance → CEO'"></h2>
+            <template x-if="!isAdmin">
+              <div class="flex items-end gap-3">
+                <div><label class="block text-xs text-slate-500 mb-1">Month</label>
+                  <input type="month" x-model="sync.period" class="border rounded-lg px-3 py-2 text-sm" /></div>
+                <button @click="exportAttendance()" :disabled="sync.busy" class="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium">Export attendance</button>
+              </div>
+            </template>
+            <template x-if="isAdmin">
+              <button @click="exportRoster()" :disabled="sync.busy" class="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium">Export roster</button>
+            </template>
+            <p class="text-xs text-slate-500 mt-3" x-text="isAdmin ? 'Writes roster.json so the operator gets the current employee list.' : 'Writes attendance-<month>.json. Save the attendance grid first, then export.'"></p>
+          </div>
+
+          <!-- import -->
+          <div class="bg-white rounded-xl shadow-sm p-5">
+            <h2 class="font-semibold mb-3" x-text="isAdmin ? 'Incoming attendance' : 'Incoming roster'"></h2>
+            <div x-show="!sync.incoming.length" class="text-sm text-slate-400">Nothing new to import.</div>
+            <div class="space-y-2">
+              <template x-for="item in sync.incoming" :key="item.filename">
+                <div class="flex items-center justify-between border rounded-lg px-3 py-2 text-sm">
+                  <div>
+                    <span class="font-medium" x-text="item.type==='attendance' ? ('Attendance · ' + item.period) : 'Roster'"></span>
+                    <span class="text-slate-400" x-text="' · ' + item.count + ' employees' + (item.generated_at ? ' · ' + item.generated_at.replace('T',' ') : '')"></span>
+                  </div>
+                  <button @click="importIncoming(item)" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium">Import</button>
+                </div>
+              </template>
+            </div>
+            <div class="mt-4 pt-3 border-t">
+              <label class="block text-xs text-slate-500 mb-1">Or import a file manually (.json)</label>
+              <input type="file" accept="application/json,.json" @change="importUpload($event)" class="text-xs" />
+            </div>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-500 mt-4 max-w-3xl">
+          Each machine keeps its own database; this exchanges data as JSON files through the shared folder.
+          The <b>operator</b> exports the month's attendance; the <b>CEO</b> imports it and runs payroll (the CEO's machine is the source of truth).
+          The <b>CEO</b> exports the roster whenever staff change; the operator imports it to stay in sync. Re-importing the same file is safe — it's de-duplicated.
+        </p>
+
+        <!-- database backup (CEO) -->
+        <div x-show="isAdmin" class="bg-white rounded-xl shadow-sm p-5 mt-5">
+          <h2 class="font-semibold mb-1">Database backup</h2>
+          <p class="text-xs text-slate-500 mb-3">This machine holds the master payroll data — back it up regularly. Each backup is a timestamped <code>.zip</code> holding the database <em>and</em> all inventory attachments, saved in <code>data/backups/</code>; "Download a copy" also saves one wherever you choose (e.g. the shared folder).</p>
+          <div class="flex flex-wrap items-center gap-3">
+            <button @click="backupNow()" :disabled="backup.busy"
+                    class="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                    x-text="backup.busy ? 'Backing up…' : 'Back up now'"></button>
+            <button @click="downloadBackup()"
+                    class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium">Download a copy</button>
+            <span class="text-xs text-slate-400" x-show="backup.recent.length"
+                  x-text="'Latest: ' + backup.recent[0].file + ' (' + backup.recent[0].size_kb + ' KB) · ' + backup.recent.length + ' kept'"></span>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- EMPLOYEE FORM MODAL -->
+  <div x-show="empForm" x-cloak class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-40">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6" @click.outside="empForm=null">
+      <h2 class="text-lg font-bold mb-4" x-text="empForm?.id ? 'Edit Employee' : 'Add Employee'"></h2>
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <div class="col-span-2"><label class="block text-xs text-slate-500 mb-1">Name</label>
+          <input x-model="empForm.name" class="border rounded-lg px-3 py-2 w-full" /></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Department</label>
+          <select x-model="empForm.dept" class="border rounded-lg px-3 py-2 w-full">
+            <template x-for="d in meta.departments" :key="d"><option x-text="d"></option></template>
+          </select></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Base Salary</label>
+          <input type="number" x-model.number="empForm.base_salary" class="border rounded-lg px-3 py-2 w-full" /></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Shift</label>
+          <select x-model="empForm.shift" class="border rounded-lg px-3 py-2 w-full"><option value="D">Day</option><option value="N">Night</option></select></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Remaining Advance</label>
+          <input type="number" x-model.number="empForm.rem_advance" class="border rounded-lg px-3 py-2 w-full" /></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Date joined</label>
+          <input type="date" x-model="empForm.date_joined" class="border rounded-lg px-3 py-2 w-full" /></div>
+        <label class="flex items-center gap-2 mt-2"><input type="checkbox" x-model="empForm.pf_applicable" /> PF</label>
+        <label class="flex items-center gap-2 mt-2"><input type="checkbox" x-model="empForm.esi_applicable" /> ESI</label>
+        <label class="flex items-center gap-2"><input type="checkbox" x-model="empForm.overtime_eligible" /> Overtime eligible</label>
+        <div x-show="!empForm.overtime_eligible"><label class="block text-xs text-slate-500 mb-1">Leave balance</label>
+          <input type="number" x-model.number="empForm.leave_balance" class="border rounded-lg px-3 py-2 w-full" /></div>
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button @click="empForm=null" class="px-4 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100">Cancel</button>
+        <button @click="saveEmployee()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMPLOYEE PROFILE MODAL -->
+  <div x-show="profileOpen" x-cloak class="fixed inset-0 bg-black/40 flex items-start justify-center p-4 z-50 overflow-auto">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-5xl my-6" @click.outside="profileOpen=false">
+      <template x-if="profile">
+        <div>
+          <!-- header -->
+          <div class="flex items-start justify-between p-6 border-b">
+            <div>
+              <h2 class="text-2xl font-bold" x-text="profile.employee.name"></h2>
+              <div class="text-slate-500 text-sm mt-0.5">
+                <span x-text="profile.employee.dept"></span> · #<span x-text="profile.employee.id"></span>
+                · <span x-text="profile.employee.overtime_eligible ? 'Overtime-eligible' : 'No overtime'"></span>
+                · <span x-text="'Shift ' + profile.employee.shift"></span>
+                <span x-show="!profile.employee.active" class="text-rose-500 font-medium"> · Inactive</span>
+              </div>
+            </div>
+            <button @click="profileOpen=false" class="text-slate-400 hover:text-slate-700 text-3xl leading-none">&times;</button>
+          </div>
+
+          <div class="p-6">
+            <!-- stat cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
+              <template x-for="c in [
+                  {l:'Date joined', v: profile.employee.date_joined || 'Not recorded'},
+                  {l:'Base salary', v: money(profile.employee.base_salary)},
+                  {l:'Avg net salary', v: money(profile.stats.avg_salary)},
+                  {l:'Total paid (lifetime)', v: money(profile.stats.total_paid)},
+                  {l:'Months paid', v: profile.stats.months_paid},
+                  {l:'Avg attendance', v: profile.stats.avg_attendance + '%'},
+                  {l:'Total overtime', v: profile.stats.total_overtime + ' hrs'},
+                  {l:'Total bonus', v: money(profile.stats.total_bonus)},
+                  {l:'Current advance', v: money(profile.stats.current_advance)},
+                  {l:'Advance taken (life)', v: money(profile.stats.total_advance_taken)},
+                  {l:'Advance recovered', v: money(profile.stats.total_advance_recovered)},
+                  {l: profile.employee.overtime_eligible ? 'Penalty days (life)' : 'Remaining holidays',
+                   v: profile.employee.overtime_eligible ? profile.stats.total_penalty_days : profile.stats.leave_balance}]" :key="c.l">
+                <div class="rounded-lg border bg-slate-50 px-4 py-2.5">
+                  <div class="text-xs text-slate-500" x-text="c.l"></div>
+                  <div class="text-lg font-bold text-slate-800" x-text="c.v"></div>
+                </div>
+              </template>
+            </div>
+
+            <!-- salary chart -->
+            <div class="mb-7">
+              <h3 class="font-semibold text-sm mb-2">Net salary — month on month</h3>
+              <div x-show="!profile.salary_series.length" class="text-sm text-slate-400">No salary published yet.</div>
+              <div x-show="profile.salary_series.length">
+                <div class="flex items-end gap-1 h-40 border-l border-b border-slate-200 pl-1">
+                  <template x-for="(s,i) in profile.salary_series" :key="i">
+                    <div class="flex-1 h-full flex items-end" :title="s.period + ': ' + money(s.total)">
+                      <div class="w-full rounded-t bg-brand-600 hover:bg-brand-700"
+                           :style="`height:${s.total / maxField(profile.salary_series,'total') * 100}%`"></div>
+                    </div>
+                  </template>
+                </div>
+                <div class="flex gap-1 mt-1">
+                  <template x-for="(s,i) in profile.salary_series" :key="i">
+                    <div class="flex-1 text-center text-[9px] text-slate-400" x-text="mLabel(s.period)"></div>
+                  </template>
+                </div>
+              </div>
+            </div>
+
+            <!-- advances chart -->
+            <div class="mb-7">
+              <h3 class="font-semibold text-sm mb-2">Advances — issued vs recovered (monthly)
+                <span class="ml-2 text-xs font-normal text-emerald-600">■ issued</span>
+                <span class="text-xs font-normal text-rose-600">■ recovered</span></h3>
+              <div x-show="!profile.advance_monthly.length" class="text-sm text-slate-400">No advances on record.</div>
+              <div x-show="profile.advance_monthly.length">
+                <div class="flex items-end gap-2 h-40 border-l border-b border-slate-200 pl-1">
+                  <template x-for="(a,i) in profile.advance_monthly" :key="i">
+                    <div class="flex-1 h-full flex items-end justify-center gap-0.5">
+                      <div class="w-3 rounded-t bg-emerald-500" :title="'Issued ' + money(a.issued)"
+                           :style="`height:${a.issued / maxAdvance(profile.advance_monthly) * 100}%`"></div>
+                      <div class="w-3 rounded-t bg-rose-500" :title="'Recovered ' + money(a.recovered)"
+                           :style="`height:${a.recovered / maxAdvance(profile.advance_monthly) * 100}%`"></div>
+                    </div>
+                  </template>
+                </div>
+                <div class="flex gap-2 mt-1">
+                  <template x-for="(a,i) in profile.advance_monthly" :key="i">
+                    <div class="flex-1 text-center text-[9px] text-slate-400" x-text="mLabel(a.month)"></div>
+                  </template>
+                </div>
+              </div>
+            </div>
+
+            <!-- attendance chart -->
+            <div class="mb-2">
+              <h3 class="font-semibold text-sm mb-2">Attendance % — month on month</h3>
+              <div x-show="!profile.attendance_series.length" class="text-sm text-slate-400">No attendance recorded yet.</div>
+              <div x-show="profile.attendance_series.length">
+                <div class="flex items-end gap-1 h-32 border-l border-b border-slate-200 pl-1">
+                  <template x-for="(a,i) in profile.attendance_series" :key="i">
+                    <div class="flex-1 h-full flex items-end" :title="a.period + ': ' + a.attendance_percentage + '%'">
+                      <div class="w-full rounded-t"
+                           :class="a.attendance_percentage >= 100 ? 'bg-emerald-500' : (a.attendance_percentage >= 85 ? 'bg-amber-400' : 'bg-rose-500')"
+                           :style="`height:${Math.min(a.attendance_percentage,100)}%`"></div>
+                    </div>
+                  </template>
+                </div>
+                <div class="flex gap-1 mt-1">
+                  <template x-for="(a,i) in profile.attendance_series" :key="i">
+                    <div class="flex-1 text-center text-[9px] text-slate-400" x-text="mLabel(a.period)"></div>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- CEO: import-last-month-attendance prompt -->
+  <div x-show="attendancePrompt && isAdmin" x-cloak class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+      <h2 class="text-lg font-bold mb-2">📥 New attendance available</h2>
+      <p class="text-sm text-slate-600 mb-5">
+        Attendance for <b x-text="periodName(attendancePrompt?.period)"></b>
+        (<span x-text="attendancePrompt?.count"></span> employees) was sent by the operator. Import it now so you can run payroll?
+      </p>
+      <div class="flex justify-end gap-3">
+        <button @click="attendancePrompt=null" class="px-4 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100">Not now</button>
+        <button @click="confirmImportAttendance()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Yes, import</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

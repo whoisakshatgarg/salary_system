@@ -23,7 +23,7 @@ from .core import auth, db, edition, paths, update
 from .core.deps import current_user, get_db, require_admin
 from .core.rules import get_rules
 from .core.version import __version__
-from .modules import inventory
+from .modules import inventory, users
 from .modules.employees import seed
 from .modules.employees.router import router as employees_router
 from .modules.payroll.router import router as payroll_router
@@ -55,6 +55,7 @@ def _startup() -> None:
 app.include_router(employees_router)
 app.include_router(payroll_router)
 app.include_router(inventory.router)
+app.include_router(users.router)
 
 
 # --------------------------------------------------------------------------- #

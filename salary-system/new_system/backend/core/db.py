@@ -218,6 +218,9 @@ def connect(db_path: str | Path | None = None) -> sqlite3.Connection:
 # Columns added after the first schema shipped — applied to existing DBs so
 # upgrades are non-destructive (SQLite CREATE IF NOT EXISTS won't alter tables).
 _MIGRATIONS = {
+    "app_user": {
+        "grants": "TEXT",  # JSON list of module keys (see core/registry.py)
+    },
     "employee": {
         "date_joined": "TEXT",
     },

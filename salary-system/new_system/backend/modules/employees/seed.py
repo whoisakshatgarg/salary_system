@@ -96,24 +96,32 @@ LEAVE_BALANCE = {
 }
 
 # Default logins (replaces the old plaintext `admin` table). CHANGE THESE.
-#   admin    = the CEO (full access: salary, advances, exports, rules)
-#   operator = attendance-entry employee (attendance only)
+#   admin    = the owner/CEO — full access to every module + Users & Access
+#   operator = attendance-entry account — salary/attendance module only
+# More accounts are added by the owner in the shell's Users & Access screen.
 DEFAULT_USERS = [
-    ("admin", "admin123", "admin"),
-    ("operator", "operator123", "operator"),
-    ("temp", "temp123", "operator"),
+    ("admin", "admin123", "admin", []),            # admin ⇒ every grant implicitly
+    ("operator", "operator123", "operator", ["salary"]),
 ]
 
 
 def ensure_users(conn) -> int:
-    """Create any missing default users (idempotent). Runs on every startup."""
+    """Create any missing default users (idempotent). Runs on every startup.
+    Also backfills the grants column for accounts created before the shell."""
+    import json
     created = 0
-    for username, password, role in DEFAULT_USERS:
+    for username, password, role, grants in DEFAULT_USERS:
         cur = conn.execute(
-            "INSERT OR IGNORE INTO app_user (username, password_hash, role) VALUES (?,?,?)",
-            (username, hash_password(password), role),
+            "INSERT OR IGNORE INTO app_user (username, password_hash, role, grants)"
+            " VALUES (?,?,?,?)",
+            (username, hash_password(password), role, json.dumps(grants)),
         )
         created += cur.rowcount
+    # Pre-shell accounts: operators keep their attendance access, admins need
+    # nothing (role implies every grant).
+    conn.execute("""UPDATE app_user SET grants='["salary"]'
+                    WHERE grants IS NULL AND role='operator'""")
+    conn.execute("UPDATE app_user SET grants='[]' WHERE grants IS NULL")
     conn.commit()
     return created
 

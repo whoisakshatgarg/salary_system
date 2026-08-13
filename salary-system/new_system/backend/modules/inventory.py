@@ -33,9 +33,11 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from ..core import db, paths
-from ..core.deps import get_db, require_admin
+from ..core.deps import get_db, require_module
 
-router = APIRouter(prefix="/api/inventory", dependencies=[Depends(require_admin)])
+# Grant-gated since the shell landed: any account the owner grants 'inventory'
+# can use it (admins always can). Operator edition stays excluded (deps.py).
+router = APIRouter(prefix="/api/inventory", dependencies=[Depends(require_module("inventory"))])
 
 OPTION_KINDS = ("material_class", "shape", "grade", "element")
 ATTACHMENT_KINDS = ("certificate", "invoice")

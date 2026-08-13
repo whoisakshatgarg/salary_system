@@ -64,20 +64,26 @@ function app() {
     fail(e) { this.flash(e.message || String(e), "err"); },
 
     async boot() {
-      window.addEventListener("unauth", () => { this.user = null; });
+      // No session -> back to the shell's login (the launcher owns sign-in now).
+      window.addEventListener("unauth", () => {
+        if (!this.isOperatorEdition) window.location.href = "/";
+        this.user = null;
+      });
       try {
         const ed = await api("/api/edition");
         this.edition = ed.edition;
         this.version = ed.version;
       } catch (_) {}
-      this.checkUpdates();   // deliberately not awaited — never delays startup
       try {
-        // Operator app: sign in automatically (kiosk). CEO app: resume any session.
+        // Operator app: sign in automatically (kiosk). Admin: resume the
+        // shell's session — never show a second login here.
         this.user = this.isOperatorEdition
           ? await api("/api/kiosk-login", { method: "POST" })
           : await api("/api/me");
         await this.afterLogin();
-      } catch (_) { /* show login / Start screen */ }
+      } catch (_) {
+        if (!this.isOperatorEdition) { window.location.href = "/"; return; }
+      }
       this.booted = true;
     },
     async doLogin() {
@@ -133,6 +139,7 @@ function app() {
       this.reminder = null;
       this.attendancePrompt = null;
       this.sync.incoming = [];
+      window.location.href = "/";   // back to the launcher
     },
     go(v) { this.view = v; if (this[`enter_${v}`]) this[`enter_${v}`](); },
 

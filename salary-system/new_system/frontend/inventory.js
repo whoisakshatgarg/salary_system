@@ -78,14 +78,16 @@ function inv() {
       window.addEventListener("unauth", () => { this.authed = false; });
       try {
         this.user = await api("/api/me");
-        this.authed = this.user.role === "admin";
+        // Grant-based since the shell landed: any account the owner granted
+        // 'inventory' may use this page (admins always can).
+        const mods = await api("/api/modules");
+        this.authed = !!(mods.modules || []).find((m) => m.key === "inventory" && m.granted);
       } catch (_) { this.authed = false; }
-      if (this.authed) {
-        try {
-          await this.loadOptions();
-          await this.loadHeats();
-        } catch (e) { this.fail(e); }
-      }
+      if (!this.authed) { window.location.href = "/"; return; }  // back to launcher
+      try {
+        await this.loadOptions();
+        await this.loadHeats();
+      } catch (e) { this.fail(e); }
       this.booted = true;
     },
 
