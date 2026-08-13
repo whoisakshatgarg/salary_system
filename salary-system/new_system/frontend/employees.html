@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employees — APEX THERMOCON</title>
+  <!-- Vendored locally so the app works fully offline (no CDN needed). -->
+  <script src="vendor/tailwind.js"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { brand: { 600: "#1d4ed8", 700: "#1e40af" } } } } };
+  </script>
+  <script defer src="employees.js"></script>
+  <script defer src="vendor/alpine.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    input, select { @apply outline-none; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800" x-data="em()" x-init="boot()" x-cloak>
+
+  <!-- Toast -->
+  <div x-show="toast.show" x-transition
+       class="fixed top-4 right-4 z-[70] px-4 py-3 rounded-lg shadow-lg text-white text-sm"
+       :class="toast.kind === 'err' ? 'bg-rose-600' : 'bg-emerald-600'"
+       x-text="toast.msg"></div>
+
+  <!-- ============================= SHELL ============================= -->
+  <div x-show="booted && authed" class="min-h-screen flex flex-col">
+    <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
+      <div>
+        <div class="text-white font-bold leading-tight">Employee Management</div>
+        <div class="text-[11px] text-slate-400">APEX THERMOCON · people, documents &amp; leave</div>
+      </div>
+      <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
+        <a href="/" class="text-slate-300 hover:text-white font-medium">⌂ All modules</a>
+        <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-auto p-6 max-w-6xl w-full mx-auto">
+      <!-- Filters -->
+      <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-end gap-3">
+        <div class="flex-1 min-w-[220px]">
+          <label class="block text-xs font-medium text-slate-500 mb-1">Search</label>
+          <input x-model="q" placeholder="Name / department / number"
+                 class="w-full border rounded-lg px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Department</label>
+          <select x-model="dept" class="border rounded-lg px-2 py-2 text-sm">
+            <option value="">All</option>
+            <template x-for="d in meta.departments" :key="d"><option x-text="d"></option></template>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
+          <select x-model="status" class="border rounded-lg px-2 py-2 text-sm">
+            <option value="active">Working</option>
+            <option value="inactive">Left</option>
+            <option value="all">Everyone</option>
+          </select>
+        </div>
+        <button x-show="isAdmin" @click="newEmp()"
+                class="ml-auto bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+          + Add employee
+        </button>
+      </div>
+
+      <!-- Roster -->
+      <div class="bg-white rounded-xl shadow-sm overflow-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-slate-500 border-b bg-slate-50">
+              <th class="px-4 py-3">#</th>
+              <th class="px-3 py-3">Name</th>
+              <th class="px-3 py-3">Department</th>
+              <th class="px-3 py-3">Shift</th>
+              <th class="px-3 py-3">Joined</th>
+              <th class="px-3 py-3">Leave scheme</th>
+              <th class="px-3 py-3 text-right">Leave bank</th>
+              <th class="px-3 py-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="e in filtered" :key="e.id">
+              <tr @click="open(e.id)" class="border-b last:border-0 hover:bg-brand-600/5 cursor-pointer"
+                  :class="!e.active && 'opacity-50'">
+                <td class="px-4 py-2.5 text-slate-400" x-text="e.id"></td>
+                <td class="px-3 py-2.5 font-semibold text-brand-700" x-text="e.name"></td>
+                <td class="px-3 py-2.5" x-text="e.dept"></td>
+                <td class="px-3 py-2.5" x-text="e.shift === 'N' ? 'Night' : 'Day'"></td>
+                <td class="px-3 py-2.5 whitespace-nowrap" x-text="fmtDate(e.date_joined)"></td>
+                <td class="px-3 py-2.5 text-slate-500"
+                    x-text="e.overtime_eligible ? 'Overtime + penalties' : 'Paid-leave bank'"></td>
+                <td class="px-3 py-2.5 text-right font-medium"
+                    x-text="e.overtime_eligible ? '—' : e.leave_balance + ' d'"></td>
+                <td class="px-3 py-2.5">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                        :class="e.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
+                        x-text="e.active ? 'Working' : 'Left'"></span>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="!filtered.length">
+              <td colspan="8" class="px-4 py-10 text-center text-slate-400">No employees match.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- ============================= DETAIL ============================= -->
+  <template x-if="detail">
+  <div class="fixed inset-0 z-40 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-4">
+      <div class="flex items-center gap-3 px-6 py-4 border-b">
+        <div>
+          <div class="text-xl font-bold" x-text="detail.emp.name"></div>
+          <div class="text-xs text-slate-500"
+               x-text="[detail.emp.dept, detail.emp.shift === 'N' ? 'Night shift' : 'Day shift',
+                        '#' + detail.emp.id].join(' · ')"></div>
+        </div>
+        <span class="px-2.5 py-1 rounded-full text-xs font-medium"
+              :class="detail.emp.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
+              x-text="detail.emp.active ? 'Working' : 'Left'"></span>
+        <div class="ml-auto flex gap-2">
+          <button x-show="isAdmin" @click="editEmp()" class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm">Edit</button>
+          <button x-show="isAdmin" @click="toggleActive()"
+                  class="border px-3 py-1.5 rounded-lg text-sm"
+                  :class="detail.emp.active ? 'border-rose-200 text-rose-600 hover:bg-rose-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'"
+                  x-text="detail.emp.active ? 'Deactivate' : 'Reactivate'"></button>
+          <button @click="closeDetail()" class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+        </div>
+      </div>
+
+      <div class="p-6 grid grid-cols-2 gap-6">
+        <!-- Left: profile + leave + documents -->
+        <div class="space-y-5">
+          <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <div class="text-slate-500">Joined</div><div x-text="fmtDate(detail.emp.date_joined)"></div>
+            <div class="text-slate-500">Leave scheme</div>
+            <div x-text="detail.emp.overtime_eligible ? 'Overtime + penalty days' : 'Paid-leave bank'"></div>
+          </div>
+
+          <!-- Leave bank (non-OT only) -->
+          <div x-show="!detail.emp.overtime_eligible" class="bg-slate-50 rounded-xl p-4">
+            <div class="flex items-center gap-2">
+              <div class="text-sm font-semibold">Leave bank</div>
+              <div class="ml-auto text-2xl font-bold" x-text="detail.emp.leave_balance + ' d'"></div>
+            </div>
+            <div class="flex items-center gap-2 mt-3">
+              <button @click="adjustLeave(-1)" class="w-9 h-9 rounded-lg border border-slate-300 hover:bg-white font-bold">−</button>
+              <input type="number" min="1" x-model="leaveDelta" class="w-16 border rounded-lg px-2 py-1.5 text-sm text-center bg-white" />
+              <button @click="adjustLeave(1)" class="w-9 h-9 rounded-lg border border-slate-300 hover:bg-white font-bold">+</button>
+              <span class="text-[11px] text-slate-400 ml-1">days to add / subtract</span>
+            </div>
+          </div>
+          <p x-show="detail.emp.overtime_eligible" class="text-xs text-slate-400 bg-slate-50 rounded-xl p-3">
+            Overtime-eligible employees have no leave bank — absences follow the
+            penalty rules at payroll time.
+          </p>
+
+          <!-- Pay (read-only pointer) -->
+          <div class="border border-slate-200 rounded-xl p-4 text-sm">
+            <div class="font-semibold text-sm mb-2">Pay <span class="font-normal text-xs text-slate-400">— managed in Salary → Pay Setup</span></div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1.5">
+              <div class="text-slate-500">Base salary</div><div x-text="money(detail.emp.base_salary)"></div>
+              <div class="text-slate-500">PF / ESI</div>
+              <div x-text="(detail.emp.pf_applicable ? 'PF' : '') + (detail.emp.pf_applicable && detail.emp.esi_applicable ? ' + ' : '') + (detail.emp.esi_applicable ? 'ESI' : '') || '—'"></div>
+              <div class="text-slate-500">Advance outstanding</div><div x-text="money(detail.emp.rem_advance)"></div>
+            </div>
+          </div>
+
+          <!-- Documents -->
+          <div>
+            <div class="font-semibold text-sm mb-2">Documents</div>
+            <template x-for="d in detail.documents" :key="d.id">
+              <div class="flex items-center gap-2 text-sm py-1">
+                <span x-show="d.label" class="bg-slate-100 rounded-full px-2 py-0.5 text-xs" x-text="d.label"></span>
+                <button @click="viewDoc(d)" class="text-brand-700 hover:underline truncate max-w-[180px] text-left"
+                        x-text="d.filename"></button>
+                <span class="text-xs text-slate-400" x-text="sizeLabel(d.size_bytes)"></span>
+                <button @click="downloadDoc(d)" class="text-slate-400 hover:text-slate-600 text-xs" title="Download">⬇</button>
+                <button @click="deleteDoc(d)" class="text-slate-300 hover:text-rose-600 text-xs" title="Delete">✕</button>
+              </div>
+            </template>
+            <p x-show="!detail.documents.length" class="text-xs text-slate-400">Nothing uploaded yet.</p>
+            <div class="flex items-center gap-2 mt-2">
+              <input x-model="upload.label" placeholder="Label (e.g. Aadhaar)"
+                     class="border rounded-lg px-2 py-1.5 text-xs w-36" />
+              <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium">
+                <span x-text="upload.busy ? 'Uploading…' : '+ Add files'"></span>
+                <input type="file" multiple accept="image/*,application/pdf" class="hidden"
+                       :disabled="upload.busy" @change="pickFiles($event)" />
+              </label>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Images or PDF. Big photos are compressed automatically.</p>
+          </div>
+        </div>
+
+        <!-- Right: attendance stats -->
+        <div>
+          <div class="font-semibold text-sm mb-2" x-text="'Attendance — ' + detail.fy.fy_label"></div>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Present days</div>
+              <div class="text-xl font-bold" x-text="detail.fy.present_days"></div></div>
+            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Absent days</div>
+              <div class="text-xl font-bold" x-text="detail.fy.absent_days"></div></div>
+            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Overtime hours</div>
+              <div class="text-xl font-bold" x-text="detail.fy.overtime_hours"></div></div>
+            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Penalty days</div>
+              <div class="text-xl font-bold" x-text="detail.fy.penalty_days"></div></div>
+          </div>
+          <div class="font-semibold text-sm mb-2">Recent months</div>
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-xs text-slate-500 border-b">
+                <th class="py-2 pr-3">Month</th>
+                <th class="py-2 pr-3 text-right">Paid days</th>
+                <th class="py-2 pr-3 text-right">Att %</th>
+                <th class="py-2 pr-3 text-right">OT hrs</th>
+                <th class="py-2 text-right">Penalty</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="h in detail.history" :key="h.period">
+                <tr class="border-b last:border-0">
+                  <td class="py-2 pr-3" x-text="h.period"></td>
+                  <td class="py-2 pr-3 text-right" x-text="h.present_days"></td>
+                  <td class="py-2 pr-3 text-right" x-text="h.attendance_percentage.toFixed(1)"></td>
+                  <td class="py-2 pr-3 text-right" x-text="h.total_overtime_hours"></td>
+                  <td class="py-2 text-right" x-text="h.penalty_days"></td>
+                </tr>
+              </template>
+              <tr x-show="!detail.history.length">
+                <td colspan="5" class="py-6 text-center text-slate-400 text-sm">No attendance recorded yet.</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="text-[11px] text-slate-400 mt-2">Attendance is entered in Salary &amp; Attendance; this is the summary.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  </template>
+
+  <!-- ============================= ADD / EDIT ============================= -->
+  <template x-if="form">
+  <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-10">
+      <div class="px-6 py-4 border-b flex items-center">
+        <div class="text-lg font-bold" x-text="form.id ? 'Edit ' + form.name : 'New employee'"></div>
+        <button @click="form = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+      </div>
+      <form @submit.prevent="saveEmp()" class="p-6 space-y-4">
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div class="col-span-2"><label class="block text-xs text-slate-500 mb-1">Full name</label>
+            <input x-model="form.name" class="border rounded-lg px-3 py-2 w-full" /></div>
+          <div><label class="block text-xs text-slate-500 mb-1">Department</label>
+            <select x-model="form.dept" class="border rounded-lg px-3 py-2 w-full">
+              <template x-for="d in meta.departments" :key="d"><option x-text="d"></option></template>
+            </select></div>
+          <div><label class="block text-xs text-slate-500 mb-1">Shift</label>
+            <select x-model="form.shift" class="border rounded-lg px-3 py-2 w-full">
+              <option value="D">Day</option><option value="N">Night</option>
+            </select></div>
+          <div><label class="block text-xs text-slate-500 mb-1">Date joined</label>
+            <input type="date" x-model="form.date_joined" class="border rounded-lg px-3 py-2 w-full" /></div>
+          <label class="flex items-center gap-2 mt-5 text-sm">
+            <input type="checkbox" x-model="form.overtime_eligible" />
+            Overtime-eligible
+          </label>
+          <p class="col-span-2 text-[11px] text-slate-400 -mt-2">
+            Overtime-eligible = paid for OT, absences use penalty rules (no leave
+            bank). Changing this switches the leave scheme from next attendance save.
+          </p>
+        </div>
+        <!-- One-time payroll setup only when creating; afterwards in Salary -->
+        <div x-show="!form.id" class="border border-slate-200 rounded-xl p-4">
+          <div class="text-sm font-semibold mb-3">Starting pay
+            <span class="font-normal text-xs text-slate-400">— set once here, managed in Salary → Pay Setup afterwards</span></div>
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div><label class="block text-xs text-slate-500 mb-1">Base salary (₹/month)</label>
+              <input type="number" min="0" x-model="form.base_salary" class="border rounded-lg px-3 py-2 w-full" /></div>
+            <div class="flex items-end gap-4 pb-1">
+              <label class="flex items-center gap-2"><input type="checkbox" x-model="form.pf_applicable" /> PF</label>
+              <label class="flex items-center gap-2"><input type="checkbox" x-model="form.esi_applicable" /> ESI</label>
+            </div>
+          </div>
+        </div>
+        <p x-show="formError" x-text="formError" class="text-rose-600 text-sm"></p>
+        <div class="flex gap-3">
+          <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg text-sm">Save</button>
+          <button type="button" @click="form = null"
+                  class="flex-1 border border-slate-300 hover:bg-slate-50 text-slate-600 py-2.5 rounded-lg text-sm">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  </template>
+
+</body>
+</html>

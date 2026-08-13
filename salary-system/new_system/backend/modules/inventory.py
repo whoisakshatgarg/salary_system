@@ -33,6 +33,8 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from ..core import db, paths
+from ..core.attachments import (MAX_FILE_BYTES, header_filename,
+                                response_mime, storage_ext, validate_attachment)
 from ..core.deps import get_db, require_module
 
 # Grant-gated since the shell landed: any account the owner grants 'inventory'
@@ -42,7 +44,6 @@ router = APIRouter(prefix="/api/inventory", dependencies=[Depends(require_module
 OPTION_KINDS = ("material_class", "shape", "grade", "element")
 ATTACHMENT_KINDS = ("certificate", "invoice")
 MOVEMENT_TYPES = ("issue", "reject")
-MAX_FILE_BYTES = 15 * 1024 * 1024  # per file; images are compressed client-side
 
 DEFAULT_OPTIONS = {
     "material_class": ["Steel", "Stainless Steel", "Alloy Steel", "Brass",
@@ -486,36 +487,9 @@ def global_log(conn, q: str = "") -> list[dict]:
 
 
 # --------------------------------------------------------------------------- #
-# Attachments (files on disk, metadata in the DB)
+# Attachments (files on disk, metadata in the DB).
+# Validation/mime plumbing is shared app-wide — see core/attachments.py.
 # --------------------------------------------------------------------------- #
-# Exact allowlist (not a prefix check): the client's Content-Type is untrusted
-# input; anything outside this set is refused, and responses NEVER replay the
-# stored mime — they derive it from the stored extension (_EXT_MIME below).
-ALLOWED_MIME = {
-    "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp",
-    "image/gif": ".gif", "image/bmp": ".bmp", "image/tiff": ".tif",
-    "image/heic": ".heic", "image/heif": ".heif", "application/pdf": ".pdf",
-}
-_EXT_MIME = {ext: mime for mime, ext in ALLOWED_MIME.items()}
-_EXT_MIME[".jpeg"] = "image/jpeg"
-_EXT_MIME[".tiff"] = "image/tiff"
-
-
-def response_mime(stored_name: str) -> str:
-    return _EXT_MIME.get(Path(stored_name).suffix.lower(), "application/octet-stream")
-
-
-def _validate_attachment(mime: str, content: bytes) -> str:
-    mime = _s(mime).lower()
-    if mime not in ALLOWED_MIME:
-        raise ValueError(f"Only images and PDF files are allowed (got {mime or 'unknown type'})")
-    if not content:
-        raise ValueError("The file is empty")
-    if len(content) > MAX_FILE_BYTES:
-        raise ValueError("File is larger than 15 MB — scan at a lower resolution")
-    return mime
-
-
 def save_attachments(conn, heat_id: int, kind: str,
                      items: list[tuple[str, str, bytes]]) -> list[dict]:
     """Store a batch of (filename, mime, content) ALL-OR-NOTHING: every file is
@@ -525,16 +499,13 @@ def save_attachments(conn, heat_id: int, kind: str,
         raise ValueError("Attachment must be a certificate or an invoice")
     if not conn.execute("SELECT 1 FROM heat WHERE id=?", (heat_id,)).fetchone():
         raise ValueError("Heat not found")
-    checked = [(filename, _validate_attachment(mime, content), content)
+    checked = [(filename, validate_attachment(mime, content), content)
                for filename, mime, content in items]
     written: list[Path] = []
     metas: list[dict] = []
     try:
         for filename, mime, content in checked:
-            ext = Path(filename or "").suffix.lower()
-            if ext not in _EXT_MIME:
-                ext = ALLOWED_MIME[mime]
-            stored = f"h{heat_id}-{secrets.token_hex(8)}{ext}"
+            stored = f"h{heat_id}-{secrets.token_hex(8)}{storage_ext(filename, mime)}"
             path = paths.inventory_files_dir() / stored
             path.write_bytes(content)
             written.append(path)
@@ -724,10 +695,7 @@ def attachment_view(attachment_id: int, download: bool = False, conn=Depends(get
     path = paths.inventory_files_dir() / row["stored_name"]
     if not path.is_file():
         raise HTTPException(status_code=404, detail="File is missing on disk")
-    # Sanitize the user-supplied filename for the header (no quotes/newlines),
-    # and derive the media type from OUR stored extension — never replay the
-    # client-supplied mime as a response header.
-    safe = re.sub(r'[^A-Za-z0-9._ ()\-]', "_", row["filename"])[:120] or "file"
+    safe = header_filename(row["filename"])
     disposition = "attachment" if download else "inline"
     return FileResponse(
         path, media_type=response_mime(row["stored_name"]),

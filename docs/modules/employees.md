@@ -1,55 +1,62 @@
 # Employee Management
 
-**Status: 🟡 partial** — backend module owns the data (2026-08-13 split);
-dedicated UI not built (tile is a placeholder; screens still live in the
-payroll SPA).
+**Status: ✅ built** (backend split 2026-08-13; dedicated UI shipped 2026-08-13)
 
 ## Purpose
-Own the employee master: who works here, their profile/status/documents, daily
-attendance and the leave bank. Payroll consumes this and keeps only the
+Own the employee master: who works here, their profile/status/documents, the
+leave bank and attendance summaries. Payroll consumes this and keeps only the
 financial side (owner's decision — DECISIONS 2026-08-13).
 
-## User flows (today, via the Salary & Attendance tile)
-- Add/edit employees, deactivate; per-employee profile with salary/attendance/
-  advance history charts.
-- Attendance: all-employees grid (rows × days, bulk save) or single-employee
-  calendar; CEO can override computed metrics; January leave reset.
-- Two-machine sync: operator exports attendance JSON, CEO imports (master of
-  record); CEO exports roster, operator auto-imports.
+## The split with Salary (as built)
+| Employee Management edits | Salary → Pay Setup edits |
+|---|---|
+| Name, department, shift, joining date | Base salary |
+| Active / left status | PF & ESI applicability |
+| Overtime-eligible flag (leave scheme) | Remaining advance balance |
+| Leave bank (add/subtract days) | (advances ledger in its own tab) |
+| Documents (Aadhaar, agreements, …) | |
+| New-employee creation (incl. one-time starting pay) | |
+
+Attendance **entry** stays in Salary & Attendance (operator flow + two-machine
+sync live there); this module shows the summaries.
+
+## User flows
+- Roster with search, department + working/left filters; click a row for the
+  full record.
+- Detail: profile facts, leave bank with **+ / −** adjustment (non-OT only;
+  bank can't go negative), read-only Pay box pointing at Pay Setup, documents
+  (upload with a label, view/download/delete; images auto-compressed), and
+  attendance stats (financial-year totals + last 6 months).
+- Add employee: profile fields plus a one-time "Starting pay" box (base,
+  PF/ESI) — afterwards pay is managed in Salary.
+- Deactivate/reactivate (history always kept; no hard delete).
 
 ## Implemented (file paths)
-- Data: `salary-system/new_system/backend/modules/employees/repo.py` (roster,
-  attendance days + summaries, leave bank, profile aggregation, sync payloads).
-- Routes: `backend/modules/employees/router.py` (`/api/employees*`,
-  `/api/attendance*`, `/api/leave/reset/*`, `/api/sync/*`).
-- Sync engine: `backend/modules/employees/sync.py` (shared folder,
-  hash-deduplicated, role-locked direction).
-- Seed: `backend/modules/employees/seed.py` (70 employees, default accounts).
-- UI (temporary home): Employees/Attendance/Sync screens inside
-  `frontend/payroll.html` + `frontend/app.js`.
+- UI: `salary-system/new_system/frontend/employees.html` + `frontend/employees.js`.
+- Data: `backend/modules/employees/repo.py` (roster, attendance, leave bank +
+  `adjust_leave`, documents via shared `backend/core/attachments.py`, sync
+  payloads). Routes: `backend/modules/employees/router.py` — gated
+  `require_module("salary", "employees")` (shared data), with documents +
+  leave-adjust behind `require_module("employees")`.
+- Files on disk: `data/employee_files/` (`core/paths.employee_files_dir()`),
+  included in backup zips.
+- Seed: `backend/modules/employees/seed.py`. Spec: `tests/test_users.py`
+  (EmployeeModule class) + `tests/test_payroll.py` for the rules engine.
 
 ## Data model
-`employee(id, name, dept, base_salary, pf_applicable, esi_applicable,
-overtime_eligible, shift, rem_advance, leave_balance, date_joined, active)` ·
-`attendance_day(employee_id, work_date, status P/A, overtime_hours)` ·
-`attendance_summary(employee_id, period, present/penalty/OT/refreshment,
-applied_rules JSON)` · `leave_reset(year)` · `sync_log`.
-Attendance summarisation calls the pure engine in
-`backend/modules/payroll/engine.py` (the one allowed reverse import).
+`employee(...)` · `attendance_day` · `attendance_summary` · `leave_reset` ·
+`sync_log` · **`employee_document(id, employee_id, label, filename, mime,
+size_bytes, stored_name, uploaded_at)`** (cascade-deletes with the employee).
 
 ## Screens
-guide-images: pay-employees, pay-employee-profile, pay-attendance-grid,
-pay-attendance-single, pay-sync.
+guide-images: em-roster, em-detail, em-edit; pay-employees (the slimmed
+Pay Setup); pay-attendance-grid / pay-attendance-single (entry, in Salary).
 
 ## Known bugs
-- payroll.html console errors on load (null-model bindings, pre-existing,
-  UI recovers) — fix queued (ROADMAP Next).
+None known.
 
 ## What's left
-- [ ] Dedicated UI behind the Employee Management tile: employee list/profile,
-      add/edit (non-financial fields), attendance entry moves here.
-- [ ] Document uploads per employee (Aadhaar, agreements) — reuse inventory's
-      attachment pattern (files on disk + zip backup).
-- [ ] Field split with Salary: EM edits profile/status; Salary edits base,
-      PF/ESI, advances (OPEN_QUESTIONS #2 records the default).
+- [ ] Move attendance ENTRY here once the operator flow + sync move is designed
+      (kiosk lands in Salary today) — ROADMAP Later.
 - [ ] Per-employee `bonus_eligible` flag (retires name exclusions in rules.json).
+- [ ] Payroll's employee-profile modal could merge into this module's detail.

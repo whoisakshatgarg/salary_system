@@ -43,17 +43,20 @@ def require_admin(user: dict = Depends(current_user)) -> dict:
     return user
 
 
-def require_module(key: str):
-    """Route dependency: the signed-in account must hold the `key` grant.
+def require_module(*keys: str):
+    """Route dependency: the signed-in account must hold ANY of the `keys`
+    grants (several keys = routes shared between modules, e.g. the employee
+    roster serves both Salary and Employee Management).
 
     Admins implicitly hold every grant. The Operator edition stays locked to
     the salary/attendance module regardless of grants (it's the kiosk laptop).
     """
-    if key not in ALL_KEYS:  # fail at import time, not per request
-        raise ValueError(f"Unknown module key: {key}")
+    unknown = [k for k in keys if k not in ALL_KEYS]
+    if not keys or unknown:  # fail at import time, not per request
+        raise ValueError(f"Unknown module key(s): {', '.join(unknown) or '(none given)'}")
 
     def dep(user: dict = Depends(current_user), conn=Depends(get_db)) -> dict:
-        if edition.is_operator_edition() and key != "salary":
+        if edition.is_operator_edition() and "salary" not in keys:
             raise HTTPException(status_code=403, detail="Not available in the Operator app")
         if user["role"] == "admin":
             return user
@@ -64,7 +67,7 @@ def require_module(key: str):
             grants = json.loads(row["grants"] or "[]") if row else []
         except ValueError:
             grants = []
-        if key not in grants:
+        if not any(k in grants for k in keys):
             raise HTTPException(status_code=403,
                                 detail="Your account doesn't have access to this module")
         return user

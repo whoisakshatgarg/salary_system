@@ -10,7 +10,8 @@ to [DECISIONS.md](DECISIONS.md) with the date.
 | 3 | **Excel byte-matching** — the CEO/Distribution exports follow the legacy layout but were never compared against a real sample sheet. | Current layouts ship as-is; need one real sample `.xlsx` from the office to fine-tune. |
 | 4 | **E-way bill threshold** — should the app warn when a consignment's invoice value crosses the e-way-bill threshold? | Free-text e-way number only, no threshold logic. |
 | 5 | **Multi-user beyond two machines** — more accounts now exist; if a third PC is needed, LAN mode (one server, browsers connect) is the natural step. | Single-PC installs + shared-folder sync only. |
-| 6 | **Repo visibility for self-update** — repo must be public or a token pasted into `config/update.json` on each install. Which will it be? | Assumed public at release time; token path documented in DEPLOY.md. |
+| 6 | **Should employees-granted (non-admin) staff edit profiles / add employees?** Today mutations (add, edit, deactivate) are admin-only; EM-granted staff can view everything and manage documents + the leave bank. | Keep admin-only mutations; the UI hides those buttons for non-admins. Relax per-operation later if HR staff need it. |
+| 7 | **Repo visibility for self-update** — repo must be public or a token pasted into `config/update.json` on each install. Which will it be? | Assumed public at release time; token path documented in DEPLOY.md. |
 
 ## Known issues (accepted for now)
 - `frontend/payroll.html` logs ~19 harmless console errors on load (null-model

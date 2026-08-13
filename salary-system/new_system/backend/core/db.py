@@ -184,6 +184,20 @@ CREATE INDEX IF NOT EXISTS idx_heat_movement_heat  ON heat_movement(heat_id);
 CREATE INDEX IF NOT EXISTS idx_heat_movement_order ON heat_movement(order_id);
 CREATE INDEX IF NOT EXISTS idx_heat_comp_heat      ON heat_composition(heat_id);
 
+-- Employee documents (Aadhaar, agreements, …) — files on disk under
+-- employee_files/, metadata here; same pattern as heat_attachment.
+CREATE TABLE IF NOT EXISTS employee_document (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL REFERENCES employee(id) ON DELETE CASCADE,
+    label       TEXT,                             -- e.g. 'Aadhaar', 'Agreement'
+    filename    TEXT NOT NULL,                    -- original name, shown to user
+    mime        TEXT,
+    size_bytes  INTEGER,
+    stored_name TEXT NOT NULL UNIQUE,             -- file under employee_files/
+    uploaded_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_emp_doc_emp ON employee_document(employee_id);
+
 CREATE TABLE IF NOT EXISTS sync_log (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     filename    TEXT,

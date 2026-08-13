@@ -30,6 +30,7 @@ salary_system/                        repo root
         │   │                         router includes, static mount — no business logic
         │   ├── core/                 infrastructure, no business logic
         │   │   ├── db.py             schema (all tables) + connect + column migrations
+        │   │   ├── attachments.py    shared file validation (mime allowlist, size caps)
         │   │   ├── auth.py           PBKDF2 hashing + HMAC-signed session cookie
         │   │   ├── deps.py           get_db / current_user / require_admin /
         │   │   │                     require_module(key)  ← grant enforcement
@@ -56,13 +57,15 @@ salary_system/                        repo root
         ├── frontend/
         │   ├── index.html + shell.js    login → Home launcher → Users & Access,
         │   │                            placeholders, update popup
-        │   ├── payroll.html + app.js    Salary & Attendance SPA
+        │   ├── payroll.html + app.js    Salary & Attendance SPA (incl. Pay Setup)
+        │   ├── employees.html + employees.js  Employee Management page
         │   ├── inventory.html + inventory.js  Inventory SPA
         │   └── vendor/                  tailwind.js, alpine.js (offline)
         ├── config/                   rules.json (payroll policy) · sync.json · update.json
         ├── tests/                    test_payroll / test_inventory / test_users
         ├── data/                     runtime state, gitignored (salary.db, backups,
-        │                             inventory_files/) — frozen builds use %APPDATA%
+        │                             inventory_files/, employee_files/) — frozen
+        │                             builds use %APPDATA%
         └── apex_payroll.spec · build_windows.bat · run_admin.py · run_operator.py · desktop.py
 ```
 

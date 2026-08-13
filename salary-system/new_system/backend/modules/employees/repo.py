@@ -11,8 +11,11 @@ permitted cross-module import (engine has no I/O and no state).
 from __future__ import annotations
 
 import json
+import secrets
 from datetime import date, datetime
 
+from ...core import paths
+from ...core.attachments import storage_ext, validate_attachment
 from ...core.db import row_to_dict
 from ..payroll.engine import DayMark, period_parts, summarize_attendance
 
@@ -49,6 +52,11 @@ def _new_employee_leave_seed(rules: dict, overtime_eligible: bool) -> int:
 def create_employee(conn, data: dict, rules: dict) -> int:
     ot = bool(data.get("overtime_eligible"))
     leave = _new_employee_leave_seed(rules, ot)
+    # The API model allows leave_balance to be null ("seed the default for
+    # me") — the key is then PRESENT with None, so dict.get's default never
+    # applies. Normalise it here instead of crashing on int(None).
+    if data.get("leave_balance") is None:
+        data = {**data, "leave_balance": leave}
     cur = conn.execute(
         """INSERT INTO employee
            (name, dept, base_salary, pf_applicable, esi_applicable,
@@ -71,23 +79,38 @@ def create_employee(conn, data: dict, rules: dict) -> int:
     return cur.lastrowid
 
 
-def update_employee(conn, emp_id: int, data: dict) -> None:
+# Updates are deliberately PARTIAL — one function per owner, so a stale form
+# on one screen can never silently revert the other screen's fields:
+#   profile (EM page)      -> update_employee_profile
+#   pay (Salary Pay Setup) -> update_employee_pay
+#   leave bank (EM page)   -> adjust_leave (never via a form PUT)
+def update_employee_profile(conn, emp_id: int, data: dict) -> None:
     conn.execute(
         """UPDATE employee SET
-             name=?, dept=?, base_salary=?, pf_applicable=?, esi_applicable=?,
-             overtime_eligible=?, shift=?, rem_advance=?, leave_balance=?, date_joined=?
+             name=?, dept=?, shift=?, overtime_eligible=?, date_joined=?
            WHERE id=?""",
         (
             data["name"].strip(),
             data["dept"],
+            data.get("shift", "D"),
+            int(bool(data.get("overtime_eligible"))),
+            data.get("date_joined") or None,
+            emp_id,
+        ),
+    )
+    conn.commit()
+
+
+def update_employee_pay(conn, emp_id: int, data: dict) -> None:
+    conn.execute(
+        """UPDATE employee SET
+             base_salary=?, pf_applicable=?, esi_applicable=?, rem_advance=?
+           WHERE id=?""",
+        (
             int(data["base_salary"]),
             int(bool(data.get("pf_applicable"))),
             int(bool(data.get("esi_applicable"))),
-            int(bool(data.get("overtime_eligible"))),
-            data.get("shift", "D"),
             int(data.get("rem_advance", 0)),
-            int(data.get("leave_balance", 0)),
-            data.get("date_joined") or None,
             emp_id,
         ),
     )
@@ -152,6 +175,88 @@ def employee_profile(conn, emp_id: int) -> dict:
         ],
         "stats": stats,
     }
+
+
+# --------------------------------------------------------------------------- #
+# Documents (Aadhaar, agreements, … — files on disk, metadata in the DB;
+# identical pattern to inventory attachments, shared plumbing in core)
+# --------------------------------------------------------------------------- #
+def list_documents(conn, employee_id: int) -> list[dict]:
+    return [dict(r) for r in conn.execute(
+        "SELECT id, label, filename, mime, size_bytes, uploaded_at"
+        " FROM employee_document WHERE employee_id=? ORDER BY id", (employee_id,))]
+
+
+def save_documents(conn, employee_id: int, label: str,
+                   items: list[tuple[str, str, bytes]]) -> list[dict]:
+    """Store a batch of (filename, mime, content) ALL-OR-NOTHING (validated
+    up front; failure rolls back rows and removes files already written)."""
+    if not get_employee(conn, employee_id):
+        raise ValueError("Employee not found")
+    label = (label or "").strip()[:60]
+    checked = [(fn, validate_attachment(mime, content), content)
+               for fn, mime, content in items]
+    written = []
+    try:
+        for filename, mime, content in checked:
+            stored = f"e{employee_id}-{secrets.token_hex(8)}{storage_ext(filename, mime)}"
+            path = paths.employee_files_dir() / stored
+            path.write_bytes(content)
+            written.append(path)
+            conn.execute(
+                "INSERT INTO employee_document (employee_id, label, filename, mime,"
+                " size_bytes, stored_name, uploaded_at) VALUES (?,?,?,?,?,?,?)",
+                (employee_id, label, (filename or "").strip() or stored, mime,
+                 len(content), stored, datetime.now().isoformat(timespec="seconds")),
+            )
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        for p in written:
+            p.unlink(missing_ok=True)
+        raise
+    return list_documents(conn, employee_id)
+
+
+def get_document(conn, document_id: int) -> dict | None:
+    return row_to_dict(conn.execute(
+        "SELECT * FROM employee_document WHERE id=?", (document_id,)).fetchone())
+
+
+def delete_document(conn, document_id: int) -> list[dict]:
+    row = get_document(conn, document_id)
+    if not row:
+        raise ValueError("Document not found")
+    conn.execute("DELETE FROM employee_document WHERE id=?", (document_id,))
+    conn.commit()
+    (paths.employee_files_dir() / row["stored_name"]).unlink(missing_ok=True)
+    return list_documents(conn, row["employee_id"])
+
+
+# --------------------------------------------------------------------------- #
+# Leave-bank adjustment (EM's "add/subtract" — the bank never goes negative)
+# --------------------------------------------------------------------------- #
+def adjust_leave(conn, employee_id: int, delta: int) -> dict:
+    # BEGIN IMMEDIATE: the read and the write must be one atomic step, or two
+    # concurrent adjustments read the same balance and one silently vanishes.
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        emp = get_employee(conn, employee_id)
+        if not emp:
+            raise ValueError("Employee not found")
+        if emp["overtime_eligible"]:
+            raise ValueError("Overtime-eligible employees have no leave bank "
+                             "(they use the penalty scheme instead)")
+        new_balance = emp["leave_balance"] + int(delta)
+        if new_balance < 0:
+            raise ValueError(f"The bank has only {emp['leave_balance']} day(s) left")
+        conn.execute("UPDATE employee SET leave_balance=? WHERE id=?",
+                     (new_balance, employee_id))
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    return get_employee(conn, employee_id)
 
 
 # --------------------------------------------------------------------------- #

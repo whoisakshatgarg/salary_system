@@ -64,13 +64,24 @@ def run() -> None:
 
         class JsApi:
             """Bridge for the UI (window.pywebview.api): window.open doesn't
-            work inside pywebview, so the inventory module asks the shell for
-            a real second window. Same WebView2 profile => same session."""
+            work inside pywebview, so pages ask the shell for a real second
+            window. Same WebView2 profile => same session."""
 
             def open_inventory(self):
                 webview.create_window(
                     title + " — Inventory", f"{url}inventory.html",
                     width=1320, height=860, min_size=(1024, 720),
+                )
+
+            def open_path(self, path: str):
+                """Open any same-app path (a document, an attachment, a page)
+                in its own window. Only local paths — never external URLs."""
+                path = str(path)
+                if not path.startswith("/") or path.startswith("//"):
+                    return
+                webview.create_window(
+                    title, f"{url}{path.lstrip('/')}",
+                    width=1100, height=800, min_size=(800, 600),
                 )
 
         webview.create_window(title, url, width=1320, height=860,

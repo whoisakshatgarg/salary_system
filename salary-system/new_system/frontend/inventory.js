@@ -310,7 +310,17 @@ function inv() {
                         { type: "image/jpeg" });
       } catch (_) { return file; }   // exotic format — upload the original
     },
-    viewAtt(a) { window.open(`/api/inventory/attachments/${a.id}`, "_blank"); },
+    viewAtt(a) {
+      const u = `/api/inventory/attachments/${a.id}`;
+      // Packaged app: window.open is dead inside pywebview — use the shell
+      // bridge; browsers get a normal tab (download as fallback).
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.open_path) {
+        window.pywebview.api.open_path(u).catch(() => this.downloadAtt(a));
+        return;
+      }
+      const w = window.open(u, "_blank");
+      if (!w) this.downloadAtt(a);
+    },
     downloadAtt(a) { window.location = `/api/inventory/attachments/${a.id}?download=1`; },
     async deleteAtt(a) {
       if (!window.confirm(`Delete "${a.filename}"?`)) return;

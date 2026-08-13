@@ -10,22 +10,27 @@ paths unchanged.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from ...core import paths
+from ...core.attachments import header_filename, response_mime
 from ...core.deps import current_user, get_db, require_admin, require_module
 from ...core.rules import get_rules
 from . import repo, sync
 
-# Router-level gate: EVERY route here needs the 'salary' grant (admins pass
-# implicitly; the Operator edition is allowed exactly this key). Without this,
-# any signed-in account could read the roster — salaries included — over the
-# API even when its launcher showed no Salary tile. Admin-only routes keep
-# their explicit require_admin on top.
-router = APIRouter(dependencies=[Depends(require_module("salary"))])
+# Router-level gate: EVERY route here needs the 'salary' OR 'employees' grant
+# (the roster/attendance data serves both modules; admins pass implicitly; the
+# Operator edition is allowed via the salary key). Without this, any signed-in
+# account could read the roster — salaries included — over the API even when
+# its launcher showed no tile. Admin-only routes keep require_admin on top;
+# EM-only surfaces (documents, leave adjustment) add require_module("employees").
+router = APIRouter(dependencies=[Depends(require_module("salary", "employees"))])
 
 
 class EmployeeIn(BaseModel):
+    """Creation only — the one moment everything is set together."""
     name: str
     dept: str
     base_salary: int
@@ -36,6 +41,24 @@ class EmployeeIn(BaseModel):
     rem_advance: int = 0
     leave_balance: int | None = None
     date_joined: str | None = None
+
+
+class EmployeeProfileIn(BaseModel):
+    """EM's edit form — the people side. Pay fields deliberately absent so a
+    stale profile form can never revert Pay Setup (and vice versa)."""
+    name: str
+    dept: str
+    shift: str = "D"
+    overtime_eligible: bool = False
+    date_joined: str | None = None
+
+
+class EmployeePayIn(BaseModel):
+    """Salary → Pay Setup's edit form — the money side only."""
+    base_salary: int
+    pf_applicable: bool = False
+    esi_applicable: bool = False
+    rem_advance: int = 0
 
 
 class DayIn(BaseModel):
@@ -106,10 +129,20 @@ def create_employee(body: EmployeeIn, user: dict = Depends(require_admin), conn=
 
 
 @router.put("/api/employees/{emp_id}")
-def update_employee(emp_id: int, body: EmployeeIn, user: dict = Depends(require_admin), conn=Depends(get_db)):
+def update_employee_profile(emp_id: int, body: EmployeeProfileIn,
+                            user: dict = Depends(require_admin), conn=Depends(get_db)):
     if not repo.get_employee(conn, emp_id):
         raise HTTPException(status_code=404, detail="Employee not found")
-    repo.update_employee(conn, emp_id, body.model_dump())
+    repo.update_employee_profile(conn, emp_id, body.model_dump())
+    return repo.get_employee(conn, emp_id)
+
+
+@router.put("/api/employees/{emp_id}/pay")
+def update_employee_pay(emp_id: int, body: EmployeePayIn,
+                        user: dict = Depends(require_admin), conn=Depends(get_db)):
+    if not repo.get_employee(conn, emp_id):
+        raise HTTPException(status_code=404, detail="Employee not found")
+    repo.update_employee_pay(conn, emp_id, body.model_dump())
     return repo.get_employee(conn, emp_id)
 
 
@@ -117,6 +150,70 @@ def update_employee(emp_id: int, body: EmployeeIn, user: dict = Depends(require_
 def set_active(emp_id: int, active: bool, user: dict = Depends(require_admin), conn=Depends(get_db)):
     repo.set_employee_active(conn, emp_id, active)
     return {"ok": True}
+
+
+# --------------------------------------------------------------------------- #
+# Documents + leave bank (Employee Management surfaces)
+# --------------------------------------------------------------------------- #
+class LeaveAdjustIn(BaseModel):
+    delta: int
+
+
+@router.get("/api/employees/{emp_id}/documents")
+def documents(emp_id: int, user: dict = Depends(require_module("employees")),
+              conn=Depends(get_db)):
+    return repo.list_documents(conn, emp_id)
+
+
+@router.post("/api/employees/{emp_id}/documents")
+def upload_documents(emp_id: int, label: str = Form(""),
+                     files: list[UploadFile] = File(...),
+                     user: dict = Depends(require_module("employees")),
+                     conn=Depends(get_db)):
+    # Sync def on purpose: the sqlite connection lives in the threadpool.
+    items = [(f.filename or "", f.content_type or "", f.file.read()) for f in files]
+    try:
+        return repo.save_documents(conn, emp_id, label, items)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/api/employee-documents/{document_id}")
+def view_document(document_id: int, download: bool = False,
+                  user: dict = Depends(require_module("employees")),
+                  conn=Depends(get_db)):
+    row = repo.get_document(conn, document_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Document not found")
+    path = paths.employee_files_dir() / row["stored_name"]
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="File is missing on disk")
+    disposition = "attachment" if download else "inline"
+    return FileResponse(
+        path, media_type=response_mime(row["stored_name"]),
+        headers={"Content-Disposition":
+                 f'{disposition}; filename="{header_filename(row["filename"])}"'},
+    )
+
+
+@router.delete("/api/employee-documents/{document_id}")
+def delete_document(document_id: int,
+                    user: dict = Depends(require_module("employees")),
+                    conn=Depends(get_db)):
+    try:
+        return repo.delete_document(conn, document_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/api/employees/{emp_id}/leave-adjust")
+def leave_adjust(emp_id: int, body: LeaveAdjustIn,
+                 user: dict = Depends(require_module("employees")),
+                 conn=Depends(get_db)):
+    try:
+        return repo.adjust_leave(conn, emp_id, body.delta)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # --------------------------------------------------------------------------- #

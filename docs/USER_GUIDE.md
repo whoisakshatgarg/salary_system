@@ -74,22 +74,21 @@ you calculate and publish salaries → print the two Excel sheets.**
 
 ![Payroll dashboard](guide-images/pay-dashboard.jpg)
 
-Quick counts, plus the sections on the left: Employees, Attendance, Advances,
+Quick counts, plus the sections on the left: Pay Setup, Attendance, Advances,
 Calculate Salary, View Salaries, Export Slips, Sync/Exchange, Rules.
 
-### 3.2 Employees
+### 3.2 Pay Setup
 
-![Employees list](guide-images/pay-employees.jpg)
+![Pay Setup](guide-images/pay-employees.jpg)
 
-Add or edit employees (**+ Add**), search by name/department/number, and
-deactivate people who leave (they keep their history). Click a name for the
-full story — salary, attendance and advances over time:
+The money side of each employee lives here: **base salary, PF/ESI
+applicability, and the advance balance** — press *Edit pay* on a row. Click a
+name for the full pay story (salary, attendance and advances over time):
 
 ![Employee profile](guide-images/pay-employee-profile.jpg)
 
-> Financial details (base salary, PF/ESI, advances) are managed here in the
-> Salary module. Day-to-day records will move to the Employee Management tile
-> when it's ready.
+> Everything else about a person — adding employees, profiles, documents,
+> the leave bank — lives in **Employee Management** (section 4).
 
 ### 3.3 Attendance (usually the operator's job)
 
@@ -162,13 +161,53 @@ policy file; a friendlier Settings screen is planned.
 
 ---
 
-## 4. Raw Material Inventory
+## 4. Employee Management
+
+Everything about your people that isn't money: profiles, documents, the leave
+bank, and attendance summaries. Open the **👥 Employee Management** tile.
+
+### 4.1 The roster
+
+![Employee roster](guide-images/em-roster.jpg)
+
+Search by name/department/number, filter by department or **Working / Left**.
+Each row shows the shift, joining date, leave scheme and the leave bank.
+Click a row to open the full record. **+ Add employee** creates a new person —
+profile details plus a one-time *Starting pay* box (afterwards pay is managed
+in Salary → Pay Setup).
+
+### 4.2 One employee's record
+
+![Employee record](guide-images/em-detail.jpg)
+
+- **Leave bank** — the **+ / −** buttons add or subtract days (for example a
+  compensatory day off, or a correction). The bank can never go below zero.
+  Overtime-eligible workers have no bank — their absences follow the penalty
+  rules at payroll time.
+- **Documents** — upload Aadhaar cards, agreements, certificates (label them,
+  then *+ Add files*). Photos from a phone are compressed automatically; click
+  a name to view, ⬇ to download. Documents ride along in every backup.
+- **Pay** — shown read-only here; change it in Salary → Pay Setup.
+- **Attendance** — this financial year's totals and the last six months.
+- **Deactivate** marks someone as left; history is always kept and they can be
+  reactivated any time.
+
+### 4.3 Editing a profile
+
+![Edit employee](guide-images/em-edit.jpg)
+
+Name, department, shift, joining date, and the overtime-eligible flag (this
+switches the leave scheme, so change it knowingly).
+
+---
+
+## 5. Raw Material Inventory
 
 Every incoming batch of rods/bars is one **heat** — the number stamped on the
 mill test certificate. The app tracks each heat from arrival to the orders it
 fed.
 
-### 4.1 The stock list
+### 5.1 The stock list
 
 ![Stock list](guide-images/inv-stock.jpg)
 
@@ -178,7 +217,7 @@ shows **remaining/received** with a bar and a status: **In stock**,
 grade, supplier or rack; filter by material, shape, status — or find steel by
 its chemistry (e.g. Carbon 0.40–0.50%).
 
-### 4.2 Adding a heat
+### 5.2 Adding a heat
 
 ![New heat form](guide-images/inv-new-heat.jpg)
 
@@ -189,7 +228,7 @@ spectroscopy report. After saving, open the heat and attach photos or PDFs of
 the certificate and purchase invoice — phone photos are compressed
 automatically.
 
-### 4.3 Using stock — the usage log
+### 5.3 Using stock — the usage log
 
 ![Heat detail](guide-images/inv-heat-detail.jpg)
 
@@ -201,7 +240,7 @@ Open any heat to see its full story. To take rods out:
 The app refuses to issue more rods than remain. Deleting a log entry (✕) puts
 the rods back — that's also how you undo a rejection.
 
-### 4.4 Tracing an order
+### 5.4 Tracing an order
 
 ![Usage log](guide-images/inv-usage-log.jpg)
 
@@ -209,7 +248,7 @@ The **Usage Log** tab searches every movement by order number — type a PO
 number and see exactly which heats (and therefore which mill certificates) fed
 that order. That's your traceability answer when a customer asks.
 
-### 4.5 Lists
+### 5.5 Lists
 
 ![Lists](guide-images/inv-lists.jpg)
 
@@ -218,21 +257,21 @@ Removing a value never changes heats already recorded with it.
 
 ---
 
-## 5. Keeping your data safe
+## 6. Keeping your data safe
 
 - **Back up regularly:** Salary & Attendance → Sync/Exchange → **Back up now**.
-  Each backup is one `.zip` holding the entire database *and* every inventory
-  attachment. *Download a copy* saves it wherever you choose — keep one off the
+  Each backup is one `.zip` holding the entire database *and* every
+  attachment (inventory certificates and employee documents). *Download a copy* saves it wherever you choose — keep one off the
   computer.
 - **Restore:** unzip into the app's data folder (`%APPDATA%\APEX Payroll\`),
-  replacing `salary.db` and `inventory_files/`.
+  replacing `salary.db`, `inventory_files/` and `employee_files/`.
 - **Updates:** when a new version is released, a popup offers it at sign-in —
   one click downloads, restarts, done. Your data is never touched. No popup =
   you're up to date (the `v1.x.x` label in the header checks on demand).
 
 ---
 
-## 6. If something goes wrong
+## 7. If something goes wrong
 
 | Problem | What to do |
 |---|---|

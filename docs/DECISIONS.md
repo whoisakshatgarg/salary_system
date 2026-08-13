@@ -65,3 +65,18 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   access instantly (not after the 7-day cookie); last-admin guards made atomic;
   username charset restricted (token safety); operator kiosk regained the
   launch-time update check; shared period/row helpers deduplicated.
+
+## 2026-08-13 (later) — Employee Management UI shipped
+- Dedicated page (`frontend/employees.html`) behind the 👥 tile; payroll's
+  Employees screen slimmed to **Pay Setup** (base/PF/ESI/advance only) — the
+  agreed people/money split is now real in the UI.
+- Employee documents: files on disk (`data/employee_files/`), shared
+  validation in `core/attachments.py` (inventory refactored onto it), included
+  in backup zips.
+- Leave bank gets explicit +/− adjustment (never negative; OT-eligible have
+  none). New-employee creation lives in EM with a one-time starting-pay box.
+- Access: shared roster/attendance routes accept salary OR employees grants
+  (`require_module` is multi-key now); documents + leave adjust need the
+  employees grant.
+- E2E caught a latent API bug: `leave_balance: null` crashed employee creation
+  (int(None)); fixed + regression-tested.

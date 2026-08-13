@@ -5,11 +5,6 @@ module doc's "What's left". Update both when shipping.
 
 ## Now (next sessions)
 
-- **Employee Management UI** — the module tile is a placeholder; backend already
-  owns the master. Build: employee list + profile screens (move from payroll SPA),
-  document uploads (Aadhaar/agreements, reuse inventory's attachment pattern),
-  add/edit with non-financial fields, attendance entry moves here for operators.
-  Salary SPA keeps financial edits (base, PF/ESI, advances). → [modules/employees.md](modules/employees.md)
 - **Customers module** — small master (name, GSTIN, addresses, contacts, payment
   terms); blocks Orders and Parts & Pricing. → [modules/customers.md](modules/customers.md)
 - **Parts & Pricing (drawing master)** — drawing ID + revision, customer link,
@@ -34,6 +29,9 @@ module doc's "What's left". Update both when shipping.
   bindings to `template x-if`).
 
 ## Later
+
+- Move attendance ENTRY from Salary into Employee Management (needs the
+  operator-kiosk flow + two-machine sync redesigned around it).
 
 - Cross-module dashboard/reports (WIP orders, stock value, salary outflow,
   receivables) — needs Orders/Parts first.

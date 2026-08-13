@@ -134,7 +134,7 @@
       <nav class="space-y-1 flex-1">
         <template x-for="item in [
             {k:'dashboard', label:'Dashboard', admin:true},
-            {k:'employees', label:'Employees', admin:true},
+            {k:'employees', label:'Pay Setup', admin:true},
             {k:'attendance', label:'Attendance', admin:false},
             {k:'advances', label:'Advances', admin:true},
             {k:'salary', label:'Calculate Salary', admin:true},
@@ -215,17 +215,16 @@
         <p class="text-slate-500 mt-8 text-sm">Pick a section from the left to manage employees, enter attendance, issue advances, calculate the monthly salary, or export the CEO / Distribution slips.</p>
       </section>
 
-      <!-- EMPLOYEES -->
+      <!-- PAY SETUP (financial fields only — the employee master lives in the
+           Employee Management module; profiles/documents/leave are managed there) -->
       <section x-show="view==='employees'">
-        <div class="flex items-center justify-between mb-6">
-          <h1 class="text-2xl font-bold">Employees</h1>
-          <div class="flex gap-3">
-            <input x-model="empSearch" placeholder="Search name / dept / id"
-                   class="border rounded-lg px-3 py-2 text-sm w-64" />
-            <button x-show="isAdmin" @click="newEmployee()"
-                    class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">+ Add</button>
-          </div>
+        <div class="flex items-center justify-between mb-2">
+          <h1 class="text-2xl font-bold">Pay Setup</h1>
+          <input x-model="empSearch" placeholder="Search name / dept / id"
+                 class="border rounded-lg px-3 py-2 text-sm w-64" />
         </div>
+        <p class="text-sm text-slate-500 mb-6">Base salary, PF/ESI and advance balances per employee.
+          Adding people, profiles, documents and the leave bank live in <b>Employee Management</b> (Home → 👥).</p>
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
           <table class="w-full text-sm">
             <thead class="bg-slate-50 text-slate-500 text-left">
@@ -233,8 +232,7 @@
                 <th class="px-4 py-3">ID</th><th class="px-4 py-3">Name</th>
                 <th class="px-4 py-3">Dept</th><th class="px-4 py-3 text-right">Base</th>
                 <th class="px-4 py-3 text-center">PF</th><th class="px-4 py-3 text-center">ESI</th>
-                <th class="px-4 py-3 text-center">OT</th><th class="px-4 py-3 text-right">Advance</th>
-                <th class="px-4 py-3 text-right">Leave</th><th class="px-4 py-3"></th>
+                <th class="px-4 py-3 text-right">Advance</th><th class="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -249,13 +247,9 @@
                   <td class="px-4 py-2.5 text-right" x-text="money(e.base_salary)"></td>
                   <td class="px-4 py-2.5 text-center" x-text="e.pf_applicable?'✓':'—'"></td>
                   <td class="px-4 py-2.5 text-center" x-text="e.esi_applicable?'✓':'—'"></td>
-                  <td class="px-4 py-2.5 text-center" x-text="e.overtime_eligible?'✓':'—'"></td>
                   <td class="px-4 py-2.5 text-right" x-text="money(e.rem_advance)"></td>
-                  <td class="px-4 py-2.5 text-right" x-text="e.overtime_eligible?'—':e.leave_balance"></td>
                   <td class="px-4 py-2.5 text-right whitespace-nowrap" x-show="isAdmin">
-                    <button @click="editEmployee(e)" class="text-brand-600 hover:underline mr-3">Edit</button>
-                    <button @click="toggleActive(e)" class="text-slate-400 hover:text-rose-600"
-                            x-text="e.active?'Disable':'Enable'"></button>
+                    <button @click="editEmployee(e)" class="text-brand-600 hover:underline">Edit pay</button>
                   </td>
                 </tr>
               </template>
@@ -891,29 +885,20 @@
   </div>
 
   <!-- EMPLOYEE FORM MODAL -->
+  <!-- PAY-SETUP FORM: financial fields only. Everything else (name, dept,
+       shift, joining date, OT scheme, leave bank) is edited in Employee
+       Management; unchanged fields pass through the save untouched. -->
   <div x-show="empForm" x-cloak class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-40">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6" @click.outside="empForm=null">
-      <h2 class="text-lg font-bold mb-4" x-text="empForm?.id ? 'Edit Employee' : 'Add Employee'"></h2>
+      <h2 class="text-lg font-bold mb-1" x-text="'Pay setup — ' + (empForm?.name || '')"></h2>
+      <p class="text-xs text-slate-400 mb-4">Profile details are edited in Employee Management (Home → 👥).</p>
       <div class="grid grid-cols-2 gap-4 text-sm">
-        <div class="col-span-2"><label class="block text-xs text-slate-500 mb-1">Name</label>
-          <input x-model="empForm.name" class="border rounded-lg px-3 py-2 w-full" /></div>
-        <div><label class="block text-xs text-slate-500 mb-1">Department</label>
-          <select x-model="empForm.dept" class="border rounded-lg px-3 py-2 w-full">
-            <template x-for="d in meta.departments" :key="d"><option x-text="d"></option></template>
-          </select></div>
-        <div><label class="block text-xs text-slate-500 mb-1">Base Salary</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Base Salary (₹/month)</label>
           <input type="number" x-model.number="empForm.base_salary" class="border rounded-lg px-3 py-2 w-full" /></div>
-        <div><label class="block text-xs text-slate-500 mb-1">Shift</label>
-          <select x-model="empForm.shift" class="border rounded-lg px-3 py-2 w-full"><option value="D">Day</option><option value="N">Night</option></select></div>
-        <div><label class="block text-xs text-slate-500 mb-1">Remaining Advance</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Remaining Advance (₹)</label>
           <input type="number" x-model.number="empForm.rem_advance" class="border rounded-lg px-3 py-2 w-full" /></div>
-        <div><label class="block text-xs text-slate-500 mb-1">Date joined</label>
-          <input type="date" x-model="empForm.date_joined" class="border rounded-lg px-3 py-2 w-full" /></div>
-        <label class="flex items-center gap-2 mt-2"><input type="checkbox" x-model="empForm.pf_applicable" /> PF</label>
-        <label class="flex items-center gap-2 mt-2"><input type="checkbox" x-model="empForm.esi_applicable" /> ESI</label>
-        <label class="flex items-center gap-2"><input type="checkbox" x-model="empForm.overtime_eligible" /> Overtime eligible</label>
-        <div x-show="!empForm.overtime_eligible"><label class="block text-xs text-slate-500 mb-1">Leave balance</label>
-          <input type="number" x-model.number="empForm.leave_balance" class="border rounded-lg px-3 py-2 w-full" /></div>
+        <label class="flex items-center gap-2 mt-2"><input type="checkbox" x-model="empForm.pf_applicable" /> PF applicable</label>
+        <label class="flex items-center gap-2 mt-2"><input type="checkbox" x-model="empForm.esi_applicable" /> ESI applicable</label>
       </div>
       <div class="flex justify-end gap-3 mt-6">
         <button @click="empForm=null" class="px-4 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100">Cancel</button>

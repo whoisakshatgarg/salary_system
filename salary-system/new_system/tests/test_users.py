@@ -167,5 +167,88 @@ class ReviewRegressions(UsersBase):
                           ADMIN, self.conn)  # spaces, dots, dashes stay legal
 
 
+class EmployeeModule(UsersBase):
+    """Employee Management additions: multi-key gate, documents, leave bank."""
+
+    def setUp(self):
+        super().setUp()
+        self.conn.execute(
+            "INSERT INTO employee (id, name, dept, base_salary, overtime_eligible,"
+            " leave_balance, active) VALUES (1,'Test Man','QA',10000,0,5,1),"
+            " (2,'OT Man','CNC',9000,1,0,1)")
+        self.conn.commit()
+        from backend.modules.employees import repo as emp_repo
+        self.repo = emp_repo
+
+    def test_multi_key_gate(self):
+        users.create_user(users.UserIn(username="hr", password="secret1",
+                                       grants=["employees"]), ADMIN, self.conn)
+        shared = require_module("salary", "employees")
+        em_only = require_module("employees")
+        hr = {"username": "hr", "role": "operator"}
+        op = {"username": "operator", "role": "operator"}
+        self.assertTrue(shared(user=hr, conn=self.conn))     # HR reads the roster
+        self.assertTrue(em_only(user=hr, conn=self.conn))    # and EM surfaces
+        self.assertTrue(shared(user=op, conn=self.conn))     # operator: attendance ok
+        with self.assertRaises(HTTPException):               # but not documents
+            em_only(user=op, conn=self.conn)
+
+    def test_documents_roundtrip_and_atomicity(self):
+        from backend.core import paths
+        docs = self.repo.save_documents(self.conn, 1, "Aadhaar",
+                                        [("card.pdf", "application/pdf", b"%PDF x")])
+        self.assertEqual(docs[0]["label"], "Aadhaar")
+        stored = self.conn.execute(
+            "SELECT stored_name FROM employee_document").fetchone()["stored_name"]
+        self.assertTrue((paths.employee_files_dir() / stored).is_file())
+        with self.assertRaises(ValueError):  # one bad file -> nothing saved
+            self.repo.save_documents(self.conn, 1, "", [
+                ("ok.pdf", "application/pdf", b"%PDF y"),
+                ("bad.exe", "application/x-msdownload", b"MZ")])
+        self.assertEqual(len(self.repo.list_documents(self.conn, 1)), 1)
+        self.repo.delete_document(self.conn, docs[0]["id"])
+        self.assertFalse((paths.employee_files_dir() / stored).exists())
+
+    def test_profile_update_never_touches_pay_or_leave(self):
+        # The split exists so a stale EM form can't revert Pay Setup edits.
+        self.repo.update_employee_profile(self.conn, 1, {
+            "name": "Renamed Man", "dept": "CNC", "shift": "N",
+            "overtime_eligible": False, "date_joined": "2020-01-01"})
+        emp = self.repo.get_employee(self.conn, 1)
+        self.assertEqual(emp["name"], "Renamed Man")
+        self.assertEqual(emp["base_salary"], 10000)   # untouched
+        self.assertEqual(emp["leave_balance"], 5)     # untouched
+
+    def test_pay_update_never_touches_profile_or_leave(self):
+        self.repo.update_employee_pay(self.conn, 1, {
+            "base_salary": 12345, "pf_applicable": True,
+            "esi_applicable": False, "rem_advance": 700})
+        emp = self.repo.get_employee(self.conn, 1)
+        self.assertEqual(emp["base_salary"], 12345)
+        self.assertEqual(emp["name"], "Test Man")     # untouched
+        self.assertEqual(emp["leave_balance"], 5)     # untouched
+
+    def test_create_with_null_leave_balance_seeds_default(self):
+        # EmployeeIn allows leave_balance=None ("seed for me") — the repo must
+        # not crash on int(None). Caught by the EM-page E2E.
+        from backend.core.rules import load_rules
+        new_id = self.repo.create_employee(self.conn, {
+            "name": "Null Leave", "dept": "QA", "base_salary": 9000,
+            "overtime_eligible": False, "leave_balance": None,
+        }, load_rules())
+        emp = self.repo.get_employee(self.conn, new_id)
+        self.assertIsInstance(emp["leave_balance"], int)
+
+    def test_leave_adjust(self):
+        emp = self.repo.adjust_leave(self.conn, 1, 3)
+        self.assertEqual(emp["leave_balance"], 8)
+        emp = self.repo.adjust_leave(self.conn, 1, -2)
+        self.assertEqual(emp["leave_balance"], 6)
+        with self.assertRaises(ValueError):   # bank can't go negative
+            self.repo.adjust_leave(self.conn, 1, -99)
+        with self.assertRaises(ValueError):   # OT employees have no bank
+            self.repo.adjust_leave(self.conn, 2, 1)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

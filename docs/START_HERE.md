@@ -20,7 +20,7 @@ Tests: `../venv/bin/python -m unittest discover -s tests`.
 | App shell (login, launcher, Users & Access) | — | ✅ built | [modules/shell.md](modules/shell.md) |
 | Salary & Attendance (payroll) | ₹ | ✅ built | [modules/payroll.md](modules/payroll.md) |
 | Raw Material Inventory (heat register) | ⛭ | ✅ built | [modules/inventory.md](modules/inventory.md) |
-| Employee Management (backend split done, UI pending) | 👥 | 🟡 partial | [modules/employees.md](modules/employees.md) |
+| Employee Management (people, documents, leave bank) | 👥 | ✅ built | [modules/employees.md](modules/employees.md) |
 | Order Tracking | 🗂 | ❌ not started | [modules/orders.md](modules/orders.md) |
 | Parts & Pricing (drawing master) | 📐 | ❌ not started | [modules/parts-pricing.md](modules/parts-pricing.md) |
 | Customers | 🏢 | ❌ not started | [modules/customers.md](modules/customers.md) |

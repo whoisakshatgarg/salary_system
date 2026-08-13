@@ -208,12 +208,17 @@ function app() {
     async saveEmployee() {
       try {
         const f = this.empForm;
-        if (!f.name.trim()) return this.flash("Name is required", "err");
-        if (f.id) await api(`/api/employees/${f.id}`, { method: "PUT", body: f });
-        else await api("/api/employees", { method: "POST", body: f });
+        // Pay Setup owns ONLY the money fields — the dedicated /pay endpoint
+        // makes it impossible to revert profile/leave edits made elsewhere.
+        await api(`/api/employees/${f.id}/pay`, {
+          method: "PUT",
+          body: { base_salary: Number(f.base_salary) || 0,
+                  pf_applicable: f.pf_applicable, esi_applicable: f.esi_applicable,
+                  rem_advance: Number(f.rem_advance) || 0 },
+        });
         this.empForm = null;
         await this.loadEmployees();
-        this.flash("Employee saved");
+        this.flash("Pay setup saved");
       } catch (e) { this.fail(e); }
     },
     async toggleActive(e) {

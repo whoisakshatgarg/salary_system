@@ -159,17 +159,19 @@ def update_apply(request: Request):
 # Database backup (CEO)
 # --------------------------------------------------------------------------- #
 def _write_backup_zip(dest: Path) -> None:
-    """A COMPLETE backup: consistent salary.db snapshot + every inventory
-    attachment file. Restore = unzip salary.db (and inventory_files/) back into
-    the app's data folder."""
+    """A COMPLETE backup: consistent salary.db snapshot + every on-disk file
+    (inventory certificates/invoices AND employee documents). Restore = unzip
+    salary.db, inventory_files/ and employee_files/ back into the data folder."""
     tmp = Path(tempfile.mkdtemp()) / "salary.db"
     db.backup_to(tmp)
     try:
         with zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED) as z:
             z.write(tmp, "salary.db")
-            for f in sorted(paths.inventory_files_dir().iterdir()):
-                if f.is_file():
-                    z.write(f, f"inventory_files/{f.name}")
+            for dirname, folder in (("inventory_files", paths.inventory_files_dir()),
+                                    ("employee_files", paths.employee_files_dir())):
+                for f in sorted(folder.iterdir()):
+                    if f.is_file():
+                        z.write(f, f"{dirname}/{f.name}")
     finally:
         tmp.unlink(missing_ok=True)
 
