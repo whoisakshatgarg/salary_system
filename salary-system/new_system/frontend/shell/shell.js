@@ -46,6 +46,14 @@ function shell() {
     },
     get isAdmin() { return this.data ? this.data.is_admin : false; },
 
+    // Orders whose delivery date is close. Fails CLOSED and silently: an
+    // account without the orders grant gets a 403 and simply sees no panel.
+    dueSoon: null,
+    async loadDueSoon() {
+      try { this.dueSoon = await api("/api/orders/deadlines"); }
+      catch (_) { this.dueSoon = null; }
+    },
+
     async boot() {
       window.addEventListener("unauth", () => { this.user = null; this.data = null; });
       try {
@@ -66,6 +74,7 @@ function shell() {
         await this.enter();
       } catch (_) { /* show login */ }
       this.checkUpdates();   // not awaited — never delays startup
+      this.loadDueSoon();    // ditto: the warning panel must not gate Home
       this.booted = true;
     },
     async doLogin() {
@@ -89,6 +98,7 @@ function shell() {
       this.homeError = "";
       try {
         this.data = await api("/api/modules");
+      this.loadDueSoon();
       } catch (e) { this.homeError = e.message || "Couldn't load your modules"; }
       this.view = "home";
     },

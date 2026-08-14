@@ -418,10 +418,114 @@
             </table>
             <button @click="addOp()" class="mt-2 text-sm text-brand-700 hover:underline">+ Add operation</button>
 
+            <!-- ===================== BILL OF MATERIALS =====================
+                 The stock this part is cut from, priced from what that steel
+                 actually cost. Rates are snapshotted on save, so reopening an
+                 old costing never silently reprices it. -->
+            <div class="mt-5 pt-4 border-t">
+              <div class="flex items-center mb-1">
+                <div>
+                  <div class="font-semibold text-sm">Bill of materials</div>
+                  <p class="text-xs text-slate-500">
+                    Pick the stock, say how many parts come out of one, and the
+                    material cost per piece is worked out from inventory prices.
+                  </p>
+                </div>
+                <button type="button" @click="openBom()"
+                        class="ml-auto shrink-0 bg-slate-100 hover:bg-slate-200 border border-slate-300 px-3 py-1.5 rounded-lg text-sm font-medium">
+                  + Add material
+                </button>
+              </div>
+
+              <table class="w-full text-sm mt-3" x-show="costing.materials.length">
+                <thead class="text-slate-500 text-xs uppercase tracking-wide border-b">
+                  <tr>
+                    <th class="text-left pb-2">Heat / material</th>
+                    <th class="text-right pb-2">Cost</th>
+                    <th class="text-left pb-2 pl-2">Per</th>
+                    <th class="text-right pb-2">Parts from one</th>
+                    <th class="text-right pb-2">Qty / piece</th>
+                    <th class="text-right pb-2">₹ / piece</th>
+                    <th class="pb-2 w-8"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="(m, i) in costing.materials" :key="i">
+                    <tr class="border-b last:border-0">
+                      <td class="py-2 pr-2">
+                        <div class="font-mono font-semibold" x-text="m.heat_number"></div>
+                        <div class="text-xs text-slate-400" x-text="m.material_label"></div>
+                      </td>
+                      <td class="py-2 pr-2">
+                        <input type="number" min="0" step="0.01" x-model="m.unit_cost"
+                               class="border rounded-lg px-2 py-1.5 w-24 text-right" /></td>
+                      <td class="py-2 pl-2 pr-2">
+                        <select x-model="m.unit" x-effect="m.unit && $nextTick(() => $el.value = m.unit)"
+                                class="border rounded-lg px-2 py-1.5 text-sm">
+                          <option value="rod">rod</option>
+                          <option value="kg">kg</option>
+                        </select></td>
+                      <td class="py-2 pr-2">
+                        <input type="number" min="0" step="0.001" x-model="m.per_rod"
+                               @input="syncMaterial(m)"
+                               class="border rounded-lg px-2 py-1.5 w-24 text-right" /></td>
+                      <td class="py-2 pr-2 text-right text-slate-500"
+                          x-text="(Number(m.qty_per_piece) || 0).toFixed(4)"></td>
+                      <td class="py-2 pr-2 text-right font-semibold"
+                          x-text="'₹' + materialCost(m)"></td>
+                      <td class="py-2 text-right">
+                        <button type="button" @click="removeMaterial(i)"
+                                class="text-slate-300 hover:text-rose-600 px-1">✕</button></td>
+                    </tr>
+                  </template>
+                  <tr class="bg-slate-50">
+                    <td class="py-2 text-slate-500 text-xs uppercase tracking-wide" colspan="5">
+                      Material per piece</td>
+                    <td class="py-2 text-right font-bold" x-text="'₹' + bomTotal()"></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- stock picker: one box over heat number, grade and material -->
+              <div x-show="bomOpen" x-cloak class="mt-3 border rounded-xl p-3 bg-slate-50">
+                <div class="flex gap-2">
+                  <input x-model="bomSearch" @input.debounce.350ms="findMaterial()"
+                         placeholder="Search by heat number, grade or material…"
+                         class="flex-1 border rounded-lg px-3 py-2 text-sm" />
+                  <button type="button" @click="bomOpen = false"
+                          class="text-slate-400 hover:text-slate-600 px-2">✕</button>
+                </div>
+                <div class="mt-2 max-h-64 overflow-auto divide-y bg-white rounded-lg border">
+                  <template x-for="h in bomHits" :key="h.heat_id">
+                    <button type="button" @click="addMaterial(h)"
+                            class="w-full text-left px-3 py-2 hover:bg-brand-600/5 flex items-center gap-3">
+                      <span class="font-mono font-semibold text-sm" x-text="h.heat_number"></span>
+                      <span class="text-xs text-slate-500"
+                            x-text="[h.material_class, h.grade, h.size_section].filter(Boolean).join(' · ')"></span>
+                      <span class="ml-auto text-xs text-slate-400 whitespace-nowrap"
+                            x-text="h.remaining + ' left'"></span>
+                      <span class="text-xs font-medium whitespace-nowrap"
+                            x-text="h.cost_per_rod ? ('₹' + h.cost_per_rod + '/rod')
+                                    : (h.cost_per_kg ? ('₹' + h.cost_per_kg + '/kg') : 'no price')"></span>
+                    </button>
+                  </template>
+                  <div x-show="!bomHits.length && !bomBusy" class="px-3 py-6 text-center text-sm text-slate-400">
+                    No stock matches that search.
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="grid grid-cols-3 gap-4 mt-5 pt-4 border-t">
               <div><label class="block text-xs text-slate-500 mb-1">Material cost (₹/piece)</label>
                 <input type="number" min="0" step="0.01" x-model="costing.material_cost"
-                       class="border rounded-lg px-3 py-2 w-full text-sm" /></div>
+                       :disabled="costing.materials.length > 0"
+                       :class="costing.materials.length ? 'bg-slate-100 text-slate-400' : ''"
+                       class="border rounded-lg px-3 py-2 w-full text-sm" />
+                <p class="text-[11px] text-slate-400 mt-1" x-show="costing.materials.length">
+                  Taken from the bill of materials above.
+                </p></div>
               <div><label class="block text-xs text-slate-500 mb-1">Overall margin %</label>
                 <input type="number" min="0" step="0.5" x-model="costing.margin_pct"
                        class="border rounded-lg px-3 py-2 w-full text-sm" /></div>
@@ -433,7 +537,12 @@
               <table class="text-sm">
                 <tr><td class="py-1 pr-6 text-slate-500">Operations (weighted)</td>
                     <td class="py-1 text-right" x-text="'₹' + costingTotals.ops"></td></tr>
-                <tr><td class="py-1 pr-6 text-slate-500">+ material</td>
+                <tr><td class="py-1 pr-6 text-slate-500">
+                      + material
+                      <span class="text-xs text-slate-400" x-show="costing.materials.length">(from BOM)</span>
+                    </td>
+                    <td class="py-1 text-right" x-text="'₹' + costingTotals.material"></td></tr>
+                <tr><td class="py-1 pr-6 text-slate-500">= subtotal</td>
                     <td class="py-1 text-right" x-text="'₹' + costingTotals.subtotal"></td></tr>
                 <tr><td class="py-1 pr-6 text-slate-500"
                         x-text="'+ overall margin ' + (costing.margin_pct || 0) + '%'"></td>

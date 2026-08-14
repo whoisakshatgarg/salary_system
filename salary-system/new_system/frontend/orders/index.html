@@ -37,6 +37,8 @@
                 :class="tab === 'orders' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800'">Orders</button>
         <button @click="tab = 'consignments'; loadCons()" class="px-4 py-1.5 rounded-lg text-sm font-medium transition"
                 :class="tab === 'consignments' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800'">Consignments</button>
+        <button @click="tab = 'shipments'" class="px-4 py-1.5 rounded-lg text-sm font-medium transition"
+                :class="tab === 'shipments' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800'">Shipments</button>
       </nav>
       <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
         <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
@@ -87,7 +89,7 @@
                 <th class="px-3 py-3">Customer PO</th>
                 <th class="px-3 py-3 text-right">Items</th>
                 <th class="px-3 py-3 text-right">Amount</th>
-                <th class="px-3 py-3">Due</th>
+                <th class="px-3 py-3">Deadline</th>
                 <th class="px-3 py-3">Stage</th>
               </tr>
             </thead>
@@ -100,7 +102,10 @@
                   <td class="px-3 py-2.5" x-text="o.customer_po || '—'"></td>
                   <td class="px-3 py-2.5 text-right" x-text="o.items"></td>
                   <td class="px-3 py-2.5 text-right whitespace-nowrap" x-text="money(o.amount)"></td>
-                  <td class="px-3 py-2.5 whitespace-nowrap" x-text="fmtDate(o.due_date)"></td>
+                  <td class="px-3 py-2.5 whitespace-nowrap">
+                    <span :class="dueClass(o.due_date)" class="px-2 py-0.5 rounded"
+                          x-text="fmtDate(o.due_date)"></span>
+                  </td>
                   <td class="px-3 py-2.5">
                     <span class="px-2 py-0.5 rounded-full text-xs font-medium"
                           :class="stageClass(o.stage)" x-text="stageLabel(o.stage)"></span>
@@ -114,6 +119,85 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- ============================= SHIPMENTS =============================
+           How much of each order has actually gone out, and how much is left.
+           Long orders ship in instalments over months — this is the view that
+           answers "what do we still owe them?". -->
+      <section x-show="tab === 'shipments'">
+        <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-end gap-3">
+          <div class="flex-1 min-w-[240px]">
+            <label class="block text-xs font-medium text-slate-500 mb-1">Search</label>
+            <input x-model="q" @input.debounce.400ms="load()"
+                   placeholder="Order no / customer / their PO"
+                   class="w-full border rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <label class="flex items-center gap-2 text-sm text-slate-600">
+            <input type="checkbox" x-model="openOnly" class="w-4 h-4" />
+            Only orders with something still to send
+          </label>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm overflow-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
+              <tr>
+                <th class="text-left px-4 py-3">Order no.</th>
+                <th class="text-left px-3 py-3">Customer</th>
+                <th class="text-left px-3 py-3">Their PO</th>
+                <th class="text-right px-3 py-3">Ordered</th>
+                <th class="text-right px-3 py-3">Sent</th>
+                <th class="text-right px-3 py-3">Remaining</th>
+                <th class="px-3 py-3 w-40">Progress</th>
+                <th class="text-left px-3 py-3">Deadline</th>
+                <th class="text-left px-3 py-3">Stage</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              <template x-for="o in shipmentRows()" :key="o.id">
+                <tr @click="open(o.id)" class="hover:bg-brand-600/5 cursor-pointer">
+                  <td class="px-4 py-2.5 font-semibold text-brand-700 font-mono text-xs" x-text="o.order_no"></td>
+                  <td class="px-3 py-2.5">
+                    <span class="font-mono text-slate-400 text-xs mr-1" x-text="o.customer_code"></span>
+                    <span x-text="o.customer_name"></span>
+                  </td>
+                  <td class="px-3 py-2.5 text-slate-500" x-text="o.customer_po || '—'"></td>
+                  <td class="px-3 py-2.5 text-right" x-text="o.qty_total"></td>
+                  <td class="px-3 py-2.5 text-right text-emerald-700 font-medium" x-text="o.qty_shipped"></td>
+                  <td class="px-3 py-2.5 text-right font-bold"
+                      :class="o.qty_pending > 0 ? 'text-amber-700' : 'text-slate-300'"
+                      x-text="o.qty_pending"></td>
+                  <td class="px-3 py-2.5">
+                    <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
+                      <div class="h-full rounded-full"
+                           :class="o.pct_shipped >= 100 ? 'bg-emerald-500' : 'bg-brand-600'"
+                           :style="'width:' + Math.min(o.pct_shipped, 100) + '%'"></div>
+                    </div>
+                    <div class="text-[11px] text-slate-400 mt-0.5" x-text="o.pct_shipped + '%'"></div>
+                  </td>
+                  <td class="px-3 py-2.5 whitespace-nowrap">
+                    <span :class="dueClass(o.due_date)" class="px-2 py-0.5 rounded"
+                          x-text="fmtDate(o.due_date)"></span>
+                  </td>
+                  <td class="px-3 py-2.5">
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                          :class="stageClass(o.stage)" x-text="stageLabel(o.stage)"></span>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="!shipmentRows().length">
+                <td colspan="9" class="px-4 py-10 text-center text-slate-400">
+                  Nothing outstanding — every order has been sent in full.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="px-4 py-3 bg-slate-50 border-t flex items-center text-sm">
+            <span class="text-slate-500">Still to send, across these orders</span>
+            <span class="ml-auto text-lg font-bold" x-text="totalOutstanding()"></span>
+          </div>
         </div>
       </section>
 
@@ -172,26 +256,112 @@
   </div>
 
   <!-- ============================= ORDER DETAIL ============================= -->
-  <template x-if="detail">
-  <div class="fixed inset-0 z-40 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl my-4">
-      <div class="flex items-center gap-3 px-6 py-4 border-b">
+  <!-- ===================== DELIVERY PLAN FOR ONE ITEM =====================
+       "600 pieces: 250 by the 10th, 100 by the 24th, rest before the deadline."
+       Whatever is left unplanned is derived, never typed. -->
+  <template x-if="plan">
+  <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto"
+       @click.self="plan = null">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8">
+      <div class="px-6 py-4 border-b flex items-center">
         <div>
-          <div class="text-xl font-bold font-mono" x-text="detail.order_no"></div>
-          <div class="text-xs text-slate-500"
+          <div class="text-lg font-bold">Delivery plan</div>
+          <div class="text-xs text-slate-500" x-text="plan.label"></div>
+        </div>
+        <button @click="plan = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+      </div>
+      <div class="p-6">
+        <div class="flex gap-6 text-sm mb-4">
+          <div><div class="text-xs text-slate-500">Ordered</div>
+               <div class="text-lg font-bold" x-text="plan.qty"></div></div>
+          <div><div class="text-xs text-slate-500">Planned</div>
+               <div class="text-lg font-bold text-brand-700" x-text="planTotal()"></div></div>
+          <div><div class="text-xs text-slate-500">Not planned yet</div>
+               <div class="text-lg font-bold"
+                    :class="planLeft() > 0 ? 'text-amber-700' : 'text-slate-300'"
+                    x-text="planLeft()"></div></div>
+          <div class="ml-auto text-xs text-slate-500 self-end" x-show="plan.due_date">
+            Order deadline <b x-text="fmtDate(plan.due_date)"></b>
+          </div>
+        </div>
+
+        <table class="w-full text-sm">
+          <thead><tr class="text-left text-xs text-slate-500 border-b">
+            <th class="py-2 pr-2">Deliver by</th>
+            <th class="py-2 pr-2 text-right">Quantity</th>
+            <th class="py-2 pr-2">Note</th>
+            <th class="py-2 w-8"></th>
+          </tr></thead>
+          <tbody>
+            <template x-for="(l, i) in plan.lines" :key="i">
+              <tr class="border-b last:border-0">
+                <td class="py-2 pr-2">
+                  <input type="date" x-model="l.due_date" class="border rounded-lg px-2 py-1.5 w-full" /></td>
+                <td class="py-2 pr-2">
+                  <input type="number" step="0.001" min="0" x-model="l.qty"
+                         class="border rounded-lg px-2 py-1.5 w-28 text-right" /></td>
+                <td class="py-2 pr-2">
+                  <input x-model="l.note" placeholder="e.g. first drop"
+                         class="border rounded-lg px-2 py-1.5 w-full" /></td>
+                <td class="py-2 text-right">
+                  <button @click="plan.lines.splice(i,1)" class="text-slate-300 hover:text-rose-600 px-1">✕</button></td>
+              </tr>
+            </template>
+            <tr x-show="!plan.lines.length">
+              <td colspan="4" class="py-6 text-center text-slate-400 text-sm">
+                No drops planned — the whole quantity is due by the order deadline.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="flex items-center gap-3 mt-4">
+          <button @click="addPlanLine()" class="text-sm text-brand-700 hover:underline">+ Add a delivery</button>
+          <button @click="planRest()" x-show="planLeft() > 0"
+                  class="text-sm text-brand-700 hover:underline"
+                  x-text="'+ Remaining (' + planLeft() + ') by the deadline'"></button>
+          <span class="text-rose-600 text-sm ml-auto" x-text="planError"></span>
+          <button @click="savePlan()"
+                  class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg text-sm font-medium">Save plan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </template>
+
+  <!-- ======================= ONE ORDER (FULL WINDOW) =======================
+       An order carries items, a delivery plan, shipments and a stage history —
+       a dialog was never going to hold it. Same treatment as the customer
+       record; editing opens the order form over the top. -->
+  <template x-if="detail">
+  <div class="fixed inset-0 z-40 bg-slate-100 flex flex-col">
+    <div class="bg-slate-900 text-slate-300 flex items-center gap-3 px-6 py-3 shrink-0">
+      <button @click="closeDetail()" title="Back to all orders"
+              class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
+        <span class="text-base leading-none">←</span> Back
+      </button>
+        <div>
+          <div class="text-xl font-bold font-mono text-white" x-text="detail.order_no"></div>
+          <div class="text-xs text-slate-400"
                x-text="[detail.customer_name, detail.customer_po && ('PO ' + detail.customer_po),
                         fmtDate(detail.order_date)].filter(Boolean).join(' · ')"></div>
         </div>
         <span class="px-2.5 py-1 rounded-full text-xs font-medium"
               :class="stageClass(detail.stage)" x-text="stageLabel(detail.stage)"></span>
+        <span class="px-2.5 py-1 rounded-full text-xs font-medium ml-1"
+              x-show="detail.due_date"
+              :class="dueChipClass(detail.due_date)"
+              x-text="dueLabel(detail.due_date)"></span>
         <div class="ml-auto flex gap-2">
           <button @click="newCons(detail); tab = 'orders'"
-                  class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm">🚚 Ship</button>
-          <button @click="editOrder()" class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm">Edit</button>
-          <button @click="removeOrder()" class="border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-sm">Delete</button>
-          <button @click="closeDetail()" class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+                  class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm">🚚 Ship</button>
+          <button @click="editOrder()" class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm">Edit</button>
+          <button @click="removeOrder()" class="border border-rose-400/60 text-rose-300 hover:bg-rose-900/40 px-3 py-1.5 rounded-lg text-sm">Delete</button>
         </div>
-      </div>
+    </div>
+    <div class="flex-1 overflow-auto">
+      <div class="max-w-6xl mx-auto p-6">
+        <div class="bg-white rounded-2xl shadow-sm">
 
       <!-- stage progress -->
       <div class="px-6 pt-4 flex flex-wrap gap-1.5">
@@ -219,8 +389,10 @@
                   <th class="py-2 pr-2">Part</th>
                   <th class="py-2 pr-2 text-right">Qty</th>
                   <th class="py-2 pr-2 text-right">Shipped</th>
+                  <th class="py-2 pr-2 text-right">Still due</th>
                   <th class="py-2 pr-2 text-right">Rate</th>
-                  <th class="py-2 text-right">Amount</th>
+                  <th class="py-2 pr-2 text-right">Amount</th>
+                  <th class="py-2 text-right">Plan</th>
                 </tr>
               </thead>
               <tbody>
@@ -234,8 +406,17 @@
                     <td class="py-2 pr-2 text-right"
                         :class="it.shipped >= it.qty ? 'text-emerald-600 font-medium' : 'text-slate-500'"
                         x-text="it.shipped"></td>
+                    <td class="py-2 pr-2 text-right font-medium"
+                        :class="it.pending > 0 ? 'text-amber-700' : 'text-slate-300'"
+                        x-text="it.pending"></td>
                     <td class="py-2 pr-2 text-right" x-text="money(it.rate)"></td>
-                    <td class="py-2 text-right font-medium" x-text="money(it.amount)"></td>
+                    <td class="py-2 pr-2 text-right font-medium" x-text="money(it.amount)"></td>
+                    <td class="py-2 text-right">
+                      <button @click="openPlan(it)"
+                              class="px-2 py-1 rounded-lg text-xs font-medium border"
+                              :class="it.schedule.length ? 'border-brand-600 text-brand-700 bg-brand-50' : 'border-slate-300 text-slate-500 hover:bg-slate-50'"
+                              x-text="it.schedule.length ? (it.schedule.length + ' drop(s)') : 'Plan'"></button>
+                    </td>
                   </tr>
                 </template>
               </tbody>
@@ -291,6 +472,8 @@
 
           <div x-show="detail.notes" class="text-sm bg-amber-50 rounded-lg p-3 text-amber-900" x-text="detail.notes"></div>
         </div>
+      </div>
+    </div>
       </div>
     </div>
   </div>

@@ -243,7 +243,14 @@ def list_orders(conn, q: str = "", stage: str = "") -> dict:
     sql = """SELECT o.*, c.name AS customer_name,
                     (SELECT COUNT(*) FROM order_item i WHERE i.order_id=o.id) AS items,
                     (SELECT COALESCE(SUM(i.qty*i.rate),0) FROM order_item i
-                       WHERE i.order_id=o.id) AS amount
+                       WHERE i.order_id=o.id) AS amount,
+                    (SELECT COALESCE(SUM(i.qty),0) FROM order_item i
+                       WHERE i.order_id=o.id) AS qty_total,
+                    -- what has actually left the shop, across every consignment
+                    (SELECT COALESCE(SUM(l.qty),0) FROM consignment_line l
+                       JOIN order_item i ON i.id=l.order_item_id
+                       WHERE i.order_id=o.id) AS qty_shipped,
+                    c.code AS customer_code
              FROM customer_order o JOIN customer c ON c.id=o.customer_id WHERE 1=1"""
     args: list = []
     if _s(q):
@@ -254,7 +261,15 @@ def list_orders(conn, q: str = "", stage: str = "") -> dict:
         sql += " AND o.stage=?"
         args.append(stage)
     sql += " ORDER BY o.id DESC"
-    rows = [dict(r) for r in conn.execute(sql, args)]
+    rows = []
+    for r in conn.execute(sql, args):
+        o = dict(r)
+        o["qty_total"] = round(o["qty_total"], 3)
+        o["qty_shipped"] = round(o["qty_shipped"], 3)
+        o["qty_pending"] = round(o["qty_total"] - o["qty_shipped"], 3)
+        o["pct_shipped"] = (round(o["qty_shipped"] / o["qty_total"] * 100)
+                            if o["qty_total"] else 0)
+        rows.append(o)
     counts = {r["stage"]: r["n"] for r in conn.execute(
         "SELECT stage, COUNT(*) AS n FROM customer_order GROUP BY stage")}
     return {"rows": rows, "stage_counts": counts,
@@ -275,9 +290,20 @@ def get_order(conn, order_id: int) -> dict:
             (order_id,)):
         it = dict(r)
         it["shipped"] = shipped.get(it["id"], 0)
+        it["pending"] = round(it["qty"] - it["shipped"], 3)
         it["amount"] = round(it["qty"] * it["rate"], 2)
+        it["schedule"] = [dict(s) for s in conn.execute(
+            "SELECT id, due_date, qty, note FROM order_schedule"
+            " WHERE order_item_id=? ORDER BY due_date, id", (it["id"],))]
+        planned = sum(s["qty"] for s in it["schedule"])
+        it["planned"] = round(planned, 3)
+        # what no delivery date has been promised for yet
+        it["unplanned"] = round(it["qty"] - planned, 3)
         o["items"].append(it)
     o["amount"] = round(sum(i["amount"] for i in o["items"]), 2)
+    o["qty_total"] = round(sum(i["qty"] for i in o["items"]), 3)
+    o["qty_shipped"] = round(sum(i["shipped"] for i in o["items"]), 3)
+    o["qty_pending"] = round(o["qty_total"] - o["qty_shipped"], 3)
     o["stage_log"] = [dict(r) for r in conn.execute(
         "SELECT * FROM order_stage_log WHERE order_id=? ORDER BY id DESC", (order_id,))]
     # material traceability: inventory issues recorded against this order number
@@ -317,6 +343,95 @@ def delete_order(conn, order_id: int) -> None:
 # --------------------------------------------------------------------------- #
 # Consignments (may carry items from SEVERAL orders; partials fine)
 # --------------------------------------------------------------------------- #
+def set_schedule(conn, order_item_id: int, rows: list[dict]) -> dict:
+    """Replace the delivery plan for one order item.
+
+    "600 pieces: 250 by the 10th, 100 by the 24th, the rest before the deadline"
+    — the rest is NOT stored, it is item qty minus what is planned, so the two
+    can never drift apart.
+    """
+    item = conn.execute(
+        "SELECT i.*, o.due_date, o.order_no FROM order_item i"
+        " JOIN customer_order o ON o.id=i.order_id WHERE i.id=?",
+        (order_item_id,)).fetchone()
+    if not item:
+        raise ValueError("Order item not found")
+
+    clean = []
+    for n, r in enumerate(rows or [], start=1):
+        # NOT _check_date(..., required=True): that silently substitutes today,
+        # which would quietly promise a delivery for this afternoon.
+        raw = _s(r.get("due_date"))
+        if not raw:
+            raise ValueError(f"Line {n}: a delivery date is required")
+        date = _check_date(raw, f"Line {n}: date")
+        try:
+            qty = float(r.get("qty"))
+        except (TypeError, ValueError):
+            raise ValueError(f"Line {n}: quantity must be a number")
+        if not math.isfinite(qty) or qty <= 0:
+            raise ValueError(f"Line {n}: quantity must be greater than 0")
+        clean.append({"due_date": date, "qty": qty, "note": (r.get("note") or "").strip()})
+
+    total = sum(c["qty"] for c in clean)
+    if total > item["qty"] + 1e-9:
+        raise ValueError(
+            f"The plan adds up to {total:g} but the item is only {item['qty']:g}")
+
+    conn.execute("DELETE FROM order_schedule WHERE order_item_id=?", (order_item_id,))
+    for c in clean:
+        conn.execute(
+            "INSERT INTO order_schedule (order_item_id, due_date, qty, note, created_at)"
+            " VALUES (?,?,?,?,?)",
+            (order_item_id, c["due_date"], c["qty"], c["note"], _now()))
+    conn.commit()
+    return {"ok": True, "planned": round(total, 3),
+            "unplanned": round(item["qty"] - total, 3)}
+
+
+def deadlines(conn, today: str = "") -> dict:
+    """Orders whose delivery date is close, for the Home warning panel.
+
+    Three buckets so the panel can say what is urgent without arithmetic in the
+    template: already overdue, due within 7 days, and due in the rest of the
+    next 31 days. Only orders that still have something left to ship appear —
+    a fully delivered order is not a deadline any more.
+    """
+    ref = date.fromisoformat(today) if today else date.today()
+    rows = []
+    for r in conn.execute(
+        "SELECT o.id, o.order_no, o.due_date, o.stage, c.name AS customer_name,"
+        "       c.code AS customer_code"
+        " FROM customer_order o JOIN customer c ON c.id=o.customer_id"
+        " WHERE o.due_date IS NOT NULL AND TRIM(o.due_date) <> ''"
+        "   AND o.stage NOT IN ('payment')"
+        " ORDER BY o.due_date"
+    ):
+        o = dict(r)
+        try:
+            due = date.fromisoformat(o["due_date"])
+        except ValueError:
+            continue                      # a malformed date is not a deadline
+        shipped = _shipped_by_item(conn, o["id"])
+        qty = conn.execute(
+            "SELECT COALESCE(SUM(qty),0) AS q FROM order_item WHERE order_id=?",
+            (o["id"],)).fetchone()["q"]
+        pending = round(qty - sum(shipped.values()), 3)
+        if pending <= 0:
+            continue                      # everything has gone out
+        o["days_left"] = (due - ref).days
+        o["qty_total"] = round(qty, 3)
+        o["qty_pending"] = pending
+        rows.append(o)
+
+    return {
+        "overdue":   [r for r in rows if r["days_left"] < 0],
+        "this_week": [r for r in rows if 0 <= r["days_left"] <= 7],
+        "this_month": [r for r in rows if 7 < r["days_left"] <= 31],
+        "as_of": ref.isoformat(),
+    }
+
+
 def open_items(conn, order_id: int) -> list[dict]:
     """Items of one order with their still-unshipped quantity (for the form)."""
     shipped = _shipped_by_item(conn, order_id)
@@ -473,6 +588,16 @@ class ConsignmentIn(BaseModel):
     lines: list[ConsignmentLineIn] = []
 
 
+class ScheduleLine(BaseModel):
+    due_date: str
+    qty: float
+    note: str = ""
+
+
+class ScheduleIn(BaseModel):
+    lines: list[ScheduleLine] = []
+
+
 def _400(fn, *args, **kw):
     try:
         return fn(*args, **kw)
@@ -535,6 +660,18 @@ def consignment_delivered(consignment_id: int, delivered: bool, conn=Depends(get
 def consignment_delete(consignment_id: int, conn=Depends(get_db)):
     _400(delete_consignment, conn, consignment_id)
     return {"ok": True}
+
+
+@router.get("/deadlines")
+def order_deadlines(conn=Depends(get_db)):
+    """Home-screen warning panel: what is due, and what is already late."""
+    return deadlines(conn)
+
+
+@router.put("/items/{order_item_id}/schedule")
+def item_schedule(order_item_id: int, body: ScheduleIn, conn=Depends(get_db)):
+    return _400(set_schedule, conn, order_item_id,
+                [r.model_dump() for r in body.lines])
 
 
 @router.get("/{order_id}")

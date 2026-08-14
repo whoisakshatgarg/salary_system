@@ -222,4 +222,32 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   the options exist. `x-effect` alone is not enough: it runs too early and never
   retries. This fixed the reported "Edit shows Customer as —" on quotations as
   well as the inventory edit form.
+- **Delivery plans hang off the order ITEM, and the remainder is derived.** A
+  quantity only means something against the item it is a quantity of, and
+  storing "the rest" as a fourth row would let it drift out of step with the
+  first three. `unplanned = item qty − Σ planned`, computed on read; a plan that
+  exceeds the item is refused.
+- **Deadlines are bucketed server-side** (overdue / 7 days / 31 days) so the
+  Home panel renders lists rather than doing date arithmetic in a template.
+  Fully-shipped orders are excluded — an order with nothing left to send is not
+  a deadline. The shell fetches it fail-closed so accounts without the orders
+  grant just see no panel rather than an error.
+- **Shipment progress is derived from consignment lines**, never stored on the
+  order. An order delivered in six instalments over four months is the normal
+  case here, and a stored "shipped" column would need updating from four
+  different places.
+- **The BOM prices material from inventory, and snapshots it.** Unit costs are
+  derived from what the steel actually cost (`price_total ÷ rods_received`), and
+  copied into `costing_material` on save for the same reason operation rates are
+  snapshotted: reopening a quote must not silently reprice it.
+- **BOM quantity is entered as "parts from one rod", not as a fraction.** The
+  stored `qty_per_piece` is `1/N` at 8 decimal places, multiplied out to paise
+  only at the end. Reusing `_check_money` here rounded one third to 0.33 and
+  underpriced every piece by 1% — hence a separate `_check_ratio`.
+- **When BOM lines exist they ARE the material cost**, and the manual box is
+  disabled. Leaving both editable is how the two end up disagreeing.
+- **The order record is a full window and its form fills the screen for edit as
+  well as add** — an order carries items, a delivery plan, shipments and a stage
+  history. Orders are the exception to "edit stays a modal": the form is the
+  same one used to add, and switching surfaces between the two would be arbitrary.
 

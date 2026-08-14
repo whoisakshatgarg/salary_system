@@ -34,6 +34,25 @@ the shared `POST /api/material/check` (see
 orders-only account can use it. The point is to see a shortage BEFORE
 committing to it.
 
+## Deadlines, delivery plans and shipment progress
+- **Deadline** (`customer_order.due_date`) is a column on the list, tinted amber
+  inside a week and rose once overdue, and a chip on the order record.
+- **Delivery plan** — long orders ship in instalments, so each ORDER ITEM can
+  carry an `order_schedule` of "250 by the 15th, 100 by the 15th, the balance by
+  the deadline". Quantities hang off the item because a quantity only means
+  something against the item it is a quantity OF. **What is left unplanned is
+  derived** (`item qty − Σ lines`), never stored, so the two cannot drift; the
+  plan is refused if it adds up to more than the item.
+- **Shipments tab** — per-order fulfilment: ordered / sent / remaining with a
+  progress bar, filtered by default to orders that still owe something. `sent`
+  sums `consignment_line` across every consignment, so an order delivered in six
+  instalments over four months reads correctly.
+- **Home warning panel** — `GET /api/orders/deadlines` buckets open orders into
+  overdue / next 7 days / next 31 days, each with the customer, order number and
+  quantity still to send. Fully-shipped orders drop out: they are not deadlines
+  any more. The shell fetches it fail-closed, so an account without the orders
+  grant simply sees no panel.
+
 ## Implemented (file paths)
 `backend/modules/orders.py` (data + `/api/orders/*` routes incl.
 `/api/orders/consignments*`, grant `orders`) · UI `frontend/orders/index.html` + `orders.js` · numbering via `modules/settings.py` (`order_seq` table) · spec
@@ -43,7 +62,7 @@ committing to it.
 `customer_order(order_no UNIQUE, customer_id, customer_po, stage, dates…)` ·
 `order_item(order_id, drawing_id?, description, qty, unit, rate)` ·
 `order_stage_log` · `order_seq(fy, seq)` · `consignment(GST fields, delivered)`
-· `consignment_line(consignment_id, order_item_id, qty)` — shipped/pending
+· `consignment_line(consignment_id, order_item_id, qty)` · `order_schedule(order_item_id, due_date, qty, note)` — shipped/pending
 always derived.
 
 ## Screens

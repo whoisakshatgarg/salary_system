@@ -5,7 +5,7 @@ to [DECISIONS.md](DECISIONS.md) with the date.
 
 | # | Question | Default in use until answered |
 |---|----------|-------------------------------|
-| 1 | **Costing refinements** — rates are per operation type (not per machine); material cost is typed by hand. Per-machine rates or auto material cost from Inventory heat rates, if wanted, are additions. | As built: 21 seeded operations with editable ₹/hr; manual material cost. |
+| 1 | **Costing refinements** — rates are per operation type, not per machine. Per-machine rates, if wanted, are an addition. (Auto material cost from Inventory heat rates: **done** 2026-08-14, see the bill of materials.) | As built: 21 seeded operations with editable ₹/hr. |
 | 2 | **Employee Management UI split** — exact fields editable in Employee Mgmt vs Salary. Owner said profile/status in EM, "financial stuff (PF/ESI, advances)" in Salary, rest to my judgment. | EM edits: name, dept, shift, joining date, active, documents, leave balance view. Salary edits: base salary, PF/ESI applicability + amounts, advances. Attendance entry moves to EM when its UI ships. |
 | 3 | **Excel byte-matching** — the CEO/Distribution exports follow the legacy layout but were never compared against a real sample sheet. | Current layouts ship as-is; need one real sample `.xlsx` from the office to fine-tune. |
 | 4 | **E-way bill threshold** — should the app warn when a consignment's invoice value crosses the e-way-bill threshold? | Free-text e-way number only, no threshold logic. |

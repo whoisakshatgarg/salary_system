@@ -176,7 +176,50 @@ function pt() {
     closeWorkspace() { this.workspace = false; this.costing = null; },
     newCosting() {
       this.costing = { material_cost: "", margin_pct: "", notes: "",
-                       ops: [this.blankOp()] };
+                       ops: [this.blankOp()], materials: [] };
+    },
+
+    // ---- bill of materials -------------------------------------------------- //
+    // Priced from stock: pick the heat the part is cut from and the rate comes
+    // from what that steel actually cost, not a number typed from memory.
+    bomSearch: "", bomHits: [], bomBusy: false, bomOpen: false,
+    async findMaterial() {
+      this.bomBusy = true;
+      try {
+        const r = await api("/api/material/search?q=" + encodeURIComponent(this.bomSearch));
+        this.bomHits = r.rows;
+      } catch (e) { this.fail(e); } finally { this.bomBusy = false; }
+    },
+    openBom() {
+      this.bomOpen = true;
+      if (!this.bomHits.length) this.findMaterial();
+    },
+    addMaterial(h) {
+      // Default to ONE piece out of one rod; the estimator then says how many
+      // parts each rod yields and the per-piece cost follows.
+      this.costing.materials.push({
+        heat_id: h.heat_id, heat_number: h.heat_number,
+        material_label: [h.material_class, h.grade, h.size_section].filter(Boolean).join(" · "),
+        unit: h.cost_per_rod ? "rod" : "kg",
+        unit_cost: h.cost_per_rod ?? h.cost_per_kg ?? "",
+        per_rod: 1,          // UI-only helper: parts obtained from one rod
+        qty_per_piece: 1,
+        remaining: h.remaining,
+      });
+      this.bomOpen = false;
+    },
+    removeMaterial(i) { this.costing.materials.splice(i, 1); },
+    // qty per piece is derived from "parts per rod" so nobody has to type 0.3333
+    syncMaterial(m) {
+      const n = Number(m.per_rod);
+      m.qty_per_piece = n > 0 ? 1 / n : 0;
+    },
+    materialCost(m) {
+      return Math.round((Number(m.unit_cost) || 0) * (Number(m.qty_per_piece) || 0) * 100) / 100;
+    },
+    bomTotal() {
+      return Math.round(
+        (this.costing?.materials || []).reduce((s, m) => s + this.materialCost(m), 0) * 100) / 100;
     },
     blankOp() {
       return { operation: "", minutes: "", rate_per_hour: "", weightage: 1, extra_rate: "" };
@@ -228,9 +271,12 @@ function pt() {
       const c = this.costing;
       if (!c) return { ops: 0, subtotal: 0, total: 0 };
       const ops = c.ops.reduce((s, o) => s + this.opCost(o), 0);
-      const subtotal = ops + (Number(c.material_cost) || 0);
+      const material = (c.materials && c.materials.length)
+        ? this.bomTotal() : (Number(c.material_cost) || 0);
+      const subtotal = ops + material;
       const total = subtotal * (1 + (Number(c.margin_pct) || 0) / 100);
       return { ops: Math.round(ops * 100) / 100,
+               material: Math.round(material * 100) / 100,
                subtotal: Math.round(subtotal * 100) / 100,
                total: Math.round(total * 100) / 100 };
     },
@@ -241,6 +287,11 @@ function pt() {
           method: "POST",
           body: {
             material_cost: Number(c.material_cost) || 0,
+            materials: (c.materials || []).filter((m) => Number(m.qty_per_piece) > 0)
+              .map((m) => ({ heat_id: m.heat_id, heat_number: m.heat_number,
+                             material_label: m.material_label, unit: m.unit,
+                             unit_cost: Number(m.unit_cost) || 0,
+                             qty_per_piece: Number(m.qty_per_piece) })),
             margin_pct: Number(c.margin_pct) || 0,
             notes: c.notes,
             ops: c.ops.filter((o) => (o.operation || "").trim() !== "")

@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from backend.core import db  # noqa: E402
-from backend.modules import (customers, orders, parts, quotations,  # noqa: E402
+from backend.modules import (customers, inventory, orders, parts, quotations,  # noqa: E402
                              settings)
 
 
@@ -474,3 +474,250 @@ class ReviewRegressions(WorkshopBase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class DeliveryPlanning(WorkshopBase):
+    """A long order shipped in instalments: the plan, and what is still owed."""
+
+    def _item(self, oid):
+        return orders.get_order(self.conn, oid)["items"][0]
+
+    def test_plan_and_derived_remainder(self):
+        oid = self.order(due_date="2026-11-30",
+                         items=[{"description": "Flange", "qty": 600,
+                                 "unit": "Nos", "rate": 120}])
+        it = self._item(oid)
+        r = orders.set_schedule(self.conn, it["id"], [
+            {"due_date": "2026-09-15", "qty": 250, "note": "first drop"},
+            {"due_date": "2026-10-15", "qty": 100},
+            {"due_date": "2026-11-30", "qty": 250, "note": "balance"},
+        ])
+        self.assertEqual((r["planned"], r["unplanned"]), (600.0, 0.0))
+        it = self._item(oid)
+        self.assertEqual(len(it["schedule"]), 3)
+        self.assertEqual(it["planned"], 600.0)
+        self.assertEqual(it["unplanned"], 0.0)
+        # dates come back in order, whatever order they went in
+        self.assertEqual([s["due_date"] for s in it["schedule"]],
+                         ["2026-09-15", "2026-10-15", "2026-11-30"])
+
+    def test_partial_plan_leaves_a_remainder(self):
+        oid = self.order(items=[{"description": "Flange", "qty": 600,
+                                 "unit": "Nos", "rate": 120}])
+        it = self._item(oid)
+        orders.set_schedule(self.conn, it["id"], [{"due_date": "2026-09-15", "qty": 250}])
+        it = self._item(oid)
+        self.assertEqual((it["planned"], it["unplanned"]), (250.0, 350.0))
+
+    def test_cannot_plan_more_than_ordered(self):
+        oid = self.order(items=[{"description": "Flange", "qty": 600,
+                                 "unit": "Nos", "rate": 120}])
+        it = self._item(oid)
+        with self.assertRaises(ValueError) as cm:
+            orders.set_schedule(self.conn, it["id"], [
+                {"due_date": "2026-09-15", "qty": 400},
+                {"due_date": "2026-10-15", "qty": 300}])
+        self.assertIn("600", str(cm.exception))
+        self.assertEqual(self._item(oid)["planned"], 0.0)   # nothing written
+
+    def test_plan_line_needs_a_real_date_and_qty(self):
+        oid = self.order()
+        it = self._item(oid)
+        for bad in ([{"due_date": "", "qty": 5}],
+                    [{"due_date": "not-a-date", "qty": 5}],
+                    [{"due_date": "2026-09-15", "qty": 0}],
+                    [{"due_date": "2026-09-15", "qty": -3}],
+                    [{"due_date": "2026-09-15", "qty": "many"}]):
+            with self.assertRaises(ValueError):
+                orders.set_schedule(self.conn, it["id"], bad)
+
+    def test_saving_a_plan_replaces_the_old_one(self):
+        oid = self.order()
+        it = self._item(oid)
+        orders.set_schedule(self.conn, it["id"], [{"due_date": "2026-09-15", "qty": 5}])
+        orders.set_schedule(self.conn, it["id"], [{"due_date": "2026-10-15", "qty": 2}])
+        it = self._item(oid)
+        self.assertEqual(len(it["schedule"]), 1)
+        self.assertEqual(it["schedule"][0]["qty"], 2.0)
+
+    def test_plan_dies_with_the_item(self):
+        oid = self.order()
+        it = self._item(oid)
+        orders.set_schedule(self.conn, it["id"], [{"due_date": "2026-09-15", "qty": 5}])
+        orders.delete_order(self.conn, oid)
+        n = self.conn.execute("SELECT COUNT(*) AS n FROM order_schedule").fetchone()["n"]
+        self.assertEqual(n, 0)
+
+    def test_unknown_item(self):
+        with self.assertRaises(ValueError):
+            orders.set_schedule(self.conn, 999999, [{"due_date": "2026-09-15", "qty": 1}])
+
+
+class Deadlines(WorkshopBase):
+    """The Home warning panel's three buckets."""
+
+    def _order_due(self, days, qty=10, stage="production"):
+        from datetime import date, timedelta
+        due = (date(2026, 8, 14) + timedelta(days=days)).isoformat()
+        return self.order(due_date=due, stage=stage,
+                          items=[{"description": "Shaft", "qty": qty,
+                                  "unit": "Nos", "rate": 100}])
+
+    def test_buckets(self):
+        self._order_due(-3)     # overdue
+        self._order_due(0)      # today
+        self._order_due(5)      # this week
+        self._order_due(20)     # this month
+        self._order_due(90)     # far away: in no bucket
+        d = orders.deadlines(self.conn, today="2026-08-14")
+        self.assertEqual(len(d["overdue"]), 1)
+        self.assertEqual(len(d["this_week"]), 2)     # today + 5 days
+        self.assertEqual(len(d["this_month"]), 1)
+        self.assertEqual(d["as_of"], "2026-08-14")
+
+    def test_days_left_and_pending(self):
+        self._order_due(5, qty=600)
+        d = orders.deadlines(self.conn, today="2026-08-14")
+        row = d["this_week"][0]
+        self.assertEqual(row["days_left"], 5)
+        self.assertEqual(row["qty_pending"], 600.0)
+        self.assertEqual(row["customer_name"], "Acme Pumps")
+
+    def test_orders_with_no_deadline_are_ignored(self):
+        self.order(due_date="")
+        d = orders.deadlines(self.conn, today="2026-08-14")
+        self.assertEqual(sum(len(d[k]) for k in ("overdue", "this_week", "this_month")), 0)
+
+    def test_fully_shipped_orders_drop_out(self):
+        oid = self._order_due(3, qty=10)
+        it = orders.get_order(self.conn, oid)["items"][0]
+        orders.create_consignment(self.conn, {
+            "consign_date": "2026-08-14", "lr_no": "LR-1",
+            "lines": [{"order_item_id": it["id"], "qty": 10}]})
+        d = orders.deadlines(self.conn, today="2026-08-14")
+        self.assertEqual(len(d["this_week"]), 0)     # nothing left to send
+
+    def test_partly_shipped_orders_stay(self):
+        oid = self._order_due(3, qty=10)
+        it = orders.get_order(self.conn, oid)["items"][0]
+        orders.create_consignment(self.conn, {
+            "consign_date": "2026-08-14", "lr_no": "LR-2",
+            "lines": [{"order_item_id": it["id"], "qty": 4}]})
+        d = orders.deadlines(self.conn, today="2026-08-14")
+        self.assertEqual(d["this_week"][0]["qty_pending"], 6.0)
+
+
+class ShipmentProgress(WorkshopBase):
+    """The Shipments tab's per-order fulfilment figures."""
+
+    def test_list_carries_shipped_and_pending(self):
+        oid = self.order(items=[{"description": "Shaft", "qty": 100,
+                                 "unit": "Nos", "rate": 10}])
+        it = orders.get_order(self.conn, oid)["items"][0]
+        orders.create_consignment(self.conn, {
+            "consign_date": "2026-08-14", "lr_no": "LR-1",
+            "lines": [{"order_item_id": it["id"], "qty": 30}]})
+        orders.create_consignment(self.conn, {
+            "consign_date": "2026-08-20", "lr_no": "LR-2",
+            "lines": [{"order_item_id": it["id"], "qty": 20}]})
+        row = [r for r in orders.list_orders(self.conn)["rows"] if r["id"] == oid][0]
+        self.assertEqual(row["qty_total"], 100.0)
+        self.assertEqual(row["qty_shipped"], 50.0)   # across BOTH consignments
+        self.assertEqual(row["qty_pending"], 50.0)
+        self.assertEqual(row["pct_shipped"], 50)
+
+    def test_order_totals_on_the_record(self):
+        oid = self.order(items=[{"description": "A", "qty": 10, "unit": "Nos", "rate": 1},
+                                {"description": "B", "qty": 5, "unit": "Nos", "rate": 1}])
+        o = orders.get_order(self.conn, oid)
+        self.assertEqual((o["qty_total"], o["qty_shipped"], o["qty_pending"]),
+                         (15.0, 0.0, 15.0))
+
+
+class BillOfMaterials(WorkshopBase):
+    """Material priced from inventory rather than typed from memory."""
+
+    def _heat(self, **kw):
+        data = {"heat_number": "H-500", "date_received": "2026-08-01",
+                "material_class": "Steel", "grade": "EN8", "rods_received": 10,
+                "price_total": 45000, "total_weight_kg": 900,
+                "pieces": [{"length_mm": 3000, "diameter_mm": 25, "quantity": 10}]}
+        data.update(kw)
+        return inventory.create_heat(self.conn, data)
+
+    def test_search_by_heat_grade_and_material(self):
+        self._heat()
+        self._heat(heat_number="H-501", grade="EN19", material_class="Alloy Steel")
+        for q, expect in (("H-500", {"H-500"}), ("EN19", {"H-501"}),
+                          ("Alloy", {"H-501"}), ("Steel", {"H-500", "H-501"})):
+            got = {r["heat_number"] for r in
+                   inventory.material_search(q=q, conn=self.conn)["rows"]}
+            self.assertEqual(got, expect, q)
+
+    def test_search_derives_unit_costs(self):
+        self._heat()
+        r = inventory.material_search(q="H-500", conn=self.conn)["rows"][0]
+        self.assertEqual(r["cost_per_rod"], 4500.0)      # 45000 / 10 rods
+        self.assertEqual(r["cost_per_kg"], 50.0)         # 45000 / 900 kg
+        self.assertEqual(r["remaining"], 10)
+
+    def test_no_price_means_no_rate(self):
+        self._heat(heat_number="H-FREE", price_total=None, total_weight_kg=None)
+        r = [x for x in inventory.material_search(q="H-FREE", conn=self.conn)["rows"]][0]
+        self.assertIsNone(r["cost_per_rod"])
+        self.assertIsNone(r["cost_per_kg"])
+
+    def test_bom_sets_the_material_cost(self):
+        hid = self._heat()
+        did = self.drawing()
+        d = parts.save_costing(self.conn, did, {
+            "margin_pct": 10,
+            "ops": [{"operation": "Turning", "minutes": 12, "rate_per_hour": 400,
+                     "weightage": 1, "extra_rate": 0}],
+            "materials": [{"heat_id": hid, "heat_number": "H-500",
+                           "material_label": "Steel · EN8", "unit": "rod",
+                           "unit_cost": 4500, "qty_per_piece": 1 / 3}]})
+        c = d["costings"][0]
+        self.assertEqual(c["bom_total"], 1500.0)         # exactly a third of 4500
+        self.assertEqual(c["material_cost"], 1500.0)     # BOM wins over any typed figure
+        self.assertEqual(c["ops_total"], 80.0)
+        self.assertEqual(c["total"], round((80 + 1500) * 1.1, 2))
+
+    def test_thirds_do_not_lose_a_percent(self):
+        """qty per piece is NOT money: rounding 0.333333 to 0.33 underprices."""
+        self.assertEqual(parts.bom_cost(4500, 1 / 3), 1500.0)
+        self.assertEqual(parts.bom_cost(4500, 0.33), 1485.0)
+
+    def test_typed_material_cost_still_works_without_a_bom(self):
+        did = self.drawing()
+        d = parts.save_costing(self.conn, did, {"material_cost": 250, "ops": []})
+        self.assertEqual(d["costings"][0]["material_cost"], 250.0)
+        self.assertEqual(d["costings"][0]["materials"], [])
+
+    def test_bom_is_snapshotted(self):
+        hid = self._heat()
+        did = self.drawing()
+        parts.save_costing(self.conn, did, {
+            "ops": [], "materials": [{"heat_id": hid, "heat_number": "H-500",
+                                      "material_label": "Steel · EN8", "unit": "rod",
+                                      "unit_cost": 4500, "qty_per_piece": 0.5}]})
+        # the stock gets more expensive later
+        inventory.update_heat(self.conn, hid, {
+            "heat_number": "H-500", "date_received": "2026-08-01",
+            "material_class": "Steel", "rods_received": 10, "price_total": 90000})
+        c = parts.get_drawing(self.conn, did)["costings"][0]
+        self.assertEqual(c["materials"][0]["unit_cost"], 4500.0)   # unchanged
+        self.assertEqual(c["material_cost"], 2250.0)
+
+    def test_bom_validation(self):
+        did = self.drawing()
+        with self.assertRaises(ValueError):      # nothing identifying the material
+            parts.save_costing(self.conn, did, {"ops": [], "materials": [
+                {"unit_cost": 100, "qty_per_piece": 1}]})
+        with self.assertRaises(ValueError):      # zero quantity per piece
+            parts.save_costing(self.conn, did, {"ops": [], "materials": [
+                {"heat_number": "H-500", "unit_cost": 100, "qty_per_piece": 0}]})
+        with self.assertRaises(ValueError):      # infinity
+            parts.save_costing(self.conn, did, {"ops": [], "materials": [
+                {"heat_number": "H-500", "unit_cost": 100,
+                 "qty_per_piece": float("inf")}]})

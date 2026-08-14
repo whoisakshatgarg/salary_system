@@ -59,7 +59,9 @@ function od() {
     stageFilter: "",
     detail: null,
     form: null,
-    addPage: false,      // ADDING is a full page; EDITING stays a modal
+    addPage: false,      // the order form fills the screen for add AND edit
+    plan: null,          // delivery-plan editor for one order item
+    planError: "",
     checkOn: false,      // optional material check, off by default
     chk: { method: "dimension", material_class: "", grade: "",
            required_qty: "", part_length: "", part_diameter: "", margin: "" },
@@ -142,6 +144,96 @@ function od() {
       this.loadCheckRefs();
     },
     closeForm() { this.form = null; this.addPage = false; this.formError = ""; },
+
+    // ---- shipments view ---------------------------------------------------- //
+    openOnly: true,
+    shipmentRows() {
+      const rows = this.data?.rows || [];
+      return this.openOnly ? rows.filter((o) => o.qty_pending > 0) : rows;
+    },
+    totalOutstanding() {
+      const n = this.shipmentRows().reduce((a, o) => a + (Number(o.qty_pending) || 0), 0);
+      return Math.round(n * 1000) / 1000;
+    },
+
+    // ---- deadline colouring ----------------------------------------------- //
+    daysTo(d) {
+      if (!d) return null;
+      const due = new Date(d + "T00:00:00");
+      if (isNaN(due)) return null;
+      const now = new Date(); now.setHours(0, 0, 0, 0);
+      return Math.round((due - now) / 86400000);
+    },
+    dueClass(d) {
+      const n = this.daysTo(d);
+      if (n === null) return "text-slate-400";
+      if (n < 0) return "bg-rose-100 text-rose-700 font-medium";
+      if (n <= 7) return "bg-amber-100 text-amber-800 font-medium";
+      return "";
+    },
+    dueChipClass(d) {
+      const n = this.daysTo(d);
+      if (n === null) return "bg-slate-200 text-slate-600";
+      if (n < 0) return "bg-rose-500 text-white";
+      if (n <= 7) return "bg-amber-400 text-amber-950";
+      return "bg-slate-700 text-slate-200";
+    },
+    dueLabel(d) {
+      const n = this.daysTo(d);
+      if (n === null) return "";
+      if (n < 0) return `${-n} day(s) overdue`;
+      if (n === 0) return "due today";
+      return `due in ${n} day(s)`;
+    },
+
+    // ---- delivery plan ----------------------------------------------------- //
+    openPlan(it) {
+      this.planError = "";
+      this.plan = {
+        item_id: it.id,
+        qty: it.qty,
+        due_date: this.detail?.due_date || "",
+        label: (it.drawing_no ? `${it.drawing_no} rev ${it.revision}` : it.description)
+               + ` · ${it.qty} ${it.unit || ""}`.trimEnd(),
+        lines: (it.schedule || []).map((s) => ({
+          due_date: s.due_date, qty: s.qty, note: s.note || "" })),
+      };
+    },
+    planTotal() {
+      const n = (this.plan?.lines || []).reduce((a, l) => a + (Number(l.qty) || 0), 0);
+      return Math.round(n * 1000) / 1000;
+    },
+    planLeft() {
+      return Math.round(((this.plan?.qty || 0) - this.planTotal()) * 1000) / 1000;
+    },
+    addPlanLine() {
+      this.plan.lines.push({ due_date: this.plan.due_date || "", qty: "", note: "" });
+    },
+    planRest() {
+      // the "and the rest before the deadline" line, filled in for you
+      this.plan.lines.push({ due_date: this.plan.due_date || "",
+                             qty: this.planLeft(), note: "balance" });
+    },
+    async savePlan() {
+      this.planError = "";
+      const lines = this.plan.lines.filter(
+        (l) => String(l.due_date).trim() !== "" || String(l.qty).trim() !== "");
+      for (const [i, l] of lines.entries()) {
+        if (!String(l.due_date).trim()) { this.planError = `Line ${i + 1}: pick a date`; return; }
+        if (!(Number(l.qty) > 0)) { this.planError = `Line ${i + 1}: quantity must be more than 0`; return; }
+      }
+      try {
+        await api(`/api/orders/items/${this.plan.item_id}/schedule`, {
+          method: "PUT",
+          body: { lines: lines.map((l) => ({
+            due_date: l.due_date, qty: Number(l.qty), note: l.note || "" })) },
+        });
+        const id = this.detail.id;
+        this.plan = null;
+        this.detail = await api(`/api/orders/${id}`);   // refresh planned/unplanned
+        this.flash("Delivery plan saved");
+      } catch (e) { this.planError = e.message; }
+    },
     async loadCheckRefs() {
       if (this.chkRefs.material_class.length) return;
       try { this.chkRefs = await api("/api/material/refs"); } catch (_) { /* optional */ }
@@ -226,7 +318,7 @@ function od() {
                                      unit: i.unit, rate: i.rate })),
       };
       this.formError = "";
-      this.addPage = false;   // editing stays a modal
+      this.addPage = true;    // edit gets the same full window as add
       this.checkOn = false; this.chkResult = null;
     },
     addItem() { this.form.items.push(this.blankItem()); },

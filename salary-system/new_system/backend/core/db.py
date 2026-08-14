@@ -316,6 +316,23 @@ CREATE TABLE IF NOT EXISTS costing (               -- per-operation build-up
     created_at    TEXT
 );
 
+-- Bill of materials for a costing: which stock the part is cut from, and what
+-- that costs per piece. heat_number / material_label / unit_cost are SNAPSHOTS
+-- for the same reason the operation rates are — reopening an old costing must
+-- never silently reprice it when stock or prices change. heat_id is kept for
+-- traceability and goes NULL if the heat is ever deleted.
+CREATE TABLE IF NOT EXISTS costing_material (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    costing_id     INTEGER NOT NULL REFERENCES costing(id) ON DELETE CASCADE,
+    heat_id        INTEGER REFERENCES heat(id) ON DELETE SET NULL,
+    heat_number    TEXT,
+    material_label TEXT,
+    unit           TEXT,                          -- 'rod' | 'kg'
+    unit_cost      REAL NOT NULL DEFAULT 0,       -- ₹ per unit, snapshot
+    qty_per_piece  REAL NOT NULL DEFAULT 0,
+    cost           REAL NOT NULL DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS costing_op (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     costing_id       INTEGER NOT NULL REFERENCES costing(id) ON DELETE CASCADE,
@@ -362,6 +379,21 @@ CREATE TABLE IF NOT EXISTS order_stage_log (
     at       TEXT NOT NULL,
     note     TEXT
 );
+
+-- Delivery plan for a long-running order: "250 by the 10th, 100 by the 24th,
+-- the rest before the deadline". Lines hang off the ITEM, because a quantity
+-- only means something against the item it is a quantity OF. Whatever is left
+-- unplanned is derived (item qty - sum of lines), never stored.
+CREATE TABLE IF NOT EXISTS order_schedule (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_item_id INTEGER NOT NULL REFERENCES order_item(id) ON DELETE CASCADE,
+    due_date      TEXT NOT NULL,                  -- 'YYYY-MM-DD'
+    qty           REAL NOT NULL,
+    note          TEXT,
+    created_at    TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_schedule_item ON order_schedule(order_item_id);
 
 CREATE TABLE IF NOT EXISTS consignment (           -- shipments; lines may span orders
     id           INTEGER PRIMARY KEY AUTOINCREMENT,

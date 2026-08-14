@@ -1156,6 +1156,52 @@ def material_check(body: CheckIn, conn=Depends(get_db)):
     return _400(check_material, conn, body.model_dump())
 
 
+@check_router.get("/search")
+def material_search(q: str = "", limit: int = 30, conn=Depends(get_db)):
+    """Stock picker for a bill of materials.
+
+    One search box over heat number, grade and material class — an estimator
+    thinks "EN8" or "that H1001 bar", not "filter by field". Returns the derived
+    unit costs so the BOM line can price itself:
+        ₹/rod = price_total / rods_received
+        ₹/kg  = price_rate_per_kg, else price_total / total_weight_kg
+    """
+    like = f"%{_s(q)}%"
+    rows = []
+    for r in conn.execute(
+        "SELECT h.*,"
+        " h.rods_received - COALESCE((SELECT SUM(m.rods) FROM heat_movement m"
+        "   WHERE m.heat_id=h.id),0) AS remaining"
+        " FROM heat h"
+        " WHERE (? = '' OR h.heat_number LIKE ? OR h.grade LIKE ?"
+        "        OR h.material_class LIKE ? OR h.supplier LIKE ?)"
+        " ORDER BY h.date_received DESC, h.id DESC LIMIT ?",
+        (_s(q), like, like, like, like, max(1, min(int(limit or 30), 200)))
+    ):
+        h = dict(r)
+        received = h["rods_received"] or 0
+        per_rod = (h["price_total"] / received) if (h["price_total"] and received) else None
+        per_kg = h["price_rate_per_kg"]
+        if not per_kg and h["price_total"] and h["total_weight_kg"]:
+            per_kg = h["price_total"] / h["total_weight_kg"]
+        pieces = [dict(p) for p in conn.execute(
+            "SELECT length_mm, diameter_mm, quantity FROM heat_piece"
+            " WHERE heat_id=? ORDER BY id", (h["id"],))]
+        rows.append({
+            "heat_id": h["id"], "heat_number": h["heat_number"],
+            "material_class": h["material_class"], "grade": h["grade"],
+            "shape": h["shape"], "supplier": h["supplier"],
+            "size_section": h["size_section"], "rack": h["rack"],
+            "remaining": h["remaining"],
+            "cost_per_rod": round(per_rod, 4) if per_rod else None,
+            "cost_per_kg": round(per_kg, 4) if per_kg else None,
+            "pieces": pieces,
+            "label": " · ".join(x for x in (h["heat_number"], h["material_class"],
+                                            h["grade"], h["size_section"]) if x),
+        })
+    return {"rows": rows}
+
+
 @check_router.get("/refs")
 def material_refs(conn=Depends(get_db)):
     """Dropdown fodder for the check panel, without the inventory grant."""

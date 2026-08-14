@@ -55,6 +55,15 @@ def op_cost(minutes: float, rate_per_hour: float, weightage: float = 1,
     return round(minutes / 60 * (rate_per_hour + extra_rate) * weightage, 2)
 
 
+def bom_cost(unit_cost: float, qty_per_piece: float) -> float:
+    """Material cost this line contributes to ONE piece.
+
+    Rounded to paise only at the end: 1/3 of a ₹4500 rod is ₹1500 exactly, and
+    rounding the 0.333333 first would have made it ₹1485.
+    """
+    return round((unit_cost or 0) * (qty_per_piece or 0), 2)
+
+
 def costing_total(ops_total: float, material_cost: float, margin_pct: float) -> float:
     """THE rollup — display and costing_to_rate must always agree."""
     return round((ops_total + material_cost) * (1 + margin_pct / 100), 2)
@@ -77,6 +86,21 @@ def _check_money(v, label: str, allow_zero: bool = True) -> float:
     if not math.isfinite(f) or f < 0 or f > 1e12 or (f == 0 and not allow_zero):
         raise ValueError(f"{label} must be a normal{'' if allow_zero else ', non-zero'} positive number")
     return round(f, 2)
+
+
+def _check_ratio(v, label: str) -> float:
+    """A quantity per piece, NOT money.
+
+    Deliberately not _check_money: that rounds to 2 decimals, and one third of a
+    rod is 0.333333 — rounding it to 0.33 quietly underprices every piece by 1%.
+    """
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        raise ValueError(f"{label} must be a number")
+    if not math.isfinite(f) or f <= 0 or f > 1e9:
+        raise ValueError(f"{label} must be a positive number")
+    return round(f, 8)
 
 
 # --------------------------------------------------------------------------- #
@@ -176,6 +200,9 @@ def get_drawing(conn, drawing_id: int) -> dict:
         c = dict(c)
         c["ops"] = [dict(r) for r in conn.execute(
             "SELECT * FROM costing_op WHERE costing_id=? ORDER BY id", (c["id"],))]
+        c["materials"] = [dict(r) for r in conn.execute(
+            "SELECT * FROM costing_material WHERE costing_id=? ORDER BY id", (c["id"],))]
+        c["bom_total"] = round(sum(m["cost"] for m in c["materials"]), 2)
         ops_total = sum(o["cost"] for o in c["ops"])
         c["ops_total"] = round(ops_total, 2)
         c["subtotal"] = round(ops_total + c["material_cost"], 2)
@@ -243,9 +270,28 @@ def delete_rate(conn, rate_id: int) -> dict:
 def save_costing(conn, drawing_id: int, data: dict) -> dict:
     if not conn.execute("SELECT 1 FROM drawing WHERE id=?", (drawing_id,)).fetchone():
         raise ValueError("Drawing not found")
-    material = _check_money(data.get("material_cost") or 0, "Material cost")
     margin = _check_money(data.get("margin_pct") or 0, "Margin %")
     ops = data.get("ops") or []
+
+    # Bill of materials: priced from inventory, snapshotted here. When BOM lines
+    # exist they ARE the material cost — a typed-in figure alongside them would
+    # be a second source of truth for the same number.
+    bom = []
+    for n, m in enumerate(data.get("materials") or [], start=1):
+        label = _s(m.get("heat_number")) or _s(m.get("material_label"))
+        if not label:
+            raise ValueError(f"Material line {n}: pick a material")
+        unit_cost = _check_money(m.get("unit_cost") or 0, f"{label}: unit cost")
+        qty = _check_ratio(m.get("qty_per_piece"), f"{label}: quantity per piece")
+        hid = m.get("heat_id")
+        bom.append((int(hid) if hid else None, _s(m.get("heat_number")),
+                    _s(m.get("material_label")), _s(m.get("unit")) or "rod",
+                    unit_cost, qty, bom_cost(unit_cost, qty)))
+
+    if bom:
+        material = round(sum(b[6] for b in bom), 2)
+    else:
+        material = _check_money(data.get("material_cost") or 0, "Material cost")
     if not ops and not material:
         raise ValueError("Add at least one operation or a material cost")
     checked = []
@@ -269,6 +315,12 @@ def save_costing(conn, drawing_id: int, data: dict) -> dict:
             "INSERT INTO costing_op (costing_id, operation, minutes, rate_per_hour,"
             " weightage, extra_rate, cost) VALUES (?,?,?,?,?,?,?)",
             (cur.lastrowid, name, minutes, rate, weightage, extra, cost))
+    for hid, hn, label, unit, unit_cost, qty, cost in bom:
+        conn.execute(
+            "INSERT INTO costing_material (costing_id, heat_id, heat_number,"
+            " material_label, unit, unit_cost, qty_per_piece, cost)"
+            " VALUES (?,?,?,?,?,?,?,?)",
+            (cur.lastrowid, hid, hn, label, unit, unit_cost, qty, cost))
     conn.commit()
     return get_drawing(conn, drawing_id)
 
@@ -367,11 +419,22 @@ class CostingOpIn(BaseModel):
     extra_rate: float = 0
 
 
+class BomLineIn(BaseModel):
+    """One stock item the part is made from, priced from inventory."""
+    heat_id: int | None = None
+    heat_number: str = ""
+    material_label: str = ""
+    unit: str = "rod"             # 'rod' | 'kg'
+    unit_cost: float = 0          # ₹ per unit, snapshotted at save
+    qty_per_piece: float = 0
+
+
 class CostingIn(BaseModel):
-    material_cost: float = 0
+    material_cost: float = 0      # ignored when `materials` is non-empty
     margin_pct: float = 0
     notes: str = ""
     ops: list[CostingOpIn] = []
+    materials: list[BomLineIn] = []
 
 
 class ReviseIn(BaseModel):

@@ -36,6 +36,25 @@ builder that rolls up to ₹/piece.
   operation — falls back to the Settings rate with no additional margin.
 - Delete only while the drawing is on no order (else deactivate).
 
+## Bill of materials
+The costing's material cost can be priced from stock instead of typed from
+memory. **+ Add material** opens one search box over heat number, grade,
+material class and supplier (`GET /api/material/search`), which returns each
+heat with its derived unit costs — `₹/rod = price_total ÷ rods_received`,
+`₹/kg = price_rate_per_kg` (or `price_total ÷ total_weight_kg`).
+
+A BOM line is *material · ₹ per unit · parts obtained from one · ₹ per piece*.
+The estimator enters **parts from one rod**, not a fraction: `qty_per_piece` is
+derived as `1/N`, kept to 8 decimals and multiplied out only at the end. That
+matters — rounding a third to 0.33 underprices every piece by 1% (₹1 485 instead
+of ₹1 500 on a ₹4 500 rod), which is why `_check_ratio` exists alongside
+`_check_money`.
+
+When BOM lines exist they ARE the material cost and the manual box is disabled —
+two sources of truth for one number is how they end up disagreeing. Everything
+is snapshotted into `costing_material` on save (heat number, label, unit cost),
+so reopening an old costing never silently reprices it when stock does.
+
 ## Implemented (file paths)
 `backend/modules/parts.py` (data + `/api/parts/*` routes, grant `parts`) ·
 UI `frontend/parts/index.html` + `parts.js` · files under `data/drawing_files/`
@@ -48,7 +67,9 @@ grade, unit, active, UNIQUE(drawing_no, revision))` · `drawing_file` ·
 `drawing_rate(drawing_id, kind, rate, rate_date, note)` ·
 `costing(drawing_id, material_cost, margin_pct)` +
 `costing_op(costing_id, operation, minutes, rate_per_hour, weightage,
-extra_rate, cost)` — `extra_rate` is ₹ per hour; rollup totals derived on read.
+extra_rate, cost)` — `extra_rate` is ₹ per hour; rollup totals derived on read. Plus
+`costing_material(costing_id, heat_id, heat_number, material_label, unit,
+unit_cost, qty_per_piece, cost)` — the bill of materials.
 Rates and margins are SNAPSHOTTED into `costing_op` on save, so re-reading an
 old costing never silently reprices it when Settings or a customer rate changes.
 
@@ -56,4 +77,3 @@ old costing never silently reprices it when Settings or a customer rate changes.
 guide-images: ws-part-detail.
 
 ## What's left
-- [ ] Auto material cost from Inventory heat rates (ROADMAP Later).
