@@ -184,7 +184,8 @@ function od() {
         customer_po: f.customer_po, stage: f.stage, order_date: f.order_date,
         due_date: f.due_date, notes: f.notes,
         items: f.items
-          .filter((i) => i.drawing_id || (i.description || "").trim() || i.qty)
+          .filter((i) => i.drawing_id || (i.description || "").trim() || i.qty
+                         || String(i.rate ?? "").trim())
           .map((i) => ({ id: i.id || null,
                          drawing_id: i.drawing_id ? Number(i.drawing_id) : null,
                          description: i.description, qty: Number(i.qty),

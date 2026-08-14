@@ -72,10 +72,15 @@ function pt() {
       } catch (e) { this.fail(e); }
       this.booted = true;
     },
+    _seq: 0,
     async load() {
-      const p = new URLSearchParams({ q: this.q });
-      if (this.customerId) p.set("customer_id", this.customerId);
-      this.rows = await api("/api/parts/drawings?" + p.toString());
+      const seq = ++this._seq;   // stale debounced responses must not win
+      try {
+        const p = new URLSearchParams({ q: this.q });
+        if (this.customerId) p.set("customer_id", this.customerId);
+        const rows = await api("/api/parts/drawings?" + p.toString());
+        if (seq === this._seq) this.rows = rows;
+      } catch (e) { if (seq === this._seq) this.fail(e); }
     },
 
     async open(id) {

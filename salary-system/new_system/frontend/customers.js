@@ -55,8 +55,13 @@ function cu() {
       try { await this.load(); } catch (e) { this.fail(e); }
       this.booted = true;
     },
+    _seq: 0,
     async load() {
-      this.rows = await api(`/api/customers?q=${encodeURIComponent(this.q)}&active_only=${this.activeOnly}`);
+      const seq = ++this._seq;   // stale debounced responses must not win
+      try {
+        const rows = await api(`/api/customers?q=${encodeURIComponent(this.q)}&active_only=${this.activeOnly}`);
+        if (seq === this._seq) this.rows = rows;
+      } catch (e) { if (seq === this._seq) this.fail(e); }
     },
 
     async open(id) {

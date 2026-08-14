@@ -122,6 +122,16 @@ def _validate_items(items: list[dict]) -> list[dict]:
     return out
 
 
+def _check_refs(conn, customer_id, items: list[dict]) -> None:
+    """Turn dangling ids into 400s instead of raw FK IntegrityError 500s."""
+    if not conn.execute("SELECT 1 FROM customer WHERE id=?", (customer_id,)).fetchone():
+        raise ValueError("That customer no longer exists — reload the page")
+    for i, it in enumerate(items, 1):
+        if it["drawing_id"] and not conn.execute(
+                "SELECT 1 FROM drawing WHERE id=?", (it["drawing_id"],)).fetchone():
+            raise ValueError(f"Item {i}: that drawing no longer exists — reload the page")
+
+
 def create_order(conn, data: dict) -> int:
     if not data.get("customer_id"):
         raise ValueError("Pick a customer")
@@ -131,6 +141,7 @@ def create_order(conn, data: dict) -> int:
     order_date = _check_date(data.get("order_date"), "Order date", required=True)
     due_date = _check_date(data.get("due_date"), "Due date")
     items = _validate_items(data.get("items") or [])
+    _check_refs(conn, data["customer_id"], items)
     order_no = next_order_no(conn, date.fromisoformat(order_date))
     try:
         cur = conn.execute(
@@ -164,10 +175,12 @@ def update_order(conn, order_id: int, data: dict) -> None:
     order_date = _check_date(data.get("order_date"), "Order date", required=True)
     due_date = _check_date(data.get("due_date"), "Due date")
     items = _validate_items(data.get("items") or [])
-    shipped = _shipped_by_item(conn, order_id)
 
     conn.execute("BEGIN IMMEDIATE")
     try:
+        # inside the lock: a consignment can't commit between check and write
+        shipped = _shipped_by_item(conn, order_id)
+        _check_refs(conn, data["customer_id"], items)
         conn.execute(
             """UPDATE customer_order SET customer_id=?, customer_po=?, order_date=?,
                  due_date=?, notes=? WHERE id=?""",
@@ -284,16 +297,21 @@ def get_order(conn, order_id: int) -> dict:
 
 
 def delete_order(conn, order_id: int) -> None:
-    n = conn.execute(
-        """SELECT COUNT(*) AS n FROM consignment_line l
-           JOIN order_item i ON i.id=l.order_item_id WHERE i.order_id=?""",
-        (order_id,)).fetchone()["n"]
-    if n:
-        raise ValueError("This order has consignments — delete those first")
-    cur = conn.execute("DELETE FROM customer_order WHERE id=?", (order_id,))
-    conn.commit()
-    if not cur.rowcount:
-        raise ValueError("Order not found")
+    conn.execute("BEGIN IMMEDIATE")  # check + delete atomically
+    try:
+        n = conn.execute(
+            """SELECT COUNT(*) AS n FROM consignment_line l
+               JOIN order_item i ON i.id=l.order_item_id WHERE i.order_id=?""",
+            (order_id,)).fetchone()["n"]
+        if n:
+            raise ValueError("This order has consignments — delete those first")
+        cur = conn.execute("DELETE FROM customer_order WHERE id=?", (order_id,))
+        if not cur.rowcount:
+            raise ValueError("Order not found")
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
 
 
 # --------------------------------------------------------------------------- #
@@ -319,22 +337,28 @@ def create_consignment(conn, data: dict) -> int:
         raise ValueError("Add at least one item to the consignment")
     cdate = _check_date(data.get("consign_date"), "Consignment date", required=True)
     freight = _check_optional_money(data.get("freight"), "Freight")
+    # Merge duplicate rows for the same item FIRST: checking them one by one
+    # would let each pass against the same stored total and over-ship.
+    want: dict[int, float] = {}
+    for ln in lines:
+        item_id = int(ln.get("order_item_id") or 0)
+        want[item_id] = want.get(item_id, 0) + _check_qty(ln.get("qty"), "Line quantity")
+
     conn.execute("BEGIN IMMEDIATE")
     try:
         checked = []
-        for ln in lines:
+        for item_id, qty in want.items():
             item = row_to_dict(conn.execute(
-                "SELECT * FROM order_item WHERE id=?", (ln.get("order_item_id"),)).fetchone())
+                "SELECT * FROM order_item WHERE id=?", (item_id,)).fetchone())
             if not item:
                 raise ValueError("An order item on this consignment no longer exists")
-            qty = _check_qty(ln.get("qty"), "Line quantity")
             already = conn.execute(
                 "SELECT COALESCE(SUM(qty),0) AS q FROM consignment_line WHERE order_item_id=?",
-                (item["id"],)).fetchone()["q"]
+                (item_id,)).fetchone()["q"]
             if qty + already > item["qty"] + 1e-9:
                 raise ValueError(
                     f"Only {item['qty'] - already:g} of {item['qty']:g} left to ship on that item")
-            checked.append((item["id"], qty))
+            checked.append((item_id, qty))
         cur = conn.execute(
             """INSERT INTO consignment (consign_date, transporter, lr_no, eway_no,
                  invoice_no, vehicle_no, freight, delivered, notes, created_at)

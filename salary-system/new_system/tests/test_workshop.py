@@ -267,6 +267,25 @@ class ReviewRegressions(WorkshopBase):
             self.order(order_date="2027-04-02")
         self.assertIn("already exists", str(cm.exception))
 
+    def test_duplicate_lines_cannot_bypass_over_ship(self):
+        oid = self.order()                       # 10 Nos
+        item = orders.get_order(self.conn, oid)["items"][0]
+        with self.assertRaises(ValueError):      # 6+6 > 10, in ONE payload
+            orders.create_consignment(self.conn, {"lines": [
+                {"order_item_id": item["id"], "qty": 6},
+                {"order_item_id": item["id"], "qty": 6}]})
+        cid = orders.create_consignment(self.conn, {"lines": [   # 4+4 = 8 <= 10
+            {"order_item_id": item["id"], "qty": 4},
+            {"order_item_id": item["id"], "qty": 4}]})
+        self.assertEqual(orders.open_items(self.conn, oid)[0]["shipped"], 8)
+        self.assertEqual(len(orders.get_consignment(self.conn, cid)["lines"]), 1)  # merged
+
+    def test_dangling_refs_are_friendly_errors(self):
+        with self.assertRaises(ValueError):
+            self.order(customer_id=9999)
+        with self.assertRaises(ValueError):
+            self.order(items=[{"drawing_id": 9999, "qty": 1, "rate": 10}])
+
     def test_freight_zero_ok_infinite_refused(self):
         oid = self.order()
         item = orders.get_order(self.conn, oid)["items"][0]
