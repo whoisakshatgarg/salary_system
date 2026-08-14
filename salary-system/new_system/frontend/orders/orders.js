@@ -61,6 +61,7 @@ function od() {
     form: null,
     addPage: false,      // the order form fills the screen for add AND edit
     plan: null,          // delivery-plan editor for one order item
+    bom: null,           // what the open order commits, rolled up by heat
     planError: "",
     checkOn: false,      // optional material check, off by default
     chk: { method: "dimension", material_class: "", grade: "",
@@ -109,10 +110,18 @@ function od() {
 
     // ---- order detail ------------------------------------------------------ //
     async open(id) {
+      this.bom = null;
       try { this.detail = await api(`/api/orders/${id}`); }
-      catch (e) { this.fail(e); }
+      catch (e) { this.fail(e); return; }
+      this.loadBom(id);   // not awaited: the record must not wait on the rollup
     },
-    closeDetail() { this.detail = null; this.load(); },
+    async loadBom(id) {
+      // Needs the parts grant (it reads drawings' costings). An account without
+      // it just doesn't see the section rather than seeing an error.
+      try { this.bom = await api(`/api/orders/${id}/bom`); }
+      catch (_) { this.bom = null; }
+    },
+    closeDetail() { this.detail = null; this.bom = null; this.load(); },
     async setStage(stage) {
       if (stage === this.detail.stage) return;
       const note = window.prompt(`Moving to "${this.stageLabel(stage)}" — note (optional):`, "");
@@ -231,6 +240,7 @@ function od() {
         const id = this.detail.id;
         this.plan = null;
         this.detail = await api(`/api/orders/${id}`);   // refresh planned/unplanned
+        this.loadBom(id);
         this.flash("Delivery plan saved");
       } catch (e) { this.planError = e.message; }
     },

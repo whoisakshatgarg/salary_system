@@ -534,7 +534,28 @@ the same way.
   to ship more than an item has left. The **Consignments** tab lists every
   shipment — mark them **Delivered ✓** when confirmed.
 
-### 8.1 Planning a long order
+### 8.1 What material this order needs
+
+Under the items you'll find **Bill of materials — what this order commits**.
+
+The order doesn't have its own material list; its *parts* do. So the app takes
+each item, looks up that drawing's latest costing, and multiplies the material
+per piece by how many you've ordered — then adds it up by heat number, because
+the heat is what actually has to come off the rack.
+
+> 60 shafts, and the costing says one rod makes 3 → **20 rods of H1001, ₹90,000.**
+
+Next to each line you'll see what has already been **issued** against this order
+number in Inventory, and what is **still to issue**. So one table answers both
+"what does this job need?" and "how much of it have we taken out?".
+
+A line in grey under the table means an item couldn't contribute — it has no
+drawing, its drawing has no costing yet, or that costing has its material cost
+typed in by hand instead of picked from stock. It says which, so you know what to
+fix rather than wondering why a number looks low. If a heat was issued to this
+order that no part on it calls for, that's flagged in amber.
+
+### 8.2 Planning a long order
 
 Some orders run for months and go out in instalments. Press **Plan** on any item
 to say when each part of it is due:
@@ -553,7 +574,7 @@ than the item quantity; the app will say so.
 The button on the item row then shows how many drops are planned, so you can see
 at a glance which items have a schedule and which don't.
 
-### 8.2 Shipments — what do we still owe?
+### 8.3 Shipments — what do we still owe?
 
 The **Shipments** tab is the answer to *"how much of this order is still to go?"*
 

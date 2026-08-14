@@ -343,6 +343,124 @@ def delete_order(conn, order_id: int) -> None:
 # --------------------------------------------------------------------------- #
 # Consignments (may carry items from SEVERAL orders; partials fine)
 # --------------------------------------------------------------------------- #
+def order_bom(conn, order_id: int) -> dict:
+    """What raw material this order COMMITS us to, part by part.
+
+    The order itself has no bill of materials — the PARTS do. So this walks each
+    order item to its drawing, takes that drawing's most recent costing, and
+    multiplies the costing's per-piece material by the quantity ordered:
+
+        required = qty_per_piece x item qty
+
+    then rolls the lines up by heat number, because the heat is what has to come
+    off the rack. Alongside it sits what has ACTUALLY been issued against this
+    order number (the usage log), so the two can be read together: committed,
+    issued, still to issue.
+
+    Derived live, not snapshotted: re-costing a drawing changes what the order
+    needs, and the costing it used is named in the result so the figure can
+    always be traced. Items with no drawing, or a drawing with no costing, are
+    listed with a reason rather than silently contributing nothing.
+    """
+    o = conn.execute(
+        "SELECT o.id, o.order_no FROM customer_order o WHERE o.id=?", (order_id,)
+    ).fetchone()
+    if not o:
+        raise ValueError("Order not found")
+
+    # what has already left the rack against this order number
+    issued: dict[str, dict] = {}
+    for r in conn.execute(
+        """SELECT h.heat_number, h.id AS heat_id,
+                  COALESCE(SUM(m.rods),0) AS rods,
+                  COALESCE(SUM(m.weight_kg),0) AS weight_kg
+           FROM heat_movement m JOIN heat h ON h.id=m.heat_id
+           WHERE m.type='issue' AND m.order_id=?
+           GROUP BY h.id""", (o["order_no"],)
+    ):
+        issued[r["heat_number"]] = dict(r)
+
+    items_out: list[dict] = []
+    rolled: dict[tuple, dict] = {}
+
+    for it in conn.execute(
+        """SELECT i.*, d.drawing_no, d.revision FROM order_item i
+           LEFT JOIN drawing d ON d.id=i.drawing_id
+           WHERE i.order_id=? ORDER BY i.id""", (order_id,)
+    ):
+        item = dict(it)
+        label = (f"{item['drawing_no']} rev {item['revision']}"
+                 if item["drawing_no"] else (item["description"] or "item"))
+        entry = {"item_id": item["id"], "label": label, "qty": item["qty"],
+                 "unit": item["unit"], "materials": [], "reason": ""}
+
+        if not item["drawing_id"]:
+            entry["reason"] = "free-text item — no drawing, so no bill of materials"
+            items_out.append(entry)
+            continue
+
+        costing = conn.execute(
+            "SELECT * FROM costing WHERE drawing_id=? ORDER BY id DESC LIMIT 1",
+            (item["drawing_id"],)).fetchone()
+        if not costing:
+            entry["reason"] = "this drawing has no costing yet"
+            items_out.append(entry)
+            continue
+
+        entry["costing_id"] = costing["id"]
+        entry["costing_date"] = costing["created_at"]
+        mats = [dict(m) for m in conn.execute(
+            "SELECT * FROM costing_material WHERE costing_id=? ORDER BY id",
+            (costing["id"],))]
+        if not mats:
+            entry["reason"] = "its costing prices material by hand, not from stock"
+            items_out.append(entry)
+            continue
+
+        for m in mats:
+            required = round(m["qty_per_piece"] * item["qty"], 4)
+            line = {"heat_id": m["heat_id"], "heat_number": m["heat_number"],
+                    "material_label": m["material_label"], "unit": m["unit"],
+                    "qty_per_piece": m["qty_per_piece"], "required": required,
+                    "unit_cost": m["unit_cost"],
+                    "cost": round(m["unit_cost"] * required, 2)}
+            entry["materials"].append(line)
+
+            key = (m["heat_number"] or m["material_label"], m["unit"])
+            agg = rolled.setdefault(key, {
+                "heat_id": m["heat_id"], "heat_number": m["heat_number"],
+                "material_label": m["material_label"], "unit": m["unit"],
+                "required": 0.0, "cost": 0.0, "from_items": []})
+            agg["required"] = round(agg["required"] + required, 4)
+            agg["cost"] = round(agg["cost"] + line["cost"], 2)
+            agg["from_items"].append(label)
+
+        items_out.append(entry)
+
+    summary = []
+    for agg in rolled.values():
+        got = issued.get(agg["heat_number"] or "", {})
+        agg["issued"] = round(
+            got.get("rods", 0) if agg["unit"] == "rod" else got.get("weight_kg", 0), 4)
+        agg["outstanding"] = round(max(agg["required"] - agg["issued"], 0), 4)
+        summary.append(agg)
+    summary.sort(key=lambda a: (-a["cost"], a["heat_number"] or ""))
+
+    # material issued against this order that no part actually calls for
+    committed_heats = {a["heat_number"] for a in summary}
+    unexpected = [dict(v, heat_number=k) for k, v in issued.items()
+                  if k not in committed_heats]
+
+    return {
+        "order_id": o["id"], "order_no": o["order_no"],
+        "items": items_out,
+        "summary": summary,
+        "unexpected_issues": unexpected,
+        "total_cost": round(sum(a["cost"] for a in summary), 2),
+        "items_without_bom": sum(1 for i in items_out if i["reason"]),
+    }
+
+
 def set_schedule(conn, order_item_id: int, rows: list[dict]) -> dict:
     """Replace the delivery plan for one order item.
 
@@ -672,6 +790,12 @@ def order_deadlines(conn=Depends(get_db)):
 def item_schedule(order_item_id: int, body: ScheduleIn, conn=Depends(get_db)):
     return _400(set_schedule, conn, order_item_id,
                 [r.model_dump() for r in body.lines])
+
+
+@router.get("/{order_id}/bom")
+def order_bill_of_materials(order_id: int, conn=Depends(get_db)):
+    """What material this order commits, rolled up from its parts' costings."""
+    return _400(order_bom, conn, order_id)
 
 
 @router.get("/{order_id}")

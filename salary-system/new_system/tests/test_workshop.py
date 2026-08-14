@@ -721,3 +721,125 @@ class BillOfMaterials(WorkshopBase):
             parts.save_costing(self.conn, did, {"ops": [], "materials": [
                 {"heat_number": "H-500", "unit_cost": 100,
                  "qty_per_piece": float("inf")}]})
+
+
+class OrderBillOfMaterials(WorkshopBase):
+    """What an order commits, rolled up from its parts' costings."""
+
+    def setUp(self):
+        super().setUp()
+        self.h1 = inventory.create_heat(self.conn, {
+            "heat_number": "OB-1", "date_received": "2026-08-01",
+            "material_class": "Steel", "grade": "EN8", "rods_received": 50,
+            "price_total": 225000})                      # ₹4 500 a rod
+        self.h2 = inventory.create_heat(self.conn, {
+            "heat_number": "OB-2", "date_received": "2026-08-01",
+            "material_class": "Brass", "rods_received": 20,
+            "price_total": 60000})                       # ₹3 000 a rod
+
+    def _costed(self, drawing_no, lines):
+        did = self.drawing(drawing_no=drawing_no)
+        parts.save_costing(self.conn, did, {"ops": [], "materials": lines})
+        return did
+
+    def test_required_is_per_piece_times_ordered(self):
+        did = self._costed("DRG-A", [
+            {"heat_id": self.h1, "heat_number": "OB-1", "material_label": "Steel · EN8",
+             "unit": "rod", "unit_cost": 4500, "qty_per_piece": 1 / 3}])
+        oid = self.order(items=[{"drawing_id": did, "description": "shaft",
+                                 "qty": 60, "unit": "Nos", "rate": 300}])
+        b = orders.order_bom(self.conn, oid)
+        self.assertEqual(len(b["summary"]), 1)
+        row = b["summary"][0]
+        self.assertEqual(row["heat_number"], "OB-1")
+        self.assertEqual(row["required"], 20.0)        # 60 / 3
+        self.assertEqual(row["cost"], 90000.0)
+        self.assertEqual(b["total_cost"], 90000.0)
+
+    def test_one_heat_used_by_two_parts_is_added_up(self):
+        a = self._costed("DRG-A", [
+            {"heat_id": self.h1, "heat_number": "OB-1", "material_label": "Steel",
+             "unit": "rod", "unit_cost": 4500, "qty_per_piece": 1 / 3}])
+        c = self._costed("DRG-C", [
+            {"heat_id": self.h1, "heat_number": "OB-1", "material_label": "Steel",
+             "unit": "rod", "unit_cost": 4500, "qty_per_piece": 0.1},
+            {"heat_id": self.h2, "heat_number": "OB-2", "material_label": "Brass",
+             "unit": "rod", "unit_cost": 3000, "qty_per_piece": 0.25}])
+        oid = self.order(items=[
+            {"drawing_id": a, "description": "shaft", "qty": 60, "unit": "Nos", "rate": 1},
+            {"drawing_id": c, "description": "bush", "qty": 40, "unit": "Nos", "rate": 1}])
+        b = orders.order_bom(self.conn, oid)
+        got = {r["heat_number"]: r["required"] for r in b["summary"]}
+        self.assertEqual(got, {"OB-1": 24.0, "OB-2": 10.0})   # 20 + 4, and 10
+
+    def test_issued_and_outstanding(self):
+        did = self._costed("DRG-A", [
+            {"heat_id": self.h1, "heat_number": "OB-1", "material_label": "Steel",
+             "unit": "rod", "unit_cost": 4500, "qty_per_piece": 1 / 3}])
+        oid = self.order(items=[{"drawing_id": did, "description": "shaft",
+                                 "qty": 60, "unit": "Nos", "rate": 1}])
+        order_no = orders.get_order(self.conn, oid)["order_no"]
+        inventory.add_movement(self.conn, self.h1,
+                               {"type": "issue", "rods": 12, "order_id": order_no})
+        row = orders.order_bom(self.conn, oid)["summary"][0]
+        self.assertEqual((row["required"], row["issued"], row["outstanding"]),
+                         (20.0, 12, 8.0))
+
+    def test_over_issue_never_goes_negative(self):
+        did = self._costed("DRG-A", [
+            {"heat_id": self.h1, "heat_number": "OB-1", "material_label": "Steel",
+             "unit": "rod", "unit_cost": 4500, "qty_per_piece": 1 / 3}])
+        oid = self.order(items=[{"drawing_id": did, "description": "shaft",
+                                 "qty": 3, "unit": "Nos", "rate": 1}])   # needs 1 rod
+        order_no = orders.get_order(self.conn, oid)["order_no"]
+        inventory.add_movement(self.conn, self.h1,
+                               {"type": "issue", "rods": 5, "order_id": order_no})
+        row = orders.order_bom(self.conn, oid)["summary"][0]
+        self.assertEqual(row["outstanding"], 0.0)
+
+    def test_material_issued_that_no_part_calls_for_is_flagged(self):
+        did = self._costed("DRG-A", [
+            {"heat_id": self.h1, "heat_number": "OB-1", "material_label": "Steel",
+             "unit": "rod", "unit_cost": 4500, "qty_per_piece": 1 / 3}])
+        oid = self.order(items=[{"drawing_id": did, "description": "shaft",
+                                 "qty": 60, "unit": "Nos", "rate": 1}])
+        order_no = orders.get_order(self.conn, oid)["order_no"]
+        inventory.add_movement(self.conn, self.h2,
+                               {"type": "issue", "rods": 2, "order_id": order_no})
+        b = orders.order_bom(self.conn, oid)
+        self.assertEqual([u["heat_number"] for u in b["unexpected_issues"]], ["OB-2"])
+
+    def test_items_without_a_bom_say_why(self):
+        plain = self.drawing(drawing_no="DRG-NOCOST")          # no costing at all
+        manual = self.drawing(drawing_no="DRG-MANUAL")
+        parts.save_costing(self.conn, manual, {"ops": [], "material_cost": 250})
+        oid = self.order(items=[
+            {"drawing_id": None, "description": "packing crate", "qty": 2,
+             "unit": "Nos", "rate": 1},
+            {"drawing_id": plain, "description": "x", "qty": 5, "unit": "Nos", "rate": 1},
+            {"drawing_id": manual, "description": "y", "qty": 5, "unit": "Nos", "rate": 1}])
+        b = orders.order_bom(self.conn, oid)
+        self.assertEqual(b["summary"], [])
+        self.assertEqual(b["items_without_bom"], 3)
+        reasons = " ".join(i["reason"] for i in b["items"])
+        self.assertIn("no drawing", reasons)
+        self.assertIn("no costing", reasons)
+        self.assertIn("by hand", reasons)
+
+    def test_uses_the_latest_costing(self):
+        did = self._costed("DRG-A", [
+            {"heat_id": self.h1, "heat_number": "OB-1", "material_label": "Steel",
+             "unit": "rod", "unit_cost": 4500, "qty_per_piece": 1 / 3}])
+        oid = self.order(items=[{"drawing_id": did, "description": "shaft",
+                                 "qty": 60, "unit": "Nos", "rate": 1}])
+        # re-costed onto different stock
+        parts.save_costing(self.conn, did, {"ops": [], "materials": [
+            {"heat_id": self.h2, "heat_number": "OB-2", "material_label": "Brass",
+             "unit": "rod", "unit_cost": 3000, "qty_per_piece": 0.5}]})
+        b = orders.order_bom(self.conn, oid)
+        self.assertEqual([r["heat_number"] for r in b["summary"]], ["OB-2"])
+        self.assertEqual(b["summary"][0]["required"], 30.0)
+
+    def test_unknown_order(self):
+        with self.assertRaises(ValueError):
+            orders.order_bom(self.conn, 999999)

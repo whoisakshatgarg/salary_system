@@ -34,6 +34,28 @@ the shared `POST /api/material/check` (see
 orders-only account can use it. The point is to see a shortage BEFORE
 committing to it.
 
+## Bill of materials for an order
+An order has no bill of materials of its own — its PARTS do. `order_bom()` walks
+each item to its drawing, takes that drawing's **most recent** costing, and
+multiplies the costing's per-piece material by the quantity ordered:
+
+    required = qty_per_piece × item qty
+
+then rolls the lines up **by heat number**, because the heat is what has to come
+off the rack. Beside each line sits what has actually been issued against this
+order number (the usage log), so the record reads *committed · issued · still to
+issue*, and any heat issued to the order that no part calls for is flagged.
+
+Derived live, never snapshotted: re-costing a drawing changes what the order
+needs, and the costing used is named in the result so a figure can always be
+traced. Items with no drawing, with no costing, or whose costing prices material
+by hand are listed **with the reason** rather than silently contributing zero —
+a BOM that quietly under-reports is worse than none.
+
+`GET /api/orders/{id}/bom`. The order screen loads it after the record itself
+(not awaited) and fails closed, so an account without the `parts` grant sees the
+order without the section rather than an error.
+
 ## Deadlines, delivery plans and shipment progress
 - **Deadline** (`customer_order.due_date`) is a column on the list, tinted amber
   inside a week and rose once overdue, and a chip on the order record.

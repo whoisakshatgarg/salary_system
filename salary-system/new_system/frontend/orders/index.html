@@ -424,7 +424,79 @@
           </div>
 
           <div>
-            <div class="font-semibold text-sm mb-2">Material used (from Inventory)</div>
+            <!-- ============ BILL OF MATERIALS FOR THIS ORDER ============
+                 The order has no BOM of its own — its PARTS do. This rolls each
+                 item's costing up by heat: what the order commits us to, what
+                 has actually been issued, and what is still to come off the
+                 rack. -->
+            <div class="flex items-center mb-2">
+              <div class="font-semibold text-sm">Bill of materials — what this order commits</div>
+              <span class="ml-auto text-xs text-slate-400" x-show="bom"
+                    x-text="money(bom?.total_cost ?? 0)"></span>
+            </div>
+            <template x-if="bom && bom.summary.length">
+              <div class="overflow-auto mb-2">
+                <table class="w-full text-sm">
+                  <thead class="text-slate-500 text-xs uppercase tracking-wide border-b">
+                    <tr>
+                      <th class="text-left pb-1.5">Heat</th>
+                      <th class="text-left pb-1.5">Material</th>
+                      <th class="text-right pb-1.5 pr-3">Needs</th>
+                      <th class="text-right pb-1.5 pr-3">Issued</th>
+                      <th class="text-right pb-1.5 pr-3">Still to issue</th>
+                      <th class="text-right pb-1.5">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="m in bom.summary" :key="m.heat_number + m.unit">
+                      <tr class="border-b last:border-0">
+                        <td class="py-1.5 font-mono text-xs font-semibold text-brand-700"
+                            x-text="m.heat_number"></td>
+                        <td class="py-1.5 text-xs text-slate-500" x-text="m.material_label"></td>
+                        <td class="py-1.5 text-right pr-3 whitespace-nowrap"
+                            x-text="m.required + ' ' + m.unit"></td>
+                        <td class="py-1.5 text-right pr-3 text-emerald-700" x-text="m.issued"></td>
+                        <td class="py-1.5 text-right pr-3 font-semibold"
+                            :class="m.outstanding > 0 ? 'text-amber-700' : 'text-slate-300'"
+                            x-text="m.outstanding"></td>
+                        <td class="py-1.5 text-right" x-text="money(m.cost)"></td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+                <p class="text-[11px] text-slate-400 mt-1.5">
+                  Worked out from each part's latest costing × the quantity ordered.
+                  <span x-show="bom.items_without_bom">
+                    <b x-text="bom.items_without_bom"></b> item(s) contribute nothing —
+                    see below.
+                  </span>
+                </p>
+              </div>
+            </template>
+            <template x-if="bom && !bom.summary.length">
+              <p class="text-xs text-slate-400 mb-2">
+                No part on this order prices its material from stock yet — add a bill
+                of materials to a drawing's costing in Parts &amp; Pricing.
+              </p>
+            </template>
+            <template x-if="bom">
+              <div class="mb-4">
+                <template x-for="it in bom.items.filter(i => i.reason)" :key="it.item_id">
+                  <div class="text-[11px] text-slate-400 py-0.5">
+                    <span class="font-medium" x-text="it.label"></span> —
+                    <span x-text="it.reason"></span>
+                  </div>
+                </template>
+                <template x-for="u in bom.unexpected_issues" :key="u.heat_number">
+                  <div class="text-[11px] text-amber-700 py-0.5">
+                    <span class="font-mono" x-text="u.heat_number"></span> was issued to this
+                    order but no part on it calls for that heat.
+                  </div>
+                </template>
+              </div>
+            </template>
+
+            <div class="font-semibold text-sm mb-2">Material actually issued (usage log)</div>
             <template x-for="(h, i) in detail.heats" :key="i">
               <div class="flex items-center gap-2 text-sm py-1 border-b last:border-0">
                 <span class="font-mono text-xs font-semibold text-brand-700" x-text="h.heat_number"></span>

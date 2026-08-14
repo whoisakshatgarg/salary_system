@@ -250,4 +250,12 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   well as add** — an order carries items, a delivery plan, shipments and a stage
   history. Orders are the exception to "edit stays a modal": the form is the
   same one used to add, and switching surfaces between the two would be arbitrary.
+- **An order's bill of materials is derived from its parts, not stored on the
+  order.** `required = qty_per_piece × item qty`, rolled up by heat number and
+  read against what the usage log has actually issued. Storing it would mean a
+  second copy to keep in step with every re-costing and every quantity change;
+  deriving it means the answer is always current, and the costing it came from
+  is named so it can be traced. Items that cannot contribute (no drawing, no
+  costing, hand-typed material cost) are listed with the reason — a rollup that
+  silently under-reports material is worse than no rollup.
 

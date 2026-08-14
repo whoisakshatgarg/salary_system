@@ -123,8 +123,9 @@
     <a class="h3" href="#71-the-costing-workspace">7.1 The costing workspace</a>
     <a class="h3" href="#72-bill-of-materials--pricing-the-steel-from-stock">7.2 Bill of materials — pricing the steel from stock</a>
     <a class="h2" href="#8-order-tracking">8. Order Tracking</a>
-    <a class="h3" href="#81-planning-a-long-order">8.1 Planning a long order</a>
-    <a class="h3" href="#82-shipments--what-do-we-still-owe">8.2 Shipments — what do we still owe?</a>
+    <a class="h3" href="#81-what-material-this-order-needs">8.1 What material this order needs</a>
+    <a class="h3" href="#82-planning-a-long-order">8.2 Planning a long order</a>
+    <a class="h3" href="#83-shipments--what-do-we-still-owe">8.3 Shipments — what do we still owe?</a>
     <a class="h2" href="#9-quotations--invoices">9. Quotations &amp; Invoices</a>
     <a class="h3" href="#91-checking-material-before-you-commit">9.1 Checking material before you commit</a>
     <a class="h3" href="#92-printing-and-sending">9.2 Printing and sending</a>
@@ -365,13 +366,19 @@
 </ul>
 <figure><img src="images/ws-consignment.jpg" alt="Consignment" loading="lazy"><figcaption>Consignment</figcaption></figure>
 <p>Enter the GST paperwork (transporter, LR number, e-way bill, invoice, vehicle, freight) and the quantities going on this truck. <strong>Partial shipments are fine</strong>, and one consignment can carry items from <strong>several orders</strong> (type another order number and press <em>Add order</em>). The app refuses to ship more than an item has left. The <strong>Consignments</strong> tab lists every shipment — mark them <strong>Delivered ✓</strong> when confirmed.</p>
-<h3 id="81-planning-a-long-order">8.1 Planning a long order</h3>
+<h3 id="81-what-material-this-order-needs">8.1 What material this order needs</h3>
+<p>Under the items you'll find <strong>Bill of materials — what this order commits</strong>.</p>
+<p>The order doesn't have its own material list; its <em>parts</em> do. So the app takes each item, looks up that drawing's latest costing, and multiplies the material per piece by how many you've ordered — then adds it up by heat number, because the heat is what actually has to come off the rack.</p>
+<blockquote>60 shafts, and the costing says one rod makes 3 → <strong>20 rods of H1001, ₹90,000.</strong></blockquote>
+<p>Next to each line you'll see what has already been <strong>issued</strong> against this order number in Inventory, and what is <strong>still to issue</strong>. So one table answers both "what does this job need?" and "how much of it have we taken out?".</p>
+<p>A line in grey under the table means an item couldn't contribute — it has no drawing, its drawing has no costing yet, or that costing has its material cost typed in by hand instead of picked from stock. It says which, so you know what to fix rather than wondering why a number looks low. If a heat was issued to this order that no part on it calls for, that's flagged in amber.</p>
+<h3 id="82-planning-a-long-order">8.2 Planning a long order</h3>
 <p>Some orders run for months and go out in instalments. Press <strong>Plan</strong> on any item to say when each part of it is due:</p>
 <figure><img src="images/ws-delivery-plan.jpg" alt="Delivery plan" loading="lazy"><figcaption>Delivery plan</figcaption></figure>
 <blockquote>An order for 600 pieces: 250 by 15 September, 100 by 15 October, and the remaining 250 before the deadline.</blockquote>
 <p>Add a line per drop. The <strong>+ Remaining (N) by the deadline</strong> button writes that last line for you, using the order's own deadline. The panel keeps three figures in view — <strong>Ordered</strong>, <strong>Planned</strong> and <strong>Not planned yet</strong> — and the last one is worked out for you, so it can never disagree with the others. You can't plan more than the item quantity; the app will say so.</p>
 <p>The button on the item row then shows how many drops are planned, so you can see at a glance which items have a schedule and which don't.</p>
-<h3 id="82-shipments--what-do-we-still-owe">8.2 Shipments — what do we still owe?</h3>
+<h3 id="83-shipments--what-do-we-still-owe">8.3 Shipments — what do we still owe?</h3>
 <p>The <strong>Shipments</strong> tab is the answer to <em>"how much of this order is still to go?"</em></p>
 <figure><img src="images/ws-shipments.jpg" alt="Shipments" loading="lazy"><figcaption>Shipments</figcaption></figure>
 <p>One row per order: how much was <strong>ordered</strong>, how much has been <strong>sent</strong>, how much <strong>remains</strong>, and a progress bar. "Sent" counts every consignment ever raised against that order, so an order delivered in six lorries over four months adds up correctly. By default you only see orders that still owe something — untick the box to include the finished ones. The figure at the bottom is everything still outstanding across the orders shown.</p>
