@@ -209,6 +209,18 @@ CREATE TABLE IF NOT EXISTS unit (
     name TEXT NOT NULL UNIQUE                      -- 'Nos', 'kg', 'mm', …
 );
 
+-- A customer can have its own price for an operation (negotiated machine rate,
+-- or a standing extra). Falls back to the global operation rate when absent.
+CREATE TABLE IF NOT EXISTS customer_operation_rate (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id   INTEGER NOT NULL REFERENCES customer(id) ON DELETE CASCADE,
+    operation     TEXT NOT NULL,
+    rate_per_hour REAL NOT NULL DEFAULT 0,
+    extra_rate    REAL NOT NULL DEFAULT 0,          -- ₹/hour on top, for this customer
+    note          TEXT,
+    UNIQUE(customer_id, operation)
+);
+
 CREATE TABLE IF NOT EXISTS operation (             -- machining ops for costing
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     name          TEXT NOT NULL UNIQUE,            -- 'Turning', 'Milling', …
@@ -290,7 +302,7 @@ CREATE TABLE IF NOT EXISTS costing_op (
     minutes          REAL NOT NULL,
     rate_per_hour    REAL NOT NULL,                -- snapshot of the rate used
     weightage        REAL NOT NULL DEFAULT 1,      -- multiplier for weighted addition
-    extra_margin_pct REAL NOT NULL DEFAULT 0,      -- margin on THIS operation only
+    extra_rate       REAL NOT NULL DEFAULT 0,      -- ₹/HOUR added on top of rate_per_hour
     cost             REAL NOT NULL                 -- see parts.op_cost() for the formula
 );
 
@@ -439,7 +451,7 @@ _MIGRATIONS = {
     },
     "costing_op": {
         "weightage": "REAL NOT NULL DEFAULT 1",
-        "extra_margin_pct": "REAL NOT NULL DEFAULT 0",
+        "extra_rate": "REAL NOT NULL DEFAULT 0",
     },
     "app_user": {
         "grants": "TEXT",  # JSON list of module keys (see core/registry.py)
@@ -459,7 +471,20 @@ _MIGRATIONS = {
 }
 
 
+# Columns that existed only between two same-day commits and were renamed
+# before release. Dropping is best-effort: an old SQLite just keeps them.
+_RETIRED = {"costing_op": ["extra_margin_pct"]}
+
+
 def _migrate(conn) -> None:
+    for table, cols in _RETIRED.items():
+        existing = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+        for col in cols:
+            if col in existing:
+                try:
+                    conn.execute(f"ALTER TABLE {table} DROP COLUMN {col}")
+                except Exception:
+                    pass
     for table, cols in _MIGRATIONS.items():
         existing = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
         for col, decl in cols.items():

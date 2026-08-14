@@ -18,12 +18,22 @@ builder that rolls up to ₹/piece.
 - **Costing workspace** (own full screen, opened from the drawing): the part and
   its rate history on the left with a revision switcher and the customer
   assignment; the operations table on the right with columns
-  *operation · minutes · ₹/hour · time ₹ · weightage · additional margin % · row ₹*.
+  *operation · minutes · ₹/hour · add'l ₹/hour · effective ₹/hr · weightage · row ₹*.
   Every figure recalculates as you type. Row cost is
-  `minutes ÷ 60 × ₹/hr × weightage × (1 + additional margin %)` — weightage is
-  the "counts more than its clock time" factor (setup spread over a batch, a
-  second spindle, scrap allowance); the additional margin marks up that one
-  operation on top of the costing's overall margin.
+  `minutes ÷ 60 × (₹/hr + add'l ₹/hr) × weightage`.
+  - **Additional margin is a rate, not a percentage** — rupees PER HOUR added on
+    top of the operation's standard rate, so ₹400/hr + ₹50/hr bills at ₹450/hr.
+    It is how you price a job that needs a better machine or a tighter tolerance
+    without editing the shop-wide rate in Settings.
+  - **Weightage** is the "counts more than its clock time" factor (setup spread
+    over a batch, a second spindle, scrap allowance). Blank = 1.
+- **Per-customer operation rates.** When the drawing is assigned to a customer,
+  the workspace loads that customer's agreed rates instead of the Settings
+  defaults, and marks the row with a ★ badge so it is obvious the price is
+  negotiated rather than standard. Rates are kept on the customer (Customers →
+  Rates tab), never on the drawing, so one edit reprices every part for that
+  customer. An unassigned drawing — or a customer with no agreed rate for that
+  operation — falls back to the Settings rate with no additional margin.
 - Delete only while the drawing is on no order (else deactivate).
 
 ## Implemented (file paths)
@@ -38,8 +48,9 @@ grade, unit, active, UNIQUE(drawing_no, revision))` · `drawing_file` ·
 `drawing_rate(drawing_id, kind, rate, rate_date, note)` ·
 `costing(drawing_id, material_cost, margin_pct)` +
 `costing_op(costing_id, operation, minutes, rate_per_hour, weightage,
-extra_margin_pct, cost)` — rollup
-totals derived on read.
+extra_rate, cost)` — `extra_rate` is ₹ per hour; rollup totals derived on read.
+Rates and margins are SNAPSHOTTED into `costing_op` on save, so re-reading an
+old costing never silently reprices it when Settings or a customer rate changes.
 
 ## Screens
 guide-images: ws-part-detail.

@@ -273,29 +273,76 @@ class CustomerCodes(WorkshopBase):
 
 
 class CostingWeighting(WorkshopBase):
-    def test_weightage_and_extra_margin(self):
-        self.assertEqual(parts.op_cost(12, 400), 80.0)              # plain
-        self.assertEqual(parts.op_cost(12, 400, 1.25), 100.0)       # weighted
-        self.assertEqual(parts.op_cost(12, 400, 1.25, 10), 110.0)   # + row margin
+    def test_additional_margin_is_rupees_per_hour(self):
+        # The extra is money ADDED TO THE HOURLY RATE, not a percentage:
+        # ₹400/hr + ₹50/hr is charged at ₹450/hr.
+        self.assertEqual(parts.op_cost(12, 400), 80.0)               # plain
+        self.assertEqual(parts.op_cost(12, 400, 1.25), 100.0)        # weighted
+        self.assertEqual(parts.op_cost(12, 400, 1, 50), 90.0)        # 12min @ ₹450
+        self.assertEqual(parts.op_cost(12, 400, 1.25, 50), 112.5)    # both
+        self.assertEqual(parts.op_cost(60, 400, 1, 50), 450.0)       # one hour == the rate
 
     def test_saved_costing_uses_the_columns(self):
         did = self.drawing()
         d = parts.save_costing(self.conn, did, {
             "material_cost": 80, "margin_pct": 20,
             "ops": [{"operation": "Turning", "minutes": 12, "rate_per_hour": 400,
-                     "weightage": 1.25, "extra_margin_pct": 10}]})
+                     "weightage": 1.25, "extra_rate": 50}]})
         c = d["costings"][0]
-        self.assertEqual(c["ops"][0]["cost"], 110.0)
+        self.assertEqual(c["ops"][0]["cost"], 112.5)
         self.assertEqual(c["ops"][0]["weightage"], 1.25)
-        self.assertEqual(c["total"], 228.0)                          # (110+80) * 1.2
+        self.assertEqual(c["ops"][0]["extra_rate"], 50)
+        self.assertEqual(c["total"], 231.0)                          # (112.5+80) * 1.2
         d = parts.costing_to_rate(self.conn, c["id"], "agreed")
-        self.assertEqual(d["rates"][0]["rate"], 228.0)               # recorded == shown
+        self.assertEqual(d["rates"][0]["rate"], 231.0)               # recorded == shown
 
     def test_defaults_when_columns_left_blank(self):
         did = self.drawing()
         d = parts.save_costing(self.conn, did, {
             "ops": [{"operation": "Turning", "minutes": 12, "rate_per_hour": 400}]})
         self.assertEqual(d["costings"][0]["ops"][0]["cost"], 80.0)   # weightage defaults to 1
+
+
+class CustomerOperationRates(WorkshopBase):
+    def test_set_update_and_delete(self):
+        rates = customers.set_operation_rate(self.conn, self.cust, {
+            "operation": "Turning", "rate_per_hour": 520, "extra_rate": 30,
+            "note": "agreed Apr 2026"})
+        self.assertEqual(rates[0]["rate_per_hour"], 520)
+        self.assertEqual(rates[0]["extra_rate"], 30)
+        again = customers.set_operation_rate(self.conn, self.cust, {
+            "operation": "Turning", "rate_per_hour": 545})       # upsert, not duplicate
+        self.assertEqual(len(again), 1)
+        self.assertEqual(again[0]["rate_per_hour"], 545)
+        self.assertEqual(customers.delete_operation_rate(self.conn, self.cust, "Turning"), [])
+
+    def test_validation(self):
+        with self.assertRaises(ValueError):
+            customers.set_operation_rate(self.conn, self.cust, {"operation": "",
+                                                                 "rate_per_hour": 10})
+        with self.assertRaises(ValueError):
+            customers.set_operation_rate(self.conn, 9999, {"operation": "Turning",
+                                                            "rate_per_hour": 10})
+        with self.assertRaises(ValueError):
+            customers.set_operation_rate(self.conn, self.cust, {"operation": "Turning",
+                                                                 "rate_per_hour": float("inf")})
+
+    def test_customer_rate_overrides_the_standard_one(self):
+        std = {o["name"]: o["rate_per_hour"] for o in settings.operations(self.conn)}
+        customers.set_operation_rate(self.conn, self.cust, {
+            "operation": "Turning", "rate_per_hour": 520, "extra_rate": 30})
+        override = customers.operation_rates(self.conn, self.cust)
+        self.assertEqual(override["Turning"]["rate_per_hour"], 520)
+        self.assertNotEqual(std["Turning"], 520)          # genuinely different
+        # a costing priced at their rate: 12min @ (520+30) = ₹110
+        self.assertEqual(parts.op_cost(12, override["Turning"]["rate_per_hour"], 1,
+                                        override["Turning"]["extra_rate"]), 110.0)
+
+    def test_rates_ride_along_on_the_customer_record(self):
+        customers.set_operation_rate(self.conn, self.cust, {"operation": "Milling",
+                                                             "rate_per_hour": 600})
+        c = customers.get_customer(self.conn, self.cust)
+        self.assertEqual([r["operation"] for r in c["operation_rates"]], ["Milling"])
 
 
 class QuotationsAndInvoices(WorkshopBase):

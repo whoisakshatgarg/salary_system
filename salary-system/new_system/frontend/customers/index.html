@@ -113,6 +113,10 @@
                   :class="tab === 'profile' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-100'">Profile</button>
           <button @click="tab = 'business'" class="px-3 py-1.5 rounded-lg text-xs font-medium"
                   :class="tab === 'business' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-100'">Business</button>
+          <button @click="tab = 'rates'" class="px-3 py-1.5 rounded-lg text-xs font-medium"
+                  :class="tab === 'rates' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-100'">
+            Rates <span x-show="detail.operation_rates?.length" class="opacity-60"
+                        x-text="detail.operation_rates?.length"></span></button>
         </div>
         <span class="px-2.5 py-1 rounded-full text-xs font-medium"
               :class="detail.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
@@ -156,6 +160,79 @@
           </div>
           <button @click="addContact()"
                   class="mt-2 bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium">+ Add contact</button>
+        </div>
+      </div>
+
+
+      <!-- ============ RATES: what we charge THIS customer per operation ============ -->
+      <div x-show="tab === 'rates'" class="p-6">
+        <p class="text-sm text-slate-500 mb-4">
+          Negotiated prices for <b x-text="detail.name"></b>. When a drawing belongs to them,
+          the costing workspace prefills these instead of the standard rates from Settings.
+        </p>
+        <table class="w-full text-sm mb-4">
+          <thead>
+            <tr class="text-left text-xs text-slate-500 border-b">
+              <th class="py-2">Operation</th>
+              <th class="py-2 text-right">Standard ₹/hr</th>
+              <th class="py-2 text-right">Their ₹/hr</th>
+              <th class="py-2 text-right">Add'l ₹/hr</th>
+              <th class="py-2 text-right">Effective</th>
+              <th class="py-2">Note</th>
+              <th class="py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="r in detail.operation_rates || []" :key="r.operation">
+              <tr class="border-b last:border-0">
+                <td class="py-2 font-medium" x-text="r.operation"></td>
+                <td class="py-2 text-right text-slate-400" x-text="money(stdRate(r.operation))"></td>
+                <td class="py-2 text-right" x-text="money(r.rate_per_hour)"></td>
+                <td class="py-2 text-right" x-text="r.extra_rate ? money(r.extra_rate) : '—'"></td>
+                <td class="py-2 text-right font-semibold" x-text="money(effRate(r))"></td>
+                <td class="py-2 text-xs text-slate-500" x-text="r.note || ''"></td>
+                <td class="py-2 text-right whitespace-nowrap">
+                  <button @click="editRate(r)" class="text-brand-700 hover:underline text-xs mr-2">Edit</button>
+                  <button @click="removeRate(r)" class="text-slate-300 hover:text-rose-600 text-xs">✕</button>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="!(detail.operation_rates || []).length">
+              <td colspan="7" class="py-6 text-center text-slate-400 text-sm">
+                No custom rates — standard rates from Settings apply to this customer.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="bg-slate-50 rounded-xl p-3">
+          <div class="text-sm font-semibold mb-2">Set a rate</div>
+          <div class="flex flex-wrap items-end gap-2">
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-1">Operation</label>
+              <select :value="rateRow.operation" @change="pickOperation($event.target.value)"
+                      class="border rounded-lg px-2 py-1.5 text-sm bg-white w-48">
+                <option value="">Operation…</option>
+                <template x-for="o in ops" :key="o.id">
+                  <option :value="o.name" x-text="o.name + ' (₹' + o.rate_per_hour + ')'"></option>
+                </template>
+              </select>
+            </div>
+            <div><label class="block text-[11px] text-slate-500 mb-1">Their ₹/hour</label>
+              <input type="number" min="0" x-model="rateRow.rate_per_hour"
+                     class="border rounded-lg px-2 py-1.5 text-sm w-28 bg-white text-right" /></div>
+            <div><label class="block text-[11px] text-slate-500 mb-1">Additional ₹/hour</label>
+              <input type="number" min="0" step="5" x-model="rateRow.extra_rate" placeholder="0"
+                     class="border rounded-lg px-2 py-1.5 text-sm w-32 bg-white text-right" /></div>
+            <div class="flex-1 min-w-[160px]"><label class="block text-[11px] text-slate-500 mb-1">Note</label>
+              <input x-model="rateRow.note" placeholder="e.g. agreed Apr 2026"
+                     class="border rounded-lg px-2 py-1.5 text-sm w-full bg-white" /></div>
+            <button @click="saveRate()"
+                    class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Save</button>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2">
+            Effective rate = their ₹/hour + additional ₹/hour. Saving an operation twice updates it.
+          </p>
         </div>
       </div>
 

@@ -115,12 +115,12 @@
             <span class="text-slate-400 font-normal text-base" x-text="' rev ' + detail.revision"></span>
           </div>
           <div class="text-xs text-slate-500"
-               x-text="[detail.customer_name, detail.description].filter(Boolean).join(' · ')"></div>
+               x-text="[detail?.customer_name, detail?.description].filter(Boolean).join(' · ')"></div>
         </div>
         <template x-for="r in detail.revisions" :key="r.id">
           <button @click="openRevision(r)"
                   class="px-2 py-0.5 rounded-full text-xs font-medium border"
-                  :class="r.id === detail.id ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-300 text-slate-500 hover:bg-slate-50'"
+                  :class="r.id === detail?.id ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-300 text-slate-500 hover:bg-slate-50'"
                   x-text="r.revision"></button>
         </template>
         <div class="ml-auto flex gap-2">
@@ -225,7 +225,7 @@
                   <span class="inline-block mr-2"
                         x-text="o.operation + ' ' + o.minutes + 'min'
                                 + (o.weightage && o.weightage != 1 ? ' ×' + o.weightage : '')
-                                + (o.extra_margin_pct ? ' +' + o.extra_margin_pct + '%' : '')
+                                + (o.extra_rate ? ' +₹' + o.extra_rate + '/hr' : '')
                                 + ' ₹' + o.cost"></span>
                 </template>
                 <span x-show="c.material_cost" x-text="'· material ₹' + c.material_cost"></span>
@@ -311,7 +311,7 @@
         <template x-for="r in detail.revisions" :key="r.id">
           <button @click="openRevision(r).then(() => openWorkspace())"
                   class="px-2.5 py-1 rounded-lg text-xs font-medium border"
-                  :class="r.id === detail.id ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-600 text-slate-300 hover:bg-slate-800'"
+                  :class="r.id === detail?.id ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-600 text-slate-300 hover:bg-slate-800'"
                   x-text="r.revision"></button>
         </template>
       </div>
@@ -338,9 +338,9 @@
           <div class="bg-white rounded-xl shadow-sm p-4">
             <div class="text-xs uppercase tracking-wide text-slate-400 mb-2">Customer</div>
             <select @change="setCustomer($event.target.value)" class="border rounded-lg px-2 py-2 text-sm w-full">
-              <option value="" :selected="!detail.customer_id">— not assigned —</option>
+              <option value="" :selected="!detail?.customer_id">— not assigned —</option>
               <template x-for="c in lists.customers" :key="c.id">
-                <option :value="c.id" :selected="c.id === detail.customer_id" x-text="c.name"></option>
+                <option :value="c.id" :selected="c.id === detail?.customer_id" x-text="c.name"></option>
               </template>
             </select>
             <p class="text-[11px] text-slate-400 mt-1">This revision belongs to the customer chosen here.</p>
@@ -367,7 +367,7 @@
             <div class="flex items-center mb-3">
               <div class="font-bold">Operations</div>
               <div class="ml-auto text-xs text-slate-400">
-                row ₹ = minutes ÷ 60 × ₹/hr × weightage × (1 + additional margin)
+                row ₹ = minutes ÷ 60 × (₹/hr + additional ₹/hr) × weightage
               </div>
             </div>
             <table class="w-full text-sm">
@@ -376,9 +376,9 @@
                   <th class="py-2 pr-2">Operation</th>
                   <th class="py-2 px-2 w-24 text-right">Minutes</th>
                   <th class="py-2 px-2 w-24 text-right">₹ / hour</th>
-                  <th class="py-2 px-2 w-24 text-right">Time ₹</th>
+                  <th class="py-2 px-2 w-28 text-right">Add'l ₹/hour</th>
+                  <th class="py-2 px-2 w-24 text-right">Effective ₹/hr</th>
                   <th class="py-2 px-2 w-24 text-right">Weightage</th>
-                  <th class="py-2 px-2 w-28 text-right">Add'l margin %</th>
                   <th class="py-2 px-2 w-28 text-right">Row ₹</th>
                   <th class="py-2 w-8"></th>
                 </tr>
@@ -391,20 +391,22 @@
                               class="border rounded-lg px-2 py-1.5 text-sm w-full">
                         <option value="">Operation…</option>
                         <template x-for="o in lists.operations" :key="o.id">
-                          <option :value="o.name" x-text="o.name"></option>
+                          <option :value="o.name" x-text="o.name + (o.custom ? '  ·  customer rate' : '')"></option>
                         </template>
                       </select>
+                      <div x-show="isCustomRate(op)" class="text-[10px] text-emerald-700 mt-0.5"
+                           x-text="'★ ' + (detail?.customer_name || 'customer') + ' rate'"></div>
                     </td>
                     <td class="py-1.5 px-2"><input type="number" min="0" step="0.5" x-model="op.minutes"
                         class="border rounded-lg px-2 py-1.5 text-sm w-full text-right" /></td>
                     <td class="py-1.5 px-2"><input type="number" min="0" x-model="op.rate_per_hour"
                         class="border rounded-lg px-2 py-1.5 text-sm w-full text-right" /></td>
-                    <td class="py-1.5 px-2 text-right text-slate-400" x-text="'₹' + opTimeCost(op)"></td>
+                    <td class="py-1.5 px-2"><input type="number" min="0" step="5" x-model="op.extra_rate"
+                        placeholder="0" title="Margin added to the hourly rate, in ₹ per hour"
+                        class="border rounded-lg px-2 py-1.5 text-sm w-full text-right" /></td>
+                    <td class="py-1.5 px-2 text-right text-slate-400" x-text="'₹' + effRate(op)"></td>
                     <td class="py-1.5 px-2"><input type="number" min="0" step="0.05" x-model="op.weightage"
                         title="How much this operation counts relative to its clock time"
-                        class="border rounded-lg px-2 py-1.5 text-sm w-full text-right" /></td>
-                    <td class="py-1.5 px-2"><input type="number" min="0" step="0.5" x-model="op.extra_margin_pct"
-                        placeholder="0" title="Margin on this operation alone"
                         class="border rounded-lg px-2 py-1.5 text-sm w-full text-right" /></td>
                     <td class="py-1.5 px-2 text-right font-medium" x-text="'₹' + opCost(op)"></td>
                     <td class="py-1.5 text-right">

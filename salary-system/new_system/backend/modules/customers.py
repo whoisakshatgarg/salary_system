@@ -95,6 +95,7 @@ def get_customer(conn, customer_id: int) -> dict:
     row["contacts"] = [dict(r) for r in conn.execute(
         "SELECT * FROM customer_contact WHERE customer_id=? ORDER BY id",
         (customer_id,))]
+    row["operation_rates"] = list(operation_rates(conn, customer_id).values())
     return row
 
 
@@ -141,6 +142,54 @@ def backfill_codes(conn) -> int:
                      (next_code(conn, r["name"]), r["id"]))
     conn.commit()
     return len(rows)
+
+
+# --------------------------------------------------------------------------- #
+# Per-customer operation rates — what WE charge THEM for an operation
+# --------------------------------------------------------------------------- #
+def operation_rates(conn, customer_id: int) -> dict:
+    """{operation: {rate_per_hour, extra_rate, note}} for one customer."""
+    return {r["operation"]: dict(r) for r in conn.execute(
+        "SELECT operation, rate_per_hour, extra_rate, note"
+        " FROM customer_operation_rate WHERE customer_id=?"
+        " ORDER BY operation COLLATE NOCASE", (customer_id,))}
+
+
+def set_operation_rate(conn, customer_id: int, data: dict) -> list[dict]:
+    op = _s(data.get("operation"))
+    if not op:
+        raise ValueError("Pick an operation")
+    if not conn.execute("SELECT 1 FROM customer WHERE id=?", (customer_id,)).fetchone():
+        raise ValueError("Customer not found")
+    rate = _num(data.get("rate_per_hour"), "Rate")
+    extra = _num(data.get("extra_rate") or 0, "Additional ₹/hour")
+    conn.execute(
+        """INSERT INTO customer_operation_rate (customer_id, operation, rate_per_hour,
+             extra_rate, note) VALUES (?,?,?,?,?)
+           ON CONFLICT(customer_id, operation) DO UPDATE SET
+             rate_per_hour=excluded.rate_per_hour, extra_rate=excluded.extra_rate,
+             note=excluded.note""",
+        (customer_id, op, rate, extra, _s(data.get("note"))))
+    conn.commit()
+    return list(operation_rates(conn, customer_id).values())
+
+
+def delete_operation_rate(conn, customer_id: int, operation: str) -> list[dict]:
+    conn.execute("DELETE FROM customer_operation_rate WHERE customer_id=? AND operation=?",
+                 (customer_id, operation))
+    conn.commit()
+    return list(operation_rates(conn, customer_id).values())
+
+
+def _num(v, label: str) -> float:
+    import math
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        raise ValueError(f"{label} must be a number")
+    if not math.isfinite(f) or f < 0 or f > 1e9:
+        raise ValueError(f"{label} must be a normal, non-negative number")
+    return round(f, 2)
 
 
 def business(conn, customer_id: int) -> dict:
@@ -242,6 +291,13 @@ class CustomerIn(BaseModel):
     notes: str = ""
 
 
+class OperationRateIn(BaseModel):
+    operation: str
+    rate_per_hour: float
+    extra_rate: float = 0
+    note: str = ""
+
+
 class ContactIn(BaseModel):
     name: str
     phone: str = ""
@@ -265,6 +321,14 @@ def customers(q: str = "", active_only: bool = True, conn=Depends(get_db)):
 def create(body: CustomerIn, conn=Depends(get_db)):
     cid = _400(save_customer, conn, body.model_dump())
     return get_customer(conn, cid)
+
+
+@router.get("/refs")
+def refs(conn=Depends(get_db)):
+    """Reference data for this module's forms (customers grant): the standard
+    operation list, so a customer rate can be set against a known operation."""
+    from . import settings as settings_mod
+    return {"operations": settings_mod.operations(conn)}
 
 
 @router.get("/{customer_id}/business")
@@ -300,6 +364,21 @@ def set_active(customer_id: int, active: bool, conn=Depends(get_db)):
 def remove(customer_id: int, conn=Depends(get_db)):
     _400(delete_customer, conn, customer_id)
     return {"ok": True}
+
+
+@router.get("/{customer_id}/operation-rates")
+def op_rates(customer_id: int, conn=Depends(get_db)):
+    return list(operation_rates(conn, customer_id).values())
+
+
+@router.post("/{customer_id}/operation-rates")
+def op_rate_set(customer_id: int, body: OperationRateIn, conn=Depends(get_db)):
+    return _400(set_operation_rate, conn, customer_id, body.model_dump())
+
+
+@router.post("/{customer_id}/operation-rates/delete")
+def op_rate_delete(customer_id: int, body: OperationRateIn, conn=Depends(get_db)):
+    return _400(delete_operation_rate, conn, customer_id, body.operation)
 
 
 @router.post("/{customer_id}/contacts")

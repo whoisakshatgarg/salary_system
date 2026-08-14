@@ -86,9 +86,14 @@ function pt() {
     async open(id) {
       try {
         this.detail = await api(`/api/parts/drawings/${id}`);
+        await this.loadRefs();     // operation rates follow this drawing's customer
         this.rate = null;
         this.costing = null;
       } catch (e) { this.fail(e); }
+    },
+    async loadRefs() {
+      const cid = this.detail?.customer_id;
+      this.lists = await api("/api/parts/refs" + (cid ? `?customer_id=${cid}` : ""));
     },
     closeDetail() { this.detail = null; this.load(); },
 
@@ -174,7 +179,7 @@ function pt() {
                        ops: [this.blankOp()] };
     },
     blankOp() {
-      return { operation: "", minutes: "", rate_per_hour: "", weightage: 1, extra_margin_pct: "" };
+      return { operation: "", minutes: "", rate_per_hour: "", weightage: 1, extra_rate: "" };
     },
     // assign / change the customer this drawing belongs to, from the workspace
     async setCustomer(customerId) {
@@ -187,28 +192,37 @@ function pt() {
                   description: d.description || "", material_class: d.material_class || "",
                   grade: d.grade || "", unit: d.unit || "Nos", notes: d.notes || "" },
         });
+        await this.loadRefs();     // their negotiated rates take over immediately
         await this.load();
         this.flash(this.detail.customer_name
-          ? `Assigned to ${this.detail.customer_name}` : "Customer cleared");
+          ? `Assigned to ${this.detail.customer_name} — their rates now apply`
+          : "Customer cleared — standard rates apply");
       } catch (e) { this.fail(e); }
     },
     addOp() { this.costing.ops.push(this.blankOp()); },
     removeOp(i) { this.costing.ops.splice(i, 1); },
     opPicked(op) {
-      // choosing an operation prefills its ₹/hour from Settings
+      // Prefills the ₹/hour — the CUSTOMER's negotiated rate when this drawing
+      // belongs to one, otherwise the standard rate from Settings.
       const found = this.lists.operations.find((o) => o.name === op.operation);
-      if (found) op.rate_per_hour = found.rate_per_hour;
+      if (!found) return;
+      op.rate_per_hour = found.rate_per_hour;
+      op.extra_rate = found.extra_rate || "";
     },
-    // Same formula as the backend (parts.op_cost): time × weightage × (1 + extra margin)
+    isCustomRate(op) {
+      const f = this.lists.operations.find((o) => o.name === op.operation);
+      return !!(f && f.custom);
+    },
+    // Same formula as the backend (parts.op_cost):
+    //   effective ₹/hr = rate + additional margin (also ₹/hour)
+    //   row           = minutes / 60 × effective ₹/hr × weightage
+    effRate(op) {
+      return (Number(op.rate_per_hour) || 0) + (Number(op.extra_rate) || 0);
+    },
     opCost(op) {
-      const m = Number(op.minutes) || 0, r = Number(op.rate_per_hour) || 0;
+      const m = Number(op.minutes) || 0;
       const w = op.weightage === "" || op.weightage == null ? 1 : Number(op.weightage) || 0;
-      const x = Number(op.extra_margin_pct) || 0;
-      return Math.round((m / 60) * r * w * (1 + x / 100) * 100) / 100;
-    },
-    opTimeCost(op) {   // shown as the "before weighting" figure
-      const m = Number(op.minutes) || 0, r = Number(op.rate_per_hour) || 0;
-      return Math.round((m / 60) * r * 100) / 100;
+      return Math.round((m / 60) * this.effRate(op) * w * 100) / 100;
     },
     get costingTotals() {
       const c = this.costing;
@@ -233,7 +247,7 @@ function pt() {
               .map((o) => ({ operation: o.operation, minutes: Number(o.minutes),
                              rate_per_hour: Number(o.rate_per_hour),
                              weightage: o.weightage === "" || o.weightage == null ? 1 : Number(o.weightage),
-                             extra_margin_pct: Number(o.extra_margin_pct) || 0 })),
+                             extra_rate: Number(o.extra_rate) || 0 })),
           },
         });
         this.costing = null;

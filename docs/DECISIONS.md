@@ -147,6 +147,23 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   into its own full-screen workspace (part + revisions + customer on the left,
   operations table on the right). One formula, `parts.op_cost`, is shared by the
   live UI figure and the stored value so they cannot disagree.
+- **The additional margin is ₹ per hour, not a percentage.** It is added to the
+  operation's rate, so the row is `minutes ÷ 60 × (rate + extra) × weightage`.
+  A job shop quotes in rupees per hour — "this one runs on the CNC, charge ₹50
+  more an hour" is the sentence the estimator actually says, and it stays
+  comparable to the shop rate it sits next to. A percentage would have made two
+  operations with the same uplift show different numbers. The column
+  `costing_op.extra_margin_pct` was replaced by `extra_rate`; `db._RETIRED`
+  drops the old column best-effort so an existing database converges without a
+  manual migration step.
+- **Agreed rates live on the customer, not the drawing.**
+  `customer_operation_rate` holds `(rate_per_hour, extra_rate)` per operation,
+  and `/api/parts/refs?customer_id=` merges them over the Settings defaults,
+  flagging each overridden row `custom` so the UI can badge it. Rates are
+  negotiated per customer and apply to every part they order, so storing them
+  per drawing would mean re-entering the same number on each new part and
+  leaving the old ones stale after a renegotiation. Saved costings keep their
+  snapshot, so repricing is never retroactive.
 - **Quotations & Invoices** as a new module/tile sharing one `document` table
   (a `kind` distinguishes them); invoices prefill from an order's items.
   Printing is HTML + the browser's "Save as PDF" — no PDF dependency, works

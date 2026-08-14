@@ -41,20 +41,18 @@ def _now() -> str:
 
 
 def op_cost(minutes: float, rate_per_hour: float, weightage: float = 1,
-            extra_margin_pct: float = 0) -> float:
+            extra_rate: float = 0) -> float:
     """Cost of ONE operation row, in the order the columns read:
 
-        time cost   = minutes / 60 * ₹per hour
-        weighted    = time cost * weightage        (weighted addition)
-        row total   = weighted * (1 + extra margin % / 100)
+        effective ₹/hr = rate per hour + additional margin (also ₹ PER HOUR)
+        row total      = minutes / 60 * effective ₹/hr * weightage
 
-    Weightage covers "this operation counts more/less than its clock time"
-    (setup spread over a batch, a second spindle, scrap allowance); the extra
-    margin is a mark-up on this operation alone, on top of the costing's
-    overall margin.
+    The additional margin is money added to the hourly rate — ₹400/hr plus a
+    ₹50/hr margin is charged at ₹450/hr — not a percentage. Weightage covers
+    "this operation counts more/less than its clock time" (setup spread over a
+    batch, a second spindle, a scrap allowance).
     """
-    return round(minutes / 60 * rate_per_hour * weightage
-                 * (1 + extra_margin_pct / 100), 2)
+    return round(minutes / 60 * (rate_per_hour + extra_rate) * weightage, 2)
 
 
 def costing_total(ops_total: float, material_cost: float, margin_pct: float) -> float:
@@ -259,7 +257,7 @@ def save_costing(conn, drawing_id: int, data: dict) -> dict:
         rate = _check_money(o.get("rate_per_hour"), f"{name}: ₹/hour")
         weightage = _check_money(o.get("weightage") if o.get("weightage") not in (None, "") else 1,
                                  f"{name}: weightage", allow_zero=False)
-        extra = _check_money(o.get("extra_margin_pct") or 0, f"{name}: additional margin %")
+        extra = _check_money(o.get("extra_rate") or 0, f"{name}: additional ₹/hour")
         checked.append((name, minutes, rate, weightage, extra,
                         op_cost(minutes, rate, weightage, extra)))
     cur = conn.execute(
@@ -269,7 +267,7 @@ def save_costing(conn, drawing_id: int, data: dict) -> dict:
     for name, minutes, rate, weightage, extra, cost in checked:
         conn.execute(
             "INSERT INTO costing_op (costing_id, operation, minutes, rate_per_hour,"
-            " weightage, extra_margin_pct, cost) VALUES (?,?,?,?,?,?,?)",
+            " weightage, extra_rate, cost) VALUES (?,?,?,?,?,?,?)",
             (cur.lastrowid, name, minutes, rate, weightage, extra, cost))
     conn.commit()
     return get_drawing(conn, drawing_id)
@@ -366,7 +364,7 @@ class CostingOpIn(BaseModel):
     minutes: float
     rate_per_hour: float
     weightage: float = 1
-    extra_margin_pct: float = 0
+    extra_rate: float = 0
 
 
 class CostingIn(BaseModel):
@@ -393,14 +391,27 @@ def _400(fn, *args, **kw):
 
 
 @router.get("/refs")
-def refs(conn=Depends(get_db)):
-    """Form reference data for THIS module (parts grant): customers, units,
-    operations WITH their ₹/hour rates (the costing builder needs them)."""
+def refs(customer_id: int | None = None, conn=Depends(get_db)):
+    """Form reference data for THIS module (parts grant).
+
+    When a customer is given, their negotiated per-operation rates replace the
+    standard ones (and each row says so), because a costing is always priced
+    for somebody.
+    """
+    from . import customers as customers_mod
     from . import settings as settings_mod
+    ops = [dict(o, extra_rate=0.0, custom=False) for o in settings_mod.operations(conn)]
+    if customer_id:
+        override = customers_mod.operation_rates(conn, customer_id)
+        for o in ops:
+            c = override.get(o["name"])
+            if c:
+                o.update(rate_per_hour=c["rate_per_hour"], extra_rate=c["extra_rate"],
+                         custom=True, note=c.get("note") or "")
     return {
         "customers": settings_mod.active_customers(conn),
         "units": settings_mod.units(conn),
-        "operations": settings_mod.operations(conn),
+        "operations": ops,
     }
 
 

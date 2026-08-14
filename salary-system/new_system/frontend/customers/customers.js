@@ -74,6 +74,41 @@ function cu() {
     },
     printDoc(d) { window.open(`/api/quotations/${d.id}/print`, "_blank"); },
 
+    // ---- per-customer operation rates ------------------------------------ //
+    ops: [],                                  // the standard operation list
+    rateRow: { operation: "", rate_per_hour: "", extra_rate: "", note: "" },
+    stdRate(name) {
+      const o = this.ops.find((x) => x.name === name);
+      return o ? o.rate_per_hour : null;
+    },
+    effRate(r) { return (Number(r.rate_per_hour) || 0) + (Number(r.extra_rate) || 0); },
+    pickOperation(name) {
+      this.rateRow.operation = name;
+      const std = this.stdRate(name);
+      if (std !== null && this.rateRow.rate_per_hour === "") this.rateRow.rate_per_hour = std;
+    },
+    async saveRate() {
+      if (!this.rateRow.operation) return this.flash("Pick an operation", "err");
+      try {
+        this.detail.operation_rates = await api(
+          `/api/customers/${this.detail.id}/operation-rates`,
+          { method: "POST", body: { ...this.rateRow,
+              rate_per_hour: Number(this.rateRow.rate_per_hour) || 0,
+              extra_rate: Number(this.rateRow.extra_rate) || 0 } });
+        this.rateRow = { operation: "", rate_per_hour: "", extra_rate: "", note: "" };
+        this.flash("Rate saved for this customer");
+      } catch (e) { this.fail(e); }
+    },
+    editRate(r) { this.rateRow = { ...r }; },
+    async removeRate(r) {
+      if (!window.confirm(`Remove the custom ${r.operation} rate? Standard rates will apply.`)) return;
+      try {
+        this.detail.operation_rates = await api(
+          `/api/customers/${this.detail.id}/operation-rates/delete`,
+          { method: "POST", body: { operation: r.operation, rate_per_hour: 0 } });
+      } catch (e) { this.fail(e); }
+    },
+
     async boot() {
       window.addEventListener("unauth", () => { this.authed = false; });
       try {
@@ -82,7 +117,10 @@ function cu() {
         this.authed = !!(mods.modules || []).find((m) => m.key === "customers" && m.granted);
       } catch (_) { this.authed = false; }
       if (!this.authed) { window.location.href = "/"; return; }
-      try { await this.load(); } catch (e) { this.fail(e); }
+      try {
+        this.ops = (await api("/api/customers/refs")).operations;
+        await this.load();
+      } catch (e) { this.fail(e); }
       this.booted = true;
     },
     _seq: 0,

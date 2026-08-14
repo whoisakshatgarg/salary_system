@@ -266,6 +266,43 @@ shipping addresses, payment terms, and the people you talk to.
 contact persons (name, role, phone, email). Customers with orders or drawings
 can be **deactivated** but never deleted — history stays intact.
 
+Every customer gets a short **code** automatically: the initials of the name
+plus a number, so Acme Castings becomes **AC01** and the next AC… customer
+becomes **AC02**. "M/s", "Pvt", "Ltd" and similar words are ignored. If you'd
+rather the initials were something else, type them in the form — the code
+preview updates as you type. You can search the list by code, name or GSTIN.
+
+The record has three tabs.
+
+### 6.1 Business — what they're worth to you
+
+![Customer business](guide-images/ws-customer-business.jpg)
+
+Lifetime total, number of orders, average order value and how much is still
+open, then a **month-by-month bar chart** of business won — hover a bar to see
+the running total to that month. Below it, every order newest-first with its
+stage, and every quotation and invoice with a **Print** button, so any past
+document can be reprinted from here without hunting for the original.
+
+### 6.2 Rates — the prices you agreed with them
+
+![Customer rates](guide-images/ws-customer-rates.jpg)
+
+Most customers negotiate their own machining rates. Put them here once and every
+part you price for that customer uses them automatically.
+
+Pick the **Operation**, type **Their ₹/hour** (what this customer pays for it),
+optionally an **Additional ₹/hour** on top, add a note like *"agreed Apr 2026"*
+so you remember when it was settled, and press **Save**. The standard shop rate
+from Settings is shown alongside, struck through, so you can see at a glance
+what was negotiated.
+
+- The **effective rate** is *their ₹/hour + additional ₹/hour*. In the picture,
+  ₹520 + ₹30 = **₹550/hour**.
+- Saving the same operation again updates it — you never get duplicate rows.
+- Changing a rate here reprices every future costing for that customer in one
+  edit. Costings you already saved keep the price they were saved with.
+
 ---
 
 ## 7. Parts & Pricing
@@ -280,10 +317,53 @@ Open the **📐 Parts & Pricing** tile — one record per customer drawing.
 - **Rate history** answers "what did we charge last time": dated entries marked
   **quoted / agreed / revised**, newest first. The latest rate shows on the
   list and auto-fills order items.
-- **Costing** builds a ₹/piece price from operations: pick an operation
-  (its ₹/hour comes from Settings), type minutes per piece, add material cost
-  and margin — the total updates live. **→ quote** / **→ agreed** records the
-  result straight into the rate history.
+- **Customer** — assign the drawing to a customer here. This is what makes the
+  costing screen use that customer's agreed rates.
+
+### 7.1 The costing workspace
+
+**Open costing workspace** on a drawing gives pricing a full screen of its own.
+
+![Costing workspace](guide-images/ws-costing-workspace.jpg)
+
+The part, its customer and its rate history sit on the left; the operations
+table is on the right. Switch revisions with the **A / B** buttons at the top
+right — each revision is priced separately.
+
+Add a row per operation with **+ Add operation**, then fill in:
+
+| Column | What to put in it |
+| --- | --- |
+| **Operation** | Pick from your Settings list. The rates fill in by themselves. |
+| **Minutes** | Minutes this operation takes **per piece**. |
+| **₹ / hour** | The hourly rate. Comes from Settings, or from the customer's agreed rate if they have one. |
+| **Add'l ₹/hour** | Extra rupees per hour for this one operation — a better machine, a tighter tolerance, an awkward setup. |
+| **Effective ₹/hr** | Calculated: ₹/hour + additional ₹/hour. Not editable. |
+| **Weightage** | How much this operation counts relative to its clock time. Leave blank for normal (1). |
+| **Row ₹** | Calculated: `minutes ÷ 60 × effective ₹/hr × weightage`. |
+
+Everything recalculates as you type — there is no "calculate" button.
+
+> **The additional margin is rupees per hour, not a percentage.** ₹520/hour with
+> ₹30 additional means you are charging **₹550 an hour**, so 12 minutes costs
+> ₹110. It sits in the same units as the rate next to it, so the two numbers are
+> directly comparable.
+
+**Weightage** is for work that is worth more than the stopwatch says. Setup time
+spread across a batch, a second spindle running at the same time, an allowance
+for scrap — put 1.5 and the row bills at one and a half times.
+
+When the drawing belongs to a customer who has agreed rates, the row shows a
+green **★ *customer* rate** badge and uses their price instead of the shop
+standard. No badge means it's the standard Settings rate.
+
+Below the table, add **material cost per piece** and an **overall margin %**;
+the build-up on the right shows operations → + material → + margin → the final
+₹/piece. **Save costing** stores it against the revision, and from the drawing
+you can then push it into the rate history with **→ quote** or **→ agreed**.
+
+A saved costing keeps the rates it was saved with. Changing a rate in Settings
+or on the customer later will never quietly change a price you already quoted.
 
 ---
 
@@ -315,7 +395,38 @@ Open the **🗂 Order Tracking** tile.
 
 ---
 
-## 9. Settings
+## 9. Quotations & Invoices
+
+Open the **🧾 Quotations & Invoices** tile. Both live here — a quotation is what
+you send before the work, an invoice is what you send after it.
+
+![Invoice form](guide-images/ws-invoice-form.jpg)
+
+**+ Quotation** or **+ Invoice** starts one. Choose the customer and their
+details fill in. Add a line per item: description, quantity, rate — the amount,
+subtotal, GST and grand total all calculate themselves. For an invoice you can
+pick an **order** instead and its items are copied in for you, so you are not
+retyping what you already entered in Order Tracking.
+
+Document numbers are issued automatically per financial year, and quotations and
+invoices are numbered in separate series.
+
+### 9.1 Printing and sending
+
+**Print** opens a clean A4 copy in a new tab.
+
+![Printed invoice](guide-images/ws-invoice-print.jpg)
+
+From there use your browser's print dialog — choose your printer for a paper
+copy, or **Save as PDF** to get a file you can email or put on WhatsApp. There
+is nothing extra to install.
+
+Every document stays on the customer's **Business** tab too, so you can reprint
+any past quotation or invoice from there at any time.
+
+---
+
+## 10. Settings
 
 Open the **⚙ Settings** tile (changes are owner/admin only).
 
@@ -330,7 +441,7 @@ Open the **⚙ Settings** tile (changes are owner/admin only).
 
 ---
 
-## 10. Keeping your data safe
+## 11. Keeping your data safe
 
 - **Back up regularly:** Salary & Attendance → Sync/Exchange → **Back up now**.
   Each backup is one `.zip` holding the entire database *and* every
@@ -345,7 +456,7 @@ Open the **⚙ Settings** tile (changes are owner/admin only).
 
 ---
 
-## 11. If something goes wrong
+## 12. If something goes wrong
 
 | Problem | What to do |
 |---|---|
