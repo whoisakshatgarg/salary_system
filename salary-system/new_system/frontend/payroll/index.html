@@ -885,9 +885,14 @@
        Management; unchanged fields pass through the save untouched. -->
   <!-- x-if, not x-show: the inputs below x-model into empForm, which is null
        while the modal is closed, and x-model evaluates even when hidden. -->
+  <!-- Backdrop @click.self, NOT @click.outside on the panel: under x-if the
+       panel is inserted during the opening click, so a document-level
+       click-outside listener catches that same still-propagating click and
+       shuts the modal instantly. The backdrop cannot — it is not an ancestor
+       of the button that opened it. -->
   <template x-if="empForm">
-  <div class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-40">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6" @click.outside="empForm=null">
+  <div class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-40" @click.self="empForm=null">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
       <h2 class="text-lg font-bold mb-1" x-text="'Pay setup — ' + (empForm?.name || '')"></h2>
       <p class="text-xs text-slate-400 mb-4">Profile details are edited in Employee Management (Home → 👥).</p>
       <div class="grid grid-cols-2 gap-4 text-sm">
