@@ -6,14 +6,21 @@
   <title>Parts &amp; Pricing — APEX THERMOCON</title>
   <script src="/vendor/tailwind.js"></script>
   <script>
-    tailwind.config = { theme: { extend: { colors: { brand: { 600: "#1d4ed8", 700: "#1e40af" } } } } };
+    tailwind.config = { theme: { extend: { colors: { brand: {
+      50: "#eff6ff", 100: "#dbeafe", 500: "#3b82f6",
+      600: "#1d4ed8", 700: "#1e40af", 800: "#1e3a8a" } } } } };
   </script>
   <script defer src="parts.js"></script>
   <script defer src="/vendor/alpine.js"></script>
   <style>
     [x-cloak] { display: none !important; }
     body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-    input, select, textarea { @apply outline-none; }
+    /* controls: kill the default outline once, focus ring is the brand ring (§4) */
+    input, select, textarea, button { outline: none; }
+    input:focus, select:focus, textarea:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgb(59 130 246 / 0.2);
+    }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800" x-data="pt()" x-init="boot()" x-cloak>
@@ -25,82 +32,108 @@
   <div x-show="booted && authed" class="min-h-screen flex flex-col">
     <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
       <a href="/" title="Back to all modules"
-         class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
+         class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
         <span class="text-base leading-none">⌂</span> Home
       </a>
       <div>
         <div class="text-white font-bold leading-tight">Parts &amp; Pricing</div>
-        <div class="text-[11px] text-slate-400">APEX THERMOCON · drawing master &amp; rate history</div>
+        <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500">APEX THERMOCON</div>
       </div>
       <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
-        <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
+        <span>Signed in as <span class="text-white font-medium" x-text="user?.username"></span></span>
       </div>
     </header>
 
     <main class="flex-1 overflow-auto p-6 max-w-6xl w-full mx-auto">
-      <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-end gap-3">
-        <div class="flex-1 min-w-[220px]">
-          <label class="block text-xs font-medium text-slate-500 mb-1">Search</label>
-          <input x-model="q" @input.debounce.400ms="load()"
-                 placeholder="Drawing no / description / grade / customer"
-                 class="w-full border rounded-lg px-3 py-2 text-sm" />
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">Customer</label>
-          <select x-model="customerId" @change="load()" class="border rounded-lg px-2 py-2 text-sm">
-            <option value="">All</option>
-            <template x-for="c in lists.customers" :key="c.id">
-              <option :value="c.id" x-text="c.name"></option>
-            </template>
-          </select>
-        </div>
+      <!-- toolbar: one compact row (§4) -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 mb-4 flex flex-wrap items-center gap-3">
+        <label class="sr-only" for="pt-q">Search drawings</label>
+        <input id="pt-q" x-model="q" @input.debounce.400ms="load()"
+               placeholder="Drawing no / description / grade / customer"
+               class="flex-1 min-w-[240px] border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white transition" />
+        <label class="sr-only" for="pt-cust">Customer</label>
+        <select id="pt-cust" x-model="customerId" @change="load()"
+                class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white transition">
+          <option value="">All customers</option>
+          <template x-for="c in lists.customers" :key="c.id">
+            <option :value="c.id" x-text="c.name"></option>
+          </template>
+        </select>
         <button @click="newDrawing()"
-                class="ml-auto bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                class="ml-auto bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-brand-600/40">
           + New drawing
         </button>
       </div>
 
-      <div class="bg-white rounded-xl shadow-sm overflow-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="text-left text-xs text-slate-500 border-b bg-slate-50">
-              <th class="px-4 py-3">Drawing no.</th>
-              <th class="px-3 py-3">Rev</th>
-              <th class="px-3 py-3">Customer</th>
-              <th class="px-3 py-3">Description</th>
-              <th class="px-3 py-3">Material</th>
-              <th class="px-3 py-3">Unit</th>
-              <th class="px-3 py-3 text-right">Latest rate</th>
-              <th class="px-3 py-3 text-right">Files</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="d in rows" :key="d.id">
-              <tr @click="open(d.id)" class="border-b last:border-0 hover:bg-brand-600/5 cursor-pointer"
-                  :class="!d.active && 'opacity-50'">
-                <td class="px-4 py-2.5 font-semibold text-brand-700" x-text="d.drawing_no"></td>
-                <td class="px-3 py-2.5" x-text="d.revision"></td>
-                <td class="px-3 py-2.5" x-text="d.customer_name || '—'"></td>
-                <td class="px-3 py-2.5 text-slate-500" x-text="d.description || '—'"></td>
-                <td class="px-3 py-2.5" x-text="[d.material_class, d.grade].filter(Boolean).join(' · ') || '—'"></td>
-                <td class="px-3 py-2.5" x-text="d.unit"></td>
-                <td class="px-3 py-2.5 text-right whitespace-nowrap">
-                  <span x-show="d.latest_rate" class="font-medium" x-text="money(d.latest_rate)"></span>
-                  <span x-show="d.latest_rate" class="text-[10px] uppercase ml-1 px-1.5 py-0.5 rounded-full"
-                        :class="kindClass(d.latest_rate_kind)" x-text="d.latest_rate_kind"></span>
-                  <span x-show="!d.latest_rate" class="text-slate-400">—</span>
-                </td>
-                <td class="px-3 py-2.5 text-right" x-text="d.files"></td>
+      <!-- the instrument table (§2) -->
+      <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div class="overflow-auto max-h-[65vh]">
+          <table class="w-full text-sm">
+            <thead class="sticky top-0 z-10">
+              <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500
+                         [&>th]:bg-slate-50 [&>th]:border-b-2 [&>th]:border-slate-200">
+                <th class="px-4 py-2.5">Drawing no.</th>
+                <th class="px-3 py-2.5">Rev</th>
+                <th class="px-3 py-2.5">Customer</th>
+                <th class="px-3 py-2.5">Description</th>
+                <th class="px-3 py-2.5">Material</th>
+                <th class="px-3 py-2.5">Unit</th>
+                <th class="px-3 py-2.5 text-right">Latest rate</th>
+                <th class="px-3 py-2.5 text-right">Files</th>
               </tr>
-            </template>
-            <tr x-show="!rows.length">
-              <td colspan="8" class="px-4 py-10 text-center text-slate-400">
-                No drawings match — add the first with “+ New drawing”.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <template x-for="d in rows" :key="d.id">
+                <tr @click="open(d.id)"
+                    class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer"
+                    :class="!d.active && 'opacity-50'">
+                  <td class="px-4 py-2.5 font-mono text-xs font-semibold text-brand-700 whitespace-nowrap"
+                      x-text="d.drawing_no"></td>
+                  <td class="px-3 py-2.5">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold
+                                 bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-300/70"
+                          x-text="d.revision"></span>
+                  </td>
+                  <td class="px-3 py-2.5 whitespace-nowrap" x-text="d.customer_name || '—'"
+                      :class="!d.customer_name && 'text-slate-300'"></td>
+                  <td class="px-3 py-2.5 text-slate-500" x-text="d.description || '—'"></td>
+                  <td class="px-3 py-2.5 whitespace-nowrap"
+                      x-text="[d.material_class, d.grade].filter(Boolean).join(' · ') || '—'"></td>
+                  <td class="px-3 py-2.5 text-slate-500" x-text="d.unit"></td>
+                  <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                    <span x-show="d.latest_rate" class="inline-flex items-center justify-end gap-2">
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px]
+                                   font-semibold uppercase tracking-wide ring-1 ring-inset"
+                            :class="kindClass(d.latest_rate_kind)">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="ptKindDot(d.latest_rate_kind)"></span>
+                        <span x-text="d.latest_rate_kind"></span>
+                      </span>
+                      <span class="tabular-nums font-semibold text-slate-900" x-text="money(d.latest_rate)"></span>
+                    </span>
+                    <span x-show="!d.latest_rate" class="text-slate-300">—</span>
+                  </td>
+                  <td class="px-3 py-2.5 text-right tabular-nums whitespace-nowrap"
+                      :class="d.files ? 'text-slate-600' : 'text-slate-300'"
+                      x-text="'📎 ' + d.files"></td>
+                </tr>
+              </template>
+              <tr x-show="!rows.length">
+                <td colspan="8" class="px-4 py-14 text-center">
+                  <div class="text-3xl text-slate-200 leading-none mb-2">📐</div>
+                  <div class="text-sm text-slate-400 mb-3">No drawings match.</div>
+                  <button @click="newDrawing()"
+                          class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm transition-colors">
+                    + New drawing
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
+      <div class="mt-2 text-xs text-slate-400 tabular-nums" x-show="rows.length"
+           x-text="rows.length + ' drawings · '
+                   + rows.filter(r => r.latest_rate_kind === 'agreed').length + ' on an agreed rate'"></div>
     </main>
   </div>
 
@@ -108,135 +141,195 @@
   <template x-if="detail">
   <div class="fixed inset-0 z-40 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl my-4">
-      <div class="flex items-center gap-3 px-6 py-4 border-b">
+      <div class="flex items-center gap-4 px-6 py-4 border-b border-slate-200">
         <div>
-          <div class="text-xl font-bold">
+          <div class="text-xl font-bold font-mono tracking-tight">
             <span x-text="detail.drawing_no"></span>
-            <span class="text-slate-400 font-normal text-base" x-text="' rev ' + detail.revision"></span>
+            <span class="text-slate-400 font-normal text-base font-sans" x-text="'rev ' + detail.revision"></span>
           </div>
           <div class="text-xs text-slate-500"
                x-text="[detail?.customer_name, detail?.description].filter(Boolean).join(' · ')"></div>
         </div>
-        <template x-for="r in detail.revisions" :key="r.id">
-          <button @click="openRevision(r)"
-                  class="px-2 py-0.5 rounded-full text-xs font-medium border"
-                  :class="r.id === detail?.id ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-300 text-slate-500 hover:bg-slate-50'"
-                  x-text="r.revision"></button>
-        </template>
-        <div class="ml-auto flex gap-2">
-          <button @click="newRevision()" class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm">+ Revision</button>
-          <button @click="editDrawing()" class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm">Edit</button>
-          <button @click="removeDrawing()" class="border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-sm">Delete</button>
-          <button @click="closeDetail()" class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+
+        <!-- revision switcher: segmented control (§4) -->
+        <div class="inline-flex items-center gap-0.5 bg-slate-100 border border-slate-200 rounded-xl p-1">
+          <template x-for="r in detail.revisions" :key="r.id">
+            <button @click="openRevision(r)"
+                    class="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
+                    :class="r.id === detail?.id ? 'bg-slate-900 text-white shadow-sm'
+                                                : 'text-slate-500 hover:text-slate-800'"
+                    x-text="r.revision"></button>
+          </template>
+        </div>
+
+        <div class="ml-auto flex items-center gap-2">
+          <button @click="newRevision()"
+                  class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">+ Revision</button>
+          <button @click="editDrawing()"
+                  class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">Edit</button>
+          <button @click="removeDrawing()"
+                  class="border border-rose-200 bg-white text-rose-600 hover:bg-rose-50 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">Delete</button>
+          <button @click="closeDetail()" class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none transition-colors">✕</button>
         </div>
       </div>
 
-      <div class="p-6 grid grid-cols-2 gap-6">
+      <div class="p-6 grid grid-cols-12 gap-5 bg-slate-50/70 rounded-b-2xl">
         <!-- Left: facts + files + rate history -->
-        <div class="space-y-5">
-          <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <div class="text-slate-500">Material</div>
-            <div x-text="[detail.material_class, detail.grade].filter(Boolean).join(' · ') || '—'"></div>
-            <div class="text-slate-500">Unit</div><div x-text="detail.unit"></div>
-            <div class="text-slate-500" x-show="detail.notes">Notes</div>
-            <div x-show="detail.notes" x-text="detail.notes"></div>
+        <div class="col-span-5 space-y-4">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Specification</div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+              <div class="text-slate-500">Material</div>
+              <div x-text="[detail.material_class, detail.grade].filter(Boolean).join(' · ') || '—'"></div>
+              <div class="text-slate-500">Unit</div><div x-text="detail.unit"></div>
+              <div class="text-slate-500" x-show="detail.notes">Notes</div>
+              <div x-show="detail.notes" class="text-slate-600" x-text="detail.notes"></div>
+            </div>
           </div>
 
-          <div>
-            <div class="font-semibold text-sm mb-2">Drawing files</div>
-            <template x-for="f in detail.files" :key="f.id">
-              <div class="flex items-center gap-2 text-sm py-1">
-                <button @click="viewFile(f)" class="text-brand-700 hover:underline truncate max-w-[220px] text-left"
-                        x-text="f.filename"></button>
-                <button @click="removeFile(f)" class="text-slate-300 hover:text-rose-600 text-xs" title="Delete">✕</button>
-              </div>
-            </template>
-            <p x-show="!detail.files.length" class="text-xs text-slate-400">No files yet.</p>
-            <label class="inline-block mt-2 cursor-pointer bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Drawing files</div>
+            <div class="divide-y divide-slate-100">
+              <template x-for="f in detail.files" :key="f.id">
+                <div class="flex items-center gap-2 text-sm py-1.5">
+                  <span class="text-slate-300 text-xs">📎</span>
+                  <button @click="viewFile(f)"
+                          class="text-brand-700 hover:underline truncate max-w-[220px] text-left"
+                          x-text="f.filename"></button>
+                  <button @click="removeFile(f)" class="ml-auto text-slate-300 hover:text-rose-600 text-xs transition-colors" title="Delete file">✕</button>
+                </div>
+              </template>
+            </div>
+            <p x-show="!detail.files.length" class="text-xs text-slate-300 py-1">No files yet</p>
+            <label class="inline-block mt-2 cursor-pointer border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-colors">
               <span x-text="upload.busy ? 'Uploading…' : '+ Add files (PDF / scan)'"></span>
               <input type="file" multiple accept="image/*,application/pdf" class="hidden"
                      :disabled="upload.busy" @change="pickFiles($event)" />
             </label>
           </div>
 
-          <div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
             <div class="flex items-center mb-2">
-              <div class="font-semibold text-sm">Rate history</div>
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Rate history</div>
               <button @click="newRate()" class="ml-auto text-sm text-brand-700 hover:underline">+ Record a rate</button>
             </div>
+
             <template x-if="rate">
-            <div class="bg-slate-50 rounded-xl p-3 mb-2">
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 mb-3">
               <div class="flex gap-2">
-                <select x-model="rate.kind" class="border rounded-lg px-2 py-1.5 text-sm bg-white">
+                <select x-model="rate.kind" class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white transition">
                   <option value="quoted">Quoted</option>
                   <option value="agreed">Agreed</option>
                   <option value="revised">Revised</option>
                 </select>
                 <input type="number" step="0.01" min="0" x-model="rate.rate" placeholder="₹/piece"
-                       class="border rounded-lg px-2 py-1.5 text-sm w-28 bg-white" />
-                <input type="date" x-model="rate.rate_date" class="border rounded-lg px-2 py-1.5 text-sm bg-white" />
+                       class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-28 bg-white text-right tabular-nums transition" />
+                <input type="date" x-model="rate.rate_date"
+                       class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white transition" />
               </div>
               <div class="flex gap-2 mt-2">
-                <input x-model="rate.note" placeholder="Note (optional)" class="flex-1 border rounded-lg px-2 py-1.5 text-sm bg-white" />
-                <button @click="saveRate()" class="bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-lg text-sm">Save</button>
+                <input x-model="rate.note" placeholder="Note (optional)"
+                       class="flex-1 border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white transition" />
+                <button @click="saveRate()"
+                        class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-1.5 text-sm transition-colors">Save rate</button>
               </div>
             </div>
             </template>
-            <template x-for="r in detail.rates" :key="r.id">
-              <div class="flex items-center gap-2 text-sm py-1.5 border-b last:border-0">
-                <span class="text-[10px] uppercase px-1.5 py-0.5 rounded-full font-medium"
-                      :class="kindClass(r.kind)" x-text="r.kind"></span>
-                <b x-text="money(r.rate)"></b>
-                <span class="text-xs text-slate-500" x-text="r.rate_date"></span>
-                <span class="text-xs text-slate-400 truncate" x-text="r.note"></span>
-                <button @click="removeRate(r)" class="ml-auto text-slate-300 hover:text-rose-600 text-xs">✕</button>
-              </div>
-            </template>
-            <p x-show="!detail.rates.length" class="text-xs text-slate-400">
-              Nothing yet — record what you quote and what gets agreed.
-            </p>
+
+            <!-- framed mini-table -->
+            <div class="rounded-xl border border-slate-200 overflow-hidden" x-show="detail.rates.length">
+              <table class="w-full table-fixed text-sm">
+                <thead class="bg-slate-50 border-b-2 border-slate-200">
+                  <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    <th class="px-3 py-2 w-[96px]">Kind</th>
+                    <th class="px-1 py-2 w-[82px]">Date</th>
+                    <th class="px-1 py-2">Note</th>
+                    <th class="px-1 py-2 w-[64px] text-right">Rate</th>
+                    <th class="px-2 py-2 w-[30px]"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="r in detail.rates" :key="r.id">
+                    <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                      <td class="px-3 py-2">
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px]
+                                     font-semibold uppercase tracking-wide ring-1 ring-inset"
+                              :class="kindClass(r.kind)">
+                          <span class="w-1.5 h-1.5 rounded-full" :class="ptKindDot(r.kind)"></span>
+                          <span x-text="r.kind"></span>
+                        </span>
+                      </td>
+                      <td class="px-1 py-2 text-[11px] text-slate-500 tabular-nums whitespace-nowrap" x-text="r.rate_date"></td>
+                      <td class="px-1 py-2 text-xs text-slate-400 truncate" :title="r.note" x-text="r.note || '—'"></td>
+                      <td class="px-1 py-2 text-right tabular-nums font-semibold text-slate-900 whitespace-nowrap"
+                          x-text="money(r.rate)"></td>
+                      <td class="px-2 py-2 text-right">
+                        <button @click="removeRate(r)" class="text-slate-300 hover:text-rose-600 text-xs transition-colors" title="Delete rate">✕</button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+            <p x-show="!detail.rates.length" class="text-xs text-slate-300 py-1">Nothing recorded yet</p>
           </div>
         </div>
 
-        <!-- Right: costing builder -->
-        <div>
-          <div class="flex items-center mb-2">
-            <div class="font-semibold text-sm">Costing (₹/piece build-up)</div>
-            <button @click="openWorkspace()"
-                    class="ml-auto bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium">
-              Open costing workspace →
-            </button>
-          </div>
-
-
-          <template x-for="c in detail.costings" :key="c.id">
-            <div class="border border-slate-200 rounded-xl p-3 mb-2 text-sm">
-              <div class="flex items-center">
-                <b x-text="'₹' + c.total + ' /piece'"></b>
-                <span class="text-xs text-slate-400 ml-2" x-text="c.created_at.slice(0, 10)"></span>
-                <div class="ml-auto flex gap-2">
-                  <button @click="costingToRate(c, 'quoted')" class="text-xs text-sky-700 hover:underline">→ quote</button>
-                  <button @click="costingToRate(c, 'agreed')" class="text-xs text-emerald-700 hover:underline">→ agreed</button>
-                  <button @click="removeCosting(c)" class="text-slate-300 hover:text-rose-600 text-xs">✕</button>
-                </div>
+        <!-- Right: costing summary -->
+        <div class="col-span-7">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="flex items-center mb-3">
+              <div>
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Costings</div>
+                <div class="text-sm font-semibold">₹/piece build-up</div>
               </div>
-              <div class="text-xs text-slate-500 mt-1">
-                <template x-for="o in c.ops" :key="o.id">
-                  <span class="inline-block mr-2"
-                        x-text="o.operation + ' ' + o.minutes + 'min'
-                                + (o.weightage && o.weightage != 1 ? ' ×' + o.weightage : '')
-                                + (o.extra_rate ? ' +₹' + o.extra_rate + '/hr' : '')
-                                + ' ₹' + o.cost"></span>
-                </template>
-                <span x-show="c.material_cost" x-text="'· material ₹' + c.material_cost"></span>
-                <span x-show="c.margin_pct" x-text="' · margin ' + c.margin_pct + '%'"></span>
-              </div>
-              <div x-show="c.notes" class="text-xs text-slate-400 mt-0.5" x-text="c.notes"></div>
+              <button @click="openWorkspace()"
+                      class="ml-auto bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm transition-colors">
+                Open costing workspace →
+              </button>
             </div>
-          </template>
-          <p x-show="!detail.costings.length" class="text-xs text-slate-400">
-            Nothing costed yet — the workspace prices this revision operation by operation.
-          </p>
+
+            <div class="rounded-xl border border-slate-200 overflow-hidden" x-show="detail.costings.length">
+              <div class="bg-slate-50 border-b-2 border-slate-200 px-3 py-2 flex items-center
+                          text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <span>Costed</span>
+                <span class="ml-auto">₹ / piece</span>
+              </div>
+              <div class="divide-y divide-slate-100">
+                <template x-for="c in detail.costings" :key="c.id">
+                  <div class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors px-3 py-2.5 text-sm">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-slate-400 tabular-nums" x-text="c.created_at.slice(0, 10)"></span>
+                      <div class="ml-auto flex items-center gap-3">
+                        <button @click="costingToRate(c, 'quoted')" class="text-xs text-brand-700 hover:underline">→ quote</button>
+                        <button @click="costingToRate(c, 'agreed')" class="text-xs text-brand-700 hover:underline">→ agreed</button>
+                        <span class="tabular-nums font-semibold text-slate-900 text-base w-24 text-right"
+                              x-text="'₹' + c.total"></span>
+                        <button @click="removeCosting(c)" class="text-slate-300 hover:text-rose-600 text-xs transition-colors" title="Delete costing">✕</button>
+                      </div>
+                    </div>
+                    <div class="text-xs text-slate-400 mt-1">
+                      <template x-for="o in c.ops" :key="o.id">
+                        <span class="inline-block mr-2"
+                              x-text="o.operation + ' ' + o.minutes + 'min'
+                                      + (o.weightage && o.weightage != 1 ? ' ×' + o.weightage : '')
+                                      + (o.extra_rate ? ' +₹' + o.extra_rate + '/hr' : '')
+                                      + ' ₹' + o.cost"></span>
+                      </template>
+                      <span x-show="c.material_cost" x-text="'· material ₹' + c.material_cost"></span>
+                      <span x-show="c.margin_pct" x-text="' · margin ' + c.margin_pct + '%'"></span>
+                    </div>
+                    <div x-show="c.notes" class="text-xs text-slate-300 mt-0.5" x-text="c.notes"></div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div x-show="!detail.costings.length" class="rounded-xl border border-slate-200 px-4 py-10 text-center">
+              <div class="text-3xl text-slate-200 leading-none mb-2">🧮</div>
+              <div class="text-sm text-slate-400">Nothing costed yet</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -247,44 +340,61 @@
   <template x-if="form">
   <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-10">
-      <div class="px-6 py-4 border-b flex items-center">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center">
         <div class="text-lg font-bold" x-text="form.id ? 'Edit ' + form.drawing_no : 'New drawing'"></div>
-        <button @click="form = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+        <button @click="form = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none transition-colors">✕</button>
       </div>
-      <form @submit.prevent="saveDrawing()" class="p-6 space-y-3 text-sm">
-        <div class="grid grid-cols-3 gap-3">
-          <div class="col-span-2"><label class="block text-xs text-slate-500 mb-1">Drawing number *</label>
-            <input x-model="form.drawing_no" class="border rounded-lg px-3 py-2 w-full font-mono" /></div>
-          <div><label class="block text-xs text-slate-500 mb-1">Revision</label>
-            <input x-model="form.revision" class="border rounded-lg px-3 py-2 w-full" /></div>
+      <form @submit.prevent="saveDrawing()" class="p-6 space-y-5 text-sm">
+        <div class="space-y-3">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Identity</div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="col-span-2"><label class="block text-xs font-medium text-slate-500 mb-1">Drawing number *</label>
+              <input x-model="form.drawing_no"
+                     class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white font-mono transition" /></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Revision</label>
+              <input x-model="form.revision"
+                     class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white font-mono transition" /></div>
+          </div>
+          <div><label class="block text-xs font-medium text-slate-500 mb-1">Customer</label>
+            <select x-model="form.customer_id"
+                    class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white transition">
+              <option value="">—</option>
+              <template x-for="c in lists.customers" :key="c.id">
+                <option :value="c.id" x-text="c.name"></option>
+              </template>
+            </select></div>
         </div>
-        <div><label class="block text-xs text-slate-500 mb-1">Customer</label>
-          <select x-model="form.customer_id" class="border rounded-lg px-3 py-2 w-full">
-            <option value="">—</option>
-            <template x-for="c in lists.customers" :key="c.id">
-              <option :value="c.id" x-text="c.name"></option>
-            </template>
-          </select></div>
-        <div><label class="block text-xs text-slate-500 mb-1">Description</label>
-          <input x-model="form.description" placeholder="e.g. Pump shaft, stage 2" class="border rounded-lg px-3 py-2 w-full" /></div>
-        <div class="grid grid-cols-3 gap-3">
-          <div><label class="block text-xs text-slate-500 mb-1">Material class</label>
-            <input x-model="form.material_class" placeholder="Steel…" class="border rounded-lg px-3 py-2 w-full" /></div>
-          <div><label class="block text-xs text-slate-500 mb-1">Grade</label>
-            <input x-model="form.grade" placeholder="EN8…" class="border rounded-lg px-3 py-2 w-full" /></div>
-          <div><label class="block text-xs text-slate-500 mb-1">Unit</label>
-            <input x-model="form.unit" list="unitlist" class="border rounded-lg px-3 py-2 w-full" />
-            <datalist id="unitlist">
-              <template x-for="u in lists.units" :key="u"><option :value="u"></option></template>
-            </datalist></div>
+
+        <div class="space-y-3">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">The part</div>
+          <div><label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
+            <input x-model="form.description" placeholder="e.g. Pump shaft, stage 2"
+                   class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white transition" /></div>
+          <div class="grid grid-cols-3 gap-3">
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Material class</label>
+              <input x-model="form.material_class" placeholder="Steel…"
+                     class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white transition" /></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Grade</label>
+              <input x-model="form.grade" placeholder="EN8…"
+                     class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white transition" /></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Unit</label>
+              <input x-model="form.unit" list="unitlist"
+                     class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white transition" />
+              <datalist id="unitlist">
+                <template x-for="u in lists.units" :key="u"><option :value="u"></option></template>
+              </datalist></div>
+          </div>
+          <div><label class="block text-xs font-medium text-slate-500 mb-1">Notes</label>
+            <textarea x-model="form.notes" rows="2"
+                      class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white transition"></textarea></div>
         </div>
-        <div><label class="block text-xs text-slate-500 mb-1">Notes</label>
-          <textarea x-model="form.notes" rows="2" class="border rounded-lg px-3 py-2 w-full"></textarea></div>
+
         <p x-show="formError" x-text="formError" class="text-rose-600 text-sm"></p>
         <div class="flex gap-3 pt-1">
-          <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg">Save</button>
+          <button type="submit"
+                  class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg shadow-sm transition-colors">Save drawing</button>
           <button type="button" @click="form = null"
-                  class="flex-1 border border-slate-300 hover:bg-slate-50 text-slate-600 py-2.5 rounded-lg">Cancel</button>
+                  class="flex-1 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg shadow-sm transition-colors">Cancel</button>
         </div>
       </form>
     </div>
@@ -296,24 +406,27 @@
   <div class="fixed inset-0 z-[60] bg-slate-100 flex flex-col">
     <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
       <button @click="closeWorkspace()" title="Back to the drawing"
-              class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
+              class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
         <span class="text-base leading-none">←</span> Back
       </button>
       <div>
         <div class="text-white font-bold leading-tight">
-          Costing · <span x-text="detail.drawing_no"></span>
+          Costing · <span class="font-mono" x-text="detail.drawing_no"></span>
           <span class="text-slate-400 font-normal" x-text="'rev ' + detail.revision"></span>
         </div>
-        <div class="text-[11px] text-slate-400">price this revision operation by operation</div>
+        <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500">APEX THERMOCON</div>
       </div>
       <div class="ml-auto flex items-center gap-2">
-        <span class="text-xs text-slate-400">Revision</span>
-        <template x-for="r in detail.revisions" :key="r.id">
-          <button @click="openRevision(r).then(() => openWorkspace())"
-                  class="px-2.5 py-1 rounded-lg text-xs font-medium border"
-                  :class="r.id === detail?.id ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-600 text-slate-300 hover:bg-slate-800'"
-                  x-text="r.revision"></button>
-        </template>
+        <span class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Revision</span>
+        <div class="inline-flex items-center gap-0.5 bg-slate-800 border border-slate-700 rounded-xl p-1">
+          <template x-for="r in detail.revisions" :key="r.id">
+            <button @click="openRevision(r).then(() => openWorkspace())"
+                    class="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
+                    :class="r.id === detail?.id ? 'bg-white text-slate-900 shadow-sm'
+                                                : 'text-slate-400 hover:text-white'"
+                    x-text="r.revision"></button>
+          </template>
+        </div>
       </div>
     </header>
 
@@ -322,262 +435,340 @@
 
         <!-- the part, at a glance -->
         <aside class="col-span-1 space-y-4">
-          <div class="bg-white rounded-xl shadow-sm p-4">
-            <div class="text-xs uppercase tracking-wide text-slate-400 mb-2">The part</div>
-            <div class="font-bold text-lg font-mono" x-text="detail.drawing_no"></div>
-            <div class="text-sm text-slate-500 mb-3" x-text="'Revision ' + detail.revision"></div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">The part</div>
+            <div class="font-bold text-lg font-mono tracking-tight" x-text="detail.drawing_no"></div>
+            <div class="text-xs text-slate-400 mb-3" x-text="'Revision ' + detail.revision"></div>
             <div class="text-sm mb-3" x-text="detail.description || '—'"></div>
-            <div class="grid grid-cols-2 gap-y-1.5 text-xs">
+            <div class="grid grid-cols-2 gap-y-1.5 text-xs border-t border-slate-100 pt-2.5">
               <div class="text-slate-500">Material</div>
               <div x-text="[detail.material_class, detail.grade].filter(Boolean).join(' · ') || '—'"></div>
               <div class="text-slate-500">Unit</div><div x-text="detail.unit"></div>
-              <div class="text-slate-500">Drawings</div><div x-text="detail.files.length + ' file(s)'"></div>
+              <div class="text-slate-500">Drawings</div>
+              <div class="tabular-nums" :class="!detail.files.length && 'text-slate-300'"
+                   x-text="'📎 ' + detail.files.length"></div>
             </div>
           </div>
 
-          <div class="bg-white rounded-xl shadow-sm p-4">
-            <div class="text-xs uppercase tracking-wide text-slate-400 mb-2">Customer</div>
-            <select @change="setCustomer($event.target.value)" class="border rounded-lg px-2 py-2 text-sm w-full">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Customer</div>
+            <select @change="setCustomer($event.target.value)"
+                    title="This revision belongs to the customer chosen here — their negotiated rates then apply"
+                    class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full bg-white transition">
               <option value="" :selected="!detail?.customer_id">— not assigned —</option>
               <template x-for="c in lists.customers" :key="c.id">
                 <option :value="c.id" :selected="c.id === detail?.customer_id" x-text="c.name"></option>
               </template>
             </select>
-            <p class="text-[11px] text-slate-400 mt-1">This revision belongs to the customer chosen here.</p>
           </div>
 
-          <div class="bg-white rounded-xl shadow-sm p-4">
-            <div class="text-xs uppercase tracking-wide text-slate-400 mb-2">Rate history</div>
-            <template x-for="r in detail.rates.slice(0, 5)" :key="r.id">
-              <div class="flex items-center gap-2 text-sm py-1">
-                <span class="text-[10px] uppercase px-1.5 py-0.5 rounded-full font-medium"
-                      :class="kindClass(r.kind)" x-text="r.kind"></span>
-                <b x-text="money(r.rate)"></b>
-                <span class="ml-auto text-xs text-slate-400" x-text="r.rate_date"></span>
-              </div>
-            </template>
-            <p x-show="!detail.rates.length" class="text-xs text-slate-400">No rate recorded yet.</p>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Rate history</div>
+            <div class="divide-y divide-slate-100">
+              <template x-for="r in detail.rates.slice(0, 5)" :key="r.id">
+                <div class="flex items-center gap-2 text-sm py-1.5">
+                  <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px]
+                               font-semibold uppercase tracking-wide ring-1 ring-inset"
+                        :class="kindClass(r.kind)">
+                    <span class="w-1.5 h-1.5 rounded-full" :class="ptKindDot(r.kind)"></span>
+                    <span x-text="r.kind"></span>
+                  </span>
+                  <span class="ml-auto text-[11px] text-slate-400 tabular-nums" x-text="r.rate_date"></span>
+                  <span class="tabular-nums font-semibold text-slate-900 w-16 text-right" x-text="money(r.rate)"></span>
+                </div>
+              </template>
+            </div>
+            <p x-show="!detail.rates.length" class="text-xs text-slate-300">Nothing recorded yet</p>
           </div>
         </aside>
 
         <!-- the operations table -->
-        <section class="col-span-3">
+        <section class="col-span-3 space-y-5">
           <template x-if="costing">
-          <div class="bg-white rounded-xl shadow-sm p-5">
-            <div class="flex items-center mb-3">
-              <div class="font-bold">Operations</div>
-              <div class="ml-auto text-xs text-slate-400">
+          <div class="space-y-5">
+
+            <!-- OPERATIONS — the money instrument (§2) -->
+            <div>
+              <div class="flex items-end mb-2">
+                <div>
+                  <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Operations</div>
+                  <div class="text-sm font-semibold">What the machining costs</div>
+                </div>
+                <button @click="addOp()"
+                        class="ml-auto border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">
+                  + Add operation
+                </button>
+              </div>
+
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b-2 border-slate-200">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-4 py-2.5">Operation</th>
+                        <th class="px-2 py-2.5 w-24 text-right">Minutes</th>
+                        <th class="px-2 py-2.5 w-24 text-right">₹ / hour</th>
+                        <th class="px-2 py-2.5 w-28 text-right">Add'l ₹/hour</th>
+                        <th class="px-2 py-2.5 w-28 text-right bg-slate-100/80 text-slate-600 whitespace-nowrap">Effective ₹/hr</th>
+                        <th class="px-2 py-2.5 w-24 text-right">Weightage</th>
+                        <th class="px-2 py-2.5 w-28 text-right">Row ₹</th>
+                        <th class="px-2 py-2.5 w-8"></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="(op, i) in costing.ops" :key="i">
+                        <tr class="even:bg-slate-50/60 hover:bg-brand-50/40 transition-colors">
+                          <td class="px-4 py-2">
+                            <select x-model="op.operation" @change="opPicked(op)"
+                                    class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-full bg-white transition">
+                              <option value="">Operation…</option>
+                              <template x-for="o in lists.operations" :key="o.id">
+                                <option :value="o.name" x-text="o.name + (o.custom ? '  ·  customer rate' : '')"></option>
+                              </template>
+                            </select>
+                            <div x-show="isCustomRate(op)" class="mt-1">
+                              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium
+                                           bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20"
+                                    x-text="'★ ' + (detail?.customer_name || 'customer') + ' rate'"></span>
+                            </div>
+                          </td>
+                          <td class="px-2 py-2"><input type="number" min="0" step="0.5" x-model="op.minutes"
+                              class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-full text-right tabular-nums bg-white transition" /></td>
+                          <td class="px-2 py-2"><input type="number" min="0" x-model="op.rate_per_hour"
+                              class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-full text-right tabular-nums bg-white transition" /></td>
+                          <td class="px-2 py-2"><input type="number" min="0" step="5" x-model="op.extra_rate"
+                              placeholder="0" title="Margin added to the hourly rate, in ₹ per hour"
+                              class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-full text-right tabular-nums bg-white transition" /></td>
+                          <td class="px-2 py-2 text-right tabular-nums font-semibold text-slate-900 bg-slate-100/70"
+                              x-text="'₹' + effRate(op)"></td>
+                          <td class="px-2 py-2"><input type="number" min="0" step="0.05" x-model="op.weightage"
+                              title="How much this operation counts relative to its clock time"
+                              class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-full text-right tabular-nums bg-white transition" /></td>
+                          <td class="px-2 py-2 text-right tabular-nums font-semibold text-slate-900"
+                              x-text="'₹' + opCost(op)"></td>
+                          <td class="px-2 py-2 text-right">
+                            <button @click="removeOp(i)" class="text-slate-300 hover:text-rose-600 transition-colors" title="Remove operation">✕</button>
+                          </td>
+                        </tr>
+                      </template>
+                    </tbody>
+                    <tfoot>
+                      <tr class="bg-slate-50 border-t-2 border-slate-200 font-semibold">
+                        <td class="px-4 py-2.5 text-[11px] uppercase tracking-wider text-slate-500" colspan="6">
+                          Operations (weighted)
+                        </td>
+                        <td class="px-2 py-2.5 text-right tabular-nums text-slate-900"
+                            x-text="'₹' + costingTotals.ops"></td>
+                        <td class="px-2 py-2.5"></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+              <div class="mt-2 text-xs text-slate-400">
                 row ₹ = minutes ÷ 60 × (₹/hr + additional ₹/hr) × weightage
               </div>
             </div>
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="text-left text-xs text-slate-500 border-b">
-                  <th class="py-2 pr-2">Operation</th>
-                  <th class="py-2 px-2 w-24 text-right">Minutes</th>
-                  <th class="py-2 px-2 w-24 text-right">₹ / hour</th>
-                  <th class="py-2 px-2 w-28 text-right">Add'l ₹/hour</th>
-                  <th class="py-2 px-2 w-24 text-right">Effective ₹/hr</th>
-                  <th class="py-2 px-2 w-24 text-right">Weightage</th>
-                  <th class="py-2 px-2 w-28 text-right">Row ₹</th>
-                  <th class="py-2 w-8"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <template x-for="(op, i) in costing.ops" :key="i">
-                  <tr class="border-b last:border-0">
-                    <td class="py-1.5 pr-2">
-                      <select x-model="op.operation" @change="opPicked(op)"
-                              class="border rounded-lg px-2 py-1.5 text-sm w-full">
-                        <option value="">Operation…</option>
-                        <template x-for="o in lists.operations" :key="o.id">
-                          <option :value="o.name" x-text="o.name + (o.custom ? '  ·  customer rate' : '')"></option>
-                        </template>
-                      </select>
-                      <div x-show="isCustomRate(op)" class="text-[10px] text-emerald-700 mt-0.5"
-                           x-text="'★ ' + (detail?.customer_name || 'customer') + ' rate'"></div>
-                    </td>
-                    <td class="py-1.5 px-2"><input type="number" min="0" step="0.5" x-model="op.minutes"
-                        class="border rounded-lg px-2 py-1.5 text-sm w-full text-right" /></td>
-                    <td class="py-1.5 px-2"><input type="number" min="0" x-model="op.rate_per_hour"
-                        class="border rounded-lg px-2 py-1.5 text-sm w-full text-right" /></td>
-                    <td class="py-1.5 px-2"><input type="number" min="0" step="5" x-model="op.extra_rate"
-                        placeholder="0" title="Margin added to the hourly rate, in ₹ per hour"
-                        class="border rounded-lg px-2 py-1.5 text-sm w-full text-right" /></td>
-                    <td class="py-1.5 px-2 text-right text-slate-400" x-text="'₹' + effRate(op)"></td>
-                    <td class="py-1.5 px-2"><input type="number" min="0" step="0.05" x-model="op.weightage"
-                        title="How much this operation counts relative to its clock time"
-                        class="border rounded-lg px-2 py-1.5 text-sm w-full text-right" /></td>
-                    <td class="py-1.5 px-2 text-right font-medium" x-text="'₹' + opCost(op)"></td>
-                    <td class="py-1.5 text-right">
-                      <button @click="removeOp(i)" class="text-slate-300 hover:text-rose-600">✕</button>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-            <button @click="addOp()" class="mt-2 text-sm text-brand-700 hover:underline">+ Add operation</button>
 
             <!-- ===================== BILL OF MATERIALS =====================
                  The stock this part is cut from, priced from what that steel
                  actually cost. Rates are snapshotted on save, so reopening an
                  old costing never silently reprices it. -->
-            <div class="mt-5 pt-4 border-t">
-              <div class="flex items-center mb-1">
+            <div>
+              <div class="flex items-end mb-2">
                 <div>
-                  <div class="font-semibold text-sm">Bill of materials</div>
-                  <p class="text-xs text-slate-500">
-                    Pick the stock, say how many parts come out of one, and the
-                    material cost per piece is worked out from inventory prices.
-                  </p>
+                  <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Bill of materials</div>
+                  <div class="text-sm font-semibold">What the steel costs</div>
                 </div>
                 <button type="button" @click="openBom()"
-                        class="ml-auto shrink-0 bg-slate-100 hover:bg-slate-200 border border-slate-300 px-3 py-1.5 rounded-lg text-sm font-medium">
+                        class="ml-auto shrink-0 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">
                   + Add material
                 </button>
               </div>
 
-              <table class="w-full text-sm mt-3" x-show="costing.materials.length">
-                <thead class="text-slate-500 text-xs uppercase tracking-wide border-b">
-                  <tr>
-                    <th class="text-left pb-2">Heat / material</th>
-                    <th class="text-right pb-2">Cost</th>
-                    <th class="text-left pb-2 pl-2">Per</th>
-                    <th class="text-right pb-2">Parts from one</th>
-                    <th class="text-right pb-2">Qty / piece</th>
-                    <th class="text-right pb-2">₹ / piece</th>
-                    <th class="pb-2 w-8"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <template x-for="(m, i) in costing.materials" :key="i">
-                    <tr class="border-b last:border-0">
-                      <td class="py-2 pr-2">
-                        <div class="font-mono font-semibold" x-text="m.heat_number"></div>
-                        <div class="text-xs text-slate-400" x-text="m.material_label"></div>
-                      </td>
-                      <td class="py-2 pr-2">
-                        <input type="number" min="0" step="0.01" x-model="m.unit_cost"
-                               class="border rounded-lg px-2 py-1.5 w-24 text-right" /></td>
-                      <td class="py-2 pl-2 pr-2">
-                        <select x-model="m.unit" x-effect="m.unit && $nextTick(() => $el.value = m.unit)"
-                                class="border rounded-lg px-2 py-1.5 text-sm">
-                          <option value="rod">rod</option>
-                          <option value="kg">kg</option>
-                        </select></td>
-                      <td class="py-2 pr-2">
-                        <input type="number" min="0" step="0.001" x-model="m.per_rod"
-                               @input="syncMaterial(m)"
-                               class="border rounded-lg px-2 py-1.5 w-24 text-right" /></td>
-                      <td class="py-2 pr-2 text-right text-slate-500"
-                          x-text="(Number(m.qty_per_piece) || 0).toFixed(4)"></td>
-                      <td class="py-2 pr-2 text-right font-semibold"
-                          x-text="'₹' + materialCost(m)"></td>
-                      <td class="py-2 text-right">
-                        <button type="button" @click="removeMaterial(i)"
-                                class="text-slate-300 hover:text-rose-600 px-1">✕</button></td>
-                    </tr>
-                  </template>
-                  <tr class="bg-slate-50">
-                    <td class="py-2 text-slate-500 text-xs uppercase tracking-wide" colspan="5">
-                      Material per piece</td>
-                    <td class="py-2 text-right font-bold" x-text="'₹' + bomTotal()"></td>
-                    <td></td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden"
+                   x-show="costing.materials.length">
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b-2 border-slate-200">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-4 py-2.5">Heat / material</th>
+                        <th class="px-2 py-2.5 text-right w-28">₹ / unit</th>
+                        <th class="px-2 py-2.5 w-24">Per</th>
+                        <th class="px-2 py-2.5 text-right w-32">Parts from one</th>
+                        <th class="px-2 py-2.5 text-right w-24">Qty / piece</th>
+                        <th class="px-2 py-2.5 text-right w-28">₹ / piece</th>
+                        <th class="px-2 py-2.5 w-8"></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="(m, i) in costing.materials" :key="i">
+                        <tr class="even:bg-slate-50/60 hover:bg-brand-50/40 transition-colors">
+                          <td class="px-4 py-2">
+                            <div class="font-mono text-xs font-semibold text-brand-700" x-text="m.heat_number"></div>
+                            <div class="text-xs text-slate-400" x-text="m.material_label"></div>
+                          </td>
+                          <td class="px-2 py-2">
+                            <input type="number" min="0" step="0.01" x-model="m.unit_cost"
+                                   class="border border-slate-300 rounded-lg px-2 py-1.5 w-full text-sm text-right tabular-nums bg-white transition" /></td>
+                          <td class="px-2 py-2">
+                            <select x-model="m.unit" x-effect="m.unit && $nextTick(() => $el.value = m.unit)"
+                                    class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white w-full transition">
+                              <option value="rod">rod</option>
+                              <option value="kg">kg</option>
+                            </select></td>
+                          <td class="px-2 py-2">
+                            <input type="number" min="0" step="0.001" x-model="m.per_rod"
+                                   @input="syncMaterial(m)"
+                                   class="border border-slate-300 rounded-lg px-2 py-1.5 w-full text-sm text-right tabular-nums bg-white transition" /></td>
+                          <td class="px-2 py-2 text-right tabular-nums text-slate-400"
+                              x-text="(Number(m.qty_per_piece) || 0).toFixed(4)"></td>
+                          <td class="px-2 py-2 text-right tabular-nums font-semibold text-slate-900"
+                              x-text="'₹' + materialCost(m)"></td>
+                          <td class="px-2 py-2 text-right">
+                            <button type="button" @click="removeMaterial(i)"
+                                    class="text-slate-300 hover:text-rose-600 transition-colors" title="Remove material">✕</button></td>
+                        </tr>
+                      </template>
+                    </tbody>
+                    <tfoot>
+                      <tr class="bg-slate-50 border-t-2 border-slate-200 font-semibold">
+                        <td class="px-4 py-2.5 text-[11px] uppercase tracking-wider text-slate-500" colspan="5">
+                          Material per piece</td>
+                        <td class="px-2 py-2.5 text-right tabular-nums text-slate-900" x-text="'₹' + bomTotal()"></td>
+                        <td class="px-2 py-2.5"></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
 
               <!-- stock picker: one box over heat number, grade and material -->
-              <div x-show="bomOpen" x-cloak class="mt-3 border rounded-xl p-3 bg-slate-50">
+              <div x-show="bomOpen" x-cloak
+                   class="mt-3 rounded-xl border border-slate-200 bg-white shadow-lg p-3">
                 <div class="flex gap-2">
                   <input x-model="bomSearch" @input.debounce.350ms="findMaterial()"
                          placeholder="Search by heat number, grade or material…"
-                         class="flex-1 border rounded-lg px-3 py-2 text-sm" />
+                         class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white transition" />
                   <button type="button" @click="bomOpen = false"
-                          class="text-slate-400 hover:text-slate-600 px-2">✕</button>
+                          class="text-slate-400 hover:text-slate-600 px-2 transition-colors" title="Close">✕</button>
                 </div>
-                <div class="mt-2 max-h-64 overflow-auto divide-y bg-white rounded-lg border">
+                <div class="mt-2 max-h-64 overflow-auto divide-y divide-slate-100 rounded-lg border border-slate-200">
                   <template x-for="h in bomHits" :key="h.heat_id">
                     <button type="button" @click="addMaterial(h)"
-                            class="w-full text-left px-3 py-2 hover:bg-brand-600/5 flex items-center gap-3">
-                      <span class="font-mono font-semibold text-sm" x-text="h.heat_number"></span>
+                            class="w-full text-left px-3 py-2 hover:bg-brand-50/60 transition-colors flex items-center gap-3">
+                      <span class="font-mono text-xs font-semibold text-brand-700" x-text="h.heat_number"></span>
                       <span class="text-xs text-slate-500"
                             x-text="[h.material_class, h.grade, h.size_section].filter(Boolean).join(' · ')"></span>
-                      <span class="ml-auto text-xs text-slate-400 whitespace-nowrap"
+                      <span class="ml-auto text-xs tabular-nums whitespace-nowrap"
+                            :class="h.remaining ? 'text-slate-400' : 'text-slate-300'"
                             x-text="h.remaining + ' left'"></span>
-                      <span class="text-xs font-medium whitespace-nowrap"
+                      <span class="text-xs font-semibold tabular-nums text-slate-900 whitespace-nowrap w-32 text-right"
                             x-text="h.cost_per_rod ? ('₹' + h.cost_per_rod + '/rod')
                                     : (h.cost_per_kg ? ('₹' + h.cost_per_kg + '/kg') : 'no price')"></span>
                     </button>
                   </template>
-                  <div x-show="!bomHits.length && !bomBusy" class="px-3 py-6 text-center text-sm text-slate-400">
-                    No stock matches that search.
+                  <div x-show="!bomHits.length && !bomBusy" class="px-3 py-8 text-center">
+                    <div class="text-2xl text-slate-200 leading-none mb-1">⌗</div>
+                    <div class="text-sm text-slate-400">No stock matches that search.</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-4 mt-5 pt-4 border-t">
-              <div><label class="block text-xs text-slate-500 mb-1">Material cost (₹/piece)</label>
-                <input type="number" min="0" step="0.01" x-model="costing.material_cost"
-                       :disabled="costing.materials.length > 0"
-                       :class="costing.materials.length ? 'bg-slate-100 text-slate-400' : ''"
-                       class="border rounded-lg px-3 py-2 w-full text-sm" />
-                <p class="text-[11px] text-slate-400 mt-1" x-show="costing.materials.length">
-                  Taken from the bill of materials above.
-                </p></div>
-              <div><label class="block text-xs text-slate-500 mb-1">Overall margin %</label>
-                <input type="number" min="0" step="0.5" x-model="costing.margin_pct"
-                       class="border rounded-lg px-3 py-2 w-full text-sm" /></div>
-              <div><label class="block text-xs text-slate-500 mb-1">Notes</label>
-                <input x-model="costing.notes" class="border rounded-lg px-3 py-2 w-full text-sm" /></div>
-            </div>
+            <!-- ROLLUP -->
+            <div class="grid grid-cols-3 gap-5 items-start">
+              <div class="col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Adjustments</div>
+                <div class="grid grid-cols-3 gap-3">
+                  <div><label class="block text-xs font-medium text-slate-500 mb-1">Material cost (₹/piece)</label>
+                    <input type="number" min="0" step="0.01" x-model="costing.material_cost"
+                           :disabled="costing.materials.length > 0"
+                           :class="costing.materials.length ? 'bg-slate-100 text-slate-400 border-slate-200'
+                                                            : 'bg-white border-slate-300'"
+                           class="border rounded-lg px-3 py-2 w-full text-sm text-right tabular-nums transition" />
+                    <p class="text-[11px] text-slate-400 mt-1" x-show="costing.materials.length">
+                      From the bill of materials
+                    </p></div>
+                  <div><label class="block text-xs font-medium text-slate-500 mb-1">Overall margin %</label>
+                    <input type="number" min="0" step="0.5" x-model="costing.margin_pct"
+                           class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm text-right tabular-nums bg-white transition" /></div>
+                  <div><label class="block text-xs font-medium text-slate-500 mb-1">Notes</label>
+                    <input x-model="costing.notes"
+                           class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white transition" /></div>
+                </div>
+              </div>
 
-            <div class="flex items-end gap-6 mt-5 pt-4 border-t">
-              <table class="text-sm">
-                <tr><td class="py-1 pr-6 text-slate-500">Operations (weighted)</td>
-                    <td class="py-1 text-right" x-text="'₹' + costingTotals.ops"></td></tr>
-                <tr><td class="py-1 pr-6 text-slate-500">
-                      + material
-                      <span class="text-xs text-slate-400" x-show="costing.materials.length">(from BOM)</span>
-                    </td>
-                    <td class="py-1 text-right" x-text="'₹' + costingTotals.material"></td></tr>
-                <tr><td class="py-1 pr-6 text-slate-500">= subtotal</td>
-                    <td class="py-1 text-right" x-text="'₹' + costingTotals.subtotal"></td></tr>
-                <tr><td class="py-1 pr-6 text-slate-500"
-                        x-text="'+ overall margin ' + (costing.margin_pct || 0) + '%'"></td>
-                    <td class="py-1 text-right font-bold text-lg"
-                        x-text="'₹' + costingTotals.total"></td></tr>
-              </table>
-              <div class="ml-auto flex gap-2">
-                <button @click="saveCosting()"
-                        class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold">
-                  Save costing
-                </button>
+              <div class="col-span-1 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <table class="w-full text-sm">
+                  <thead class="bg-slate-50 border-b-2 border-slate-200">
+                    <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                      <th class="px-4 py-2.5" colspan="2">₹ per piece</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    <tr>
+                      <td class="px-4 py-2 text-slate-500">Operations</td>
+                      <td class="px-4 py-2 text-right tabular-nums text-slate-900" x-text="'₹' + costingTotals.ops"></td>
+                    </tr>
+                    <tr>
+                      <td class="px-4 py-2 text-slate-500">+ material</td>
+                      <td class="px-4 py-2 text-right tabular-nums text-slate-900" x-text="'₹' + costingTotals.material"></td>
+                    </tr>
+                    <tr>
+                      <td class="px-4 py-2 text-slate-500">= subtotal</td>
+                      <td class="px-4 py-2 text-right tabular-nums text-slate-900" x-text="'₹' + costingTotals.subtotal"></td>
+                    </tr>
+                    <tr>
+                      <td class="px-4 py-2 text-slate-500"
+                          x-text="'+ margin ' + (costing.margin_pct || 0) + '%'"></td>
+                      <td class="px-4 py-2 text-right tabular-nums"
+                          :class="costingTotals.total > costingTotals.subtotal ? 'text-slate-900' : 'text-slate-300'"
+                          x-text="'₹' + (Math.round((costingTotals.total - costingTotals.subtotal) * 100) / 100)"></td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr class="bg-slate-50 border-t-2 border-slate-200 font-semibold">
+                      <td class="px-4 py-3 text-[11px] uppercase tracking-wider text-slate-500">Total</td>
+                      <td class="px-4 py-3 text-right tabular-nums font-bold text-lg text-slate-900"
+                          x-text="'₹' + costingTotals.total"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+                <div class="border-t border-slate-100 p-3">
+                  <button @click="saveCosting()"
+                          title="Keeps this build-up on the revision — from the drawing you can then record it into the rate history"
+                          class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2.5 text-sm transition-colors">
+                    Save costing
+                  </button>
+                </div>
               </div>
             </div>
-            <p class="text-[11px] text-slate-400 mt-2">
-              Saving keeps this build-up on the revision; from the drawing you can then record it
-              into the rate history as a quoted or agreed rate.
-            </p>
           </div>
           </template>
 
           <!-- costings already saved on this revision -->
-          <div class="mt-5" x-show="detail.costings.length">
-            <div class="font-semibold text-sm mb-2">Saved costings for this revision</div>
-            <template x-for="c in detail.costings" :key="c.id">
-              <div class="bg-white rounded-xl shadow-sm p-3 mb-2 text-sm flex items-center">
-                <b x-text="'₹' + c.total + ' /piece'"></b>
-                <span class="text-xs text-slate-400 ml-2" x-text="c.created_at.slice(0, 10)"></span>
-                <span class="text-xs text-slate-500 ml-3" x-text="c.ops.length + ' operation(s)'"></span>
-                <div class="ml-auto flex gap-2">
-                  <button @click="costingToRate(c, 'quoted')" class="text-xs text-sky-700 hover:underline">→ quote</button>
-                  <button @click="costingToRate(c, 'agreed')" class="text-xs text-emerald-700 hover:underline">→ agreed</button>
-                  <button @click="removeCosting(c)" class="text-slate-300 hover:text-rose-600 text-xs">✕</button>
-                </div>
+          <div x-show="detail.costings.length">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">
+              Saved costings for this revision
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+              <div class="divide-y divide-slate-100">
+                <template x-for="c in detail.costings" :key="c.id">
+                  <div class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors px-4 py-2.5 text-sm flex items-center gap-3">
+                    <span class="tabular-nums font-semibold text-slate-900" x-text="'₹' + c.total"></span>
+                    <span class="text-slate-400 text-xs">/ piece</span>
+                    <span class="text-xs text-slate-400 tabular-nums" x-text="c.created_at.slice(0, 10)"></span>
+                    <span class="text-xs text-slate-400 tabular-nums" x-text="c.ops.length + ' op(s)'"></span>
+                    <div class="ml-auto flex items-center gap-3">
+                      <button @click="costingToRate(c, 'quoted')" class="text-xs text-brand-700 hover:underline">→ quote</button>
+                      <button @click="costingToRate(c, 'agreed')" class="text-xs text-brand-700 hover:underline">→ agreed</button>
+                      <button @click="removeCosting(c)" class="text-slate-300 hover:text-rose-600 text-xs transition-colors" title="Delete costing">✕</button>
+                    </div>
+                  </div>
+                </template>
               </div>
-            </template>
+            </div>
           </div>
         </section>
       </div>

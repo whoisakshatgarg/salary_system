@@ -52,10 +52,11 @@ account with two permissions sees:
 
 ### Deadlines coming up
 
-Under the tiles you'll find a panel of orders whose delivery dates are close,
-split into **Next 7 days** and **Next month**, with anything already **overdue**
-called out in red above them. Each line names the customer, the order number and
-how much of it still has to go out.
+Under the tiles you'll find the **Deadlines** panel — orders whose delivery
+dates are close, as three columns: anything already **Overdue** (rose), **Next
+7 days** (amber) and **Next 31 days**. Each line names the customer, the order
+number and how much of it still has to go out, with how soon as a small chip on
+the right.
 
 An order disappears from the panel once it has been fully sent — nothing left to
 deliver is not a deadline. If you have nothing due, the panel doesn't appear at
@@ -405,7 +406,7 @@ part you price for that customer uses them automatically.
 
 Pick the **Operation**, type **Their ₹/hour** (what this customer pays for it),
 optionally an **Additional ₹/hour** on top, add a note like *"agreed Apr 2026"*
-so you remember when it was settled, and press **Save**. The standard shop rate
+so you remember when it was settled, and press **Save rate**. The standard shop rate
 from Settings sits greyed out in the **Standard ₹/hr** column beside it, so you
 can see at a glance what was negotiated.
 

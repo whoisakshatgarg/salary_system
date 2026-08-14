@@ -160,9 +160,18 @@ function pt() {
         this.detail = await api(`/api/parts/rates/${r.id}`, { method: "DELETE" });
       } catch (e) { this.fail(e); }
     },
+    // dot-chip class strings (presentation only): agreed = emerald/good,
+    // quoted = sky/informational, revised = amber/attention.
     kindClass(k) {
-      return { quoted: "bg-sky-100 text-sky-700", agreed: "bg-emerald-100 text-emerald-700",
-               revised: "bg-amber-100 text-amber-800" }[k] || "bg-slate-100";
+      return {
+        quoted: "bg-sky-50 text-sky-700 ring-sky-600/20",
+        agreed: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+        revised: "bg-amber-50 text-amber-700 ring-amber-600/20",
+      }[k] || "bg-slate-50 text-slate-600 ring-slate-500/20";
+    },
+    ptKindDot(k) {
+      return { quoted: "bg-sky-500", agreed: "bg-emerald-500",
+               revised: "bg-amber-500" }[k] || "bg-slate-400";
     },
 
     // ---- costing builder --------------------------------------------------- //

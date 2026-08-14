@@ -77,13 +77,25 @@ function od() {
     consOrderQ: "",
 
     stageLabel(k) { return (this.data.stages.find((s) => s.key === k) || {}).label || k; },
+    // Dot-chips: one shape everywhere. bg-50 / text-700 / ring-600-20, dot = 500.
     stageClass(k) {
       return {
-        enquiry: "bg-slate-200 text-slate-600", quote: "bg-sky-100 text-sky-700",
-        po: "bg-indigo-100 text-indigo-700", production: "bg-amber-100 text-amber-800",
-        qc: "bg-purple-100 text-purple-700", dispatch: "bg-teal-100 text-teal-700",
-        payment: "bg-emerald-100 text-emerald-700",
-      }[k] || "bg-slate-100";
+        enquiry:    "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20",
+        quote:      "bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20",
+        po:         "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-600/20",
+        production: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20",
+        qc:         "bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/20",
+        dispatch:   "bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20",
+        payment:    "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20",
+      }[k] || "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20";
+    },
+    // the chip's dot — page-prefixed so it can never collide with the other modules
+    odStageDot(k) {
+      return {
+        enquiry: "bg-slate-400", quote: "bg-sky-500", po: "bg-indigo-500",
+        production: "bg-amber-500", qc: "bg-violet-500", dispatch: "bg-sky-500",
+        payment: "bg-emerald-500",
+      }[k] || "bg-slate-400";
     },
 
     async boot() {
@@ -275,26 +287,35 @@ function od() {
       const now = new Date(); now.setHours(0, 0, 0, 0);
       return Math.round((due - now) / 86400000);
     },
+    // Urgency stays tinted, but as a dot-chip: overdue rose, within a week amber,
+    // anything further out is plain text so the urgent rows carry the eye.
     dueClass(d) {
       const n = this.daysTo(d);
-      if (n === null) return "text-slate-400";
-      if (n < 0) return "bg-rose-100 text-rose-700 font-medium";
-      if (n <= 7) return "bg-amber-100 text-amber-800 font-medium";
+      if (n === null) return "text-slate-300";
+      if (n < 0) return "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20";
+      if (n <= 7) return "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20";
+      return "text-slate-600";
+    },
+    odDueDot(d) {
+      const n = this.daysTo(d);
+      if (n === null) return "";
+      if (n < 0) return "bg-rose-500";
+      if (n <= 7) return "bg-amber-500";
       return "";
     },
     dueChipClass(d) {
       const n = this.daysTo(d);
-      if (n === null) return "bg-slate-200 text-slate-600";
-      if (n < 0) return "bg-rose-500 text-white";
-      if (n <= 7) return "bg-amber-400 text-amber-950";
-      return "bg-slate-700 text-slate-200";
+      if (n === null) return "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20";
+      if (n < 0) return "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20";
+      if (n <= 7) return "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20";
+      return "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20";
     },
     dueLabel(d) {
       const n = this.daysTo(d);
       if (n === null) return "";
-      if (n < 0) return `${-n} day(s) overdue`;
+      if (n < 0) return `${-n} ${-n === 1 ? "day" : "days"} overdue`;
       if (n === 0) return "due today";
-      return `due in ${n} day(s)`;
+      return `due in ${n} ${n === 1 ? "day" : "days"}`;
     },
 
     // ---- delivery plan ----------------------------------------------------- //
@@ -399,9 +420,14 @@ function od() {
                none: "Not available" }[s] || s;
     },
     availClass(s) {
-      return { available: "bg-emerald-100 text-emerald-800",
-               partial: "bg-amber-100 text-amber-800",
-               none: "bg-rose-100 text-rose-800" }[s] || "bg-slate-100 text-slate-700";
+      return { available: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20",
+               partial: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20",
+               none: "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20" }[s]
+             || "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20";
+    },
+    odAvailDot(s) {
+      return { available: "bg-emerald-500", partial: "bg-amber-500",
+               none: "bg-rose-500" }[s] || "bg-slate-400";
     },
     dim(v) {
       if (v === null || v === undefined || v === "") return "—";

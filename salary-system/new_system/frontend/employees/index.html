@@ -7,14 +7,16 @@
   <!-- Vendored locally so the app works fully offline (no CDN needed). -->
   <script src="/vendor/tailwind.js"></script>
   <script>
-    tailwind.config = { theme: { extend: { colors: { brand: { 600: "#1d4ed8", 700: "#1e40af" } } } } };
+    tailwind.config = { theme: { extend: { colors: { brand: {
+      50: "#eff6ff", 100: "#dbeafe", 500: "#3b82f6",
+      600: "#1d4ed8", 700: "#1e40af", 800: "#1e3a8a" } } } } };
   </script>
   <script defer src="employees.js"></script>
   <script defer src="/vendor/alpine.js"></script>
   <style>
     [x-cloak] { display: none !important; }
     body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-    input, select { @apply outline-none; }
+    input, select { outline: none; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800" x-data="em()" x-init="boot()" x-cloak>
@@ -29,87 +31,114 @@
   <div x-show="booted && authed" class="min-h-screen flex flex-col">
     <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
       <a href="/" title="Back to all modules"
-         class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
+         class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
         <span class="text-base leading-none">⌂</span> Home
       </a>
       <div>
+        <div class="text-[10px] uppercase tracking-[0.22em] text-slate-500 font-semibold leading-none mb-1">APEX THERMOCON</div>
         <div class="text-white font-bold leading-tight">Employee Management</div>
-        <div class="text-[11px] text-slate-400">APEX THERMOCON · people, documents &amp; leave</div>
       </div>
       <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
-        <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
+        <span>Signed in as <span class="text-white font-medium" x-text="user?.username"></span></span>
       </div>
     </header>
 
     <main class="flex-1 overflow-auto p-6 max-w-6xl w-full mx-auto">
-      <!-- Filters -->
-      <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-end gap-3">
-        <div class="flex-1 min-w-[220px]">
-          <label class="block text-xs font-medium text-slate-500 mb-1">Search</label>
-          <input x-model="q" placeholder="Name / department / number"
-                 class="w-full border rounded-lg px-3 py-2 text-sm" />
+      <!-- Toolbar -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 mb-4 flex flex-wrap items-center gap-3">
+        <div class="flex-1 min-w-[240px]">
+          <label for="emp-search" class="sr-only">Search</label>
+          <input id="emp-search" x-model="q" placeholder="Search name, department or #"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
         </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">Department</label>
-          <select x-model="dept" class="border rounded-lg px-2 py-2 text-sm">
-            <option value="">All</option>
-            <template x-for="d in meta.departments" :key="d"><option x-text="d"></option></template>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
-          <select x-model="status" class="border rounded-lg px-2 py-2 text-sm">
-            <option value="active">Working</option>
-            <option value="inactive">Left</option>
-            <option value="all">Everyone</option>
-          </select>
-        </div>
+        <label for="emp-dept" class="sr-only">Department</label>
+        <select id="emp-dept" x-model="dept"
+                class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-700
+                       focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
+          <option value="">All departments</option>
+          <template x-for="d in meta.departments" :key="d"><option x-text="d"></option></template>
+        </select>
+        <label for="emp-status" class="sr-only">Status</label>
+        <select id="emp-status" x-model="status"
+                class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-700
+                       focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
+          <option value="active">Working</option>
+          <option value="inactive">Left</option>
+          <option value="all">Everyone</option>
+        </select>
         <button x-show="isAdmin" @click="newEmp()"
-                class="ml-auto bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                class="ml-auto bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm
+                       px-4 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2
+                       focus-visible:ring-brand-600/40">
           + Add employee
         </button>
       </div>
 
-      <!-- Roster -->
-      <div class="bg-white rounded-xl shadow-sm overflow-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="text-left text-xs text-slate-500 border-b bg-slate-50">
-              <th class="px-4 py-3">#</th>
-              <th class="px-3 py-3">Name</th>
-              <th class="px-3 py-3">Department</th>
-              <th class="px-3 py-3">Shift</th>
-              <th class="px-3 py-3">Joined</th>
-              <th class="px-3 py-3">Leave scheme</th>
-              <th class="px-3 py-3 text-right">Leave bank</th>
-              <th class="px-3 py-3">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="e in filtered" :key="e.id">
-              <tr @click="open(e.id)" class="border-b last:border-0 hover:bg-brand-600/5 cursor-pointer"
-                  :class="!e.active && 'opacity-50'">
-                <td class="px-4 py-2.5 text-slate-400" x-text="e.id"></td>
-                <td class="px-3 py-2.5 font-semibold text-brand-700" x-text="e.name"></td>
-                <td class="px-3 py-2.5" x-text="e.dept"></td>
-                <td class="px-3 py-2.5" x-text="e.shift === 'N' ? 'Night' : 'Day'"></td>
-                <td class="px-3 py-2.5 whitespace-nowrap" x-text="fmtDate(e.date_joined)"></td>
-                <td class="px-3 py-2.5 text-slate-500"
-                    x-text="e.overtime_eligible ? 'Overtime + penalties' : 'Paid-leave bank'"></td>
-                <td class="px-3 py-2.5 text-right font-medium"
-                    x-text="e.overtime_eligible ? '—' : e.leave_balance + ' d'"></td>
-                <td class="px-3 py-2.5">
-                  <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                        :class="e.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
-                        x-text="e.active ? 'Working' : 'Left'"></span>
+      <!-- Roster — the instrument -->
+      <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div class="max-h-[70vh] overflow-auto">
+          <table class="w-full text-sm">
+            <thead class="sticky top-0 z-10">
+              <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <th class="bg-slate-50 px-4 py-2.5 shadow-[inset_0_-2px_0_0_#e2e8f0]">#</th>
+                <th class="bg-slate-50 px-3 py-2.5 shadow-[inset_0_-2px_0_0_#e2e8f0]">Name</th>
+                <th class="bg-slate-50 px-3 py-2.5 shadow-[inset_0_-2px_0_0_#e2e8f0]">Department</th>
+                <th class="bg-slate-50 px-3 py-2.5 shadow-[inset_0_-2px_0_0_#e2e8f0]">Shift</th>
+                <th class="bg-slate-50 px-3 py-2.5 shadow-[inset_0_-2px_0_0_#e2e8f0]">Joined</th>
+                <th class="bg-slate-50 px-3 py-2.5 shadow-[inset_0_-2px_0_0_#e2e8f0]">Leave scheme</th>
+                <th class="bg-slate-50 px-3 py-2.5 text-right shadow-[inset_0_-2px_0_0_#e2e8f0]">Leave bank</th>
+                <th class="bg-slate-50 px-3 py-2.5 shadow-[inset_0_-2px_0_0_#e2e8f0]">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <template x-for="e in filtered" :key="e.id">
+                <!-- zebra uses odd: because Alpine keeps the <template> as tbody's first child -->
+                <tr @click="open(e.id)"
+                    class="odd:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
+                  <td class="px-4 py-2.5 font-mono text-xs text-slate-300 tabular-nums" x-text="e.id"></td>
+                  <td class="px-3 py-2.5 font-semibold text-brand-700" x-text="e.name"></td>
+                  <td class="px-3 py-2.5 text-slate-700" x-text="e.dept"></td>
+                  <td class="px-3 py-2.5"
+                      :class="e.shift === 'N' ? 'text-slate-700 font-medium' : 'text-slate-400'"
+                      x-text="e.shift === 'N' ? 'Night' : 'Day'"></td>
+                  <td class="px-3 py-2.5 whitespace-nowrap tabular-nums"
+                      :class="e.date_joined ? 'text-slate-600' : 'text-slate-300'"
+                      x-text="fmtDate(e.date_joined)"></td>
+                  <td class="px-3 py-2.5 text-slate-400"
+                      x-text="e.overtime_eligible ? 'Overtime + penalties' : 'Paid-leave bank'"></td>
+                  <td class="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
+                    <span x-show="e.overtime_eligible" class="text-slate-300">—</span>
+                    <span x-show="!e.overtime_eligible"><span
+                        :class="e.leave_balance ? 'font-semibold text-slate-900' : 'text-slate-300'"
+                        x-text="e.leave_balance"></span><span class="text-slate-400"> d</span></span>
+                  </td>
+                  <td class="px-3 py-2.5">
+                    <span x-show="e.active" class="inline-flex items-center gap-1.5 py-0.5 text-xs text-slate-500">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Working
+                    </span>
+                    <span x-show="!e.active"
+                          class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium
+                                 bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20">
+                      <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Left
+                    </span>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="!filtered.length">
+                <td colspan="8" class="px-4 py-12 text-center">
+                  <div class="text-3xl opacity-25 leading-none mb-2">👥</div>
+                  <div class="text-sm text-slate-400">No employees match.</div>
                 </td>
               </tr>
-            </template>
-            <tr x-show="!filtered.length">
-              <td colspan="8" class="px-4 py-10 text-center text-slate-400">No employees match.</td>
-            </tr>
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
+        <div class="border-t border-slate-200 bg-slate-50/70 px-4 py-2 text-xs text-slate-400 tabular-nums"
+             x-text="filtered.length + (filtered.length === 1 ? ' person' : ' people')
+                     + ' · ' + filtered.filter(e => e.active).length + ' working'
+                     + (filtered.filter(e => !e.active).length
+                        ? ' · ' + filtered.filter(e => !e.active).length + ' left' : '')"></div>
       </div>
     </main>
   </div>
@@ -118,131 +147,200 @@
   <template x-if="detail">
   <div class="fixed inset-0 z-40 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-4">
-      <div class="flex items-center gap-3 px-6 py-4 border-b">
+      <div class="flex items-center gap-3 px-6 py-4 border-b border-slate-200">
         <div>
-          <div class="text-xl font-bold" x-text="detail.emp.name"></div>
-          <div class="text-xs text-slate-500"
-               x-text="[detail.emp.dept, detail.emp.shift === 'N' ? 'Night shift' : 'Day shift',
-                        '#' + detail.emp.id].join(' · ')"></div>
+          <div class="text-xl font-bold text-slate-900" x-text="detail.emp.name"></div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mt-0.5">
+            <span x-text="[detail.emp.dept, detail.emp.shift === 'N' ? 'Night shift' : 'Day shift'].join(' · ')"></span>
+            <span class="font-mono normal-case tracking-normal text-slate-300" x-text="'· #' + detail.emp.id"></span>
+          </div>
         </div>
-        <span class="px-2.5 py-1 rounded-full text-xs font-medium"
-              :class="detail.emp.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
-              x-text="detail.emp.active ? 'Working' : 'Left'"></span>
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset"
+              :class="detail.emp.active ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20'
+                                        : 'bg-rose-50 text-rose-700 ring-rose-600/20'">
+          <span class="w-1.5 h-1.5 rounded-full"
+                :class="detail.emp.active ? 'bg-emerald-500' : 'bg-rose-500'"></span>
+          <span x-text="detail.emp.active ? 'Working' : 'Left'"></span>
+        </span>
         <div class="ml-auto flex gap-2">
-          <button x-show="isAdmin" @click="editEmp()" class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm">Edit</button>
+          <button x-show="isAdmin" @click="editEmp()"
+                  class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2
+                         text-sm font-medium shadow-sm transition-colors">Edit</button>
           <button x-show="isAdmin" @click="toggleActive()"
-                  class="border px-3 py-1.5 rounded-lg text-sm"
-                  :class="detail.emp.active ? 'border-rose-200 text-rose-600 hover:bg-rose-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'"
+                  class="rounded-lg px-3 py-2 text-sm font-medium shadow-sm border transition-colors"
+                  :class="detail.emp.active ? 'border-rose-200 bg-white text-rose-600 hover:bg-rose-50'
+                                            : 'border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50'"
                   x-text="detail.emp.active ? 'Deactivate' : 'Reactivate'"></button>
-          <button @click="closeDetail()" class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+          <button @click="closeDetail()"
+                  class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none transition-colors">✕</button>
         </div>
       </div>
 
       <div class="p-6 grid grid-cols-2 gap-6">
         <!-- Left: profile + leave + documents -->
-        <div class="space-y-5">
-          <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <div class="text-slate-500">Joined</div><div x-text="fmtDate(detail.emp.date_joined)"></div>
-            <div class="text-slate-500">Leave scheme</div>
-            <div x-text="detail.emp.overtime_eligible ? 'Overtime + penalty days' : 'Paid-leave bank'"></div>
+        <div class="space-y-4">
+          <!-- Profile -->
+          <div class="rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Profile</div>
+            <div class="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+              <div class="text-slate-500">Joined</div>
+              <div class="text-right tabular-nums"
+                   :class="detail.emp.date_joined ? 'text-slate-900 font-medium' : 'text-slate-300'"
+                   x-text="fmtDate(detail.emp.date_joined)"></div>
+              <div class="text-slate-500">Leave scheme</div>
+              <div class="text-right text-slate-500"
+                   x-text="detail.emp.overtime_eligible ? 'Overtime + penalty days' : 'Paid-leave bank'"></div>
+            </div>
           </div>
 
           <!-- Leave bank (non-OT only) -->
-          <div x-show="!detail.emp.overtime_eligible" class="bg-slate-50 rounded-xl p-4">
+          <div x-show="!detail.emp.overtime_eligible" class="rounded-xl border border-slate-200 shadow-sm px-4 py-3">
             <div class="flex items-center gap-2">
-              <div class="text-sm font-semibold">Leave bank</div>
-              <div class="ml-auto text-2xl font-bold" x-text="detail.emp.leave_balance + ' d'"></div>
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Leave bank</div>
+              <div class="ml-auto text-2xl font-bold tabular-nums text-slate-900"
+                   x-text="detail.emp.leave_balance"></div>
+              <div class="text-sm text-slate-400 self-end pb-1">d</div>
             </div>
             <div class="flex items-center gap-2 mt-3">
-              <button @click="adjustLeave(-1)" class="w-9 h-9 rounded-lg border border-slate-300 hover:bg-white font-bold">−</button>
-              <input type="number" min="1" x-model="leaveDelta" class="w-16 border rounded-lg px-2 py-1.5 text-sm text-center bg-white" />
-              <button @click="adjustLeave(1)" class="w-9 h-9 rounded-lg border border-slate-300 hover:bg-white font-bold">+</button>
-              <span class="text-[11px] text-slate-400 ml-1">days to add / subtract</span>
+              <button @click="adjustLeave(-1)"
+                      class="w-9 h-9 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700
+                             font-bold shadow-sm transition-colors">−</button>
+              <input type="number" min="1" x-model="leaveDelta" title="Days to add or subtract"
+                     class="w-16 border border-slate-300 rounded-lg px-2 py-1.5 text-sm text-center tabular-nums bg-white
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+              <button @click="adjustLeave(1)"
+                      class="w-9 h-9 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700
+                             font-bold shadow-sm transition-colors">+</button>
             </div>
           </div>
-          <p x-show="detail.emp.overtime_eligible" class="text-xs text-slate-400 bg-slate-50 rounded-xl p-3">
-            Overtime-eligible employees have no leave bank — absences follow the
-            penalty rules at payroll time.
+          <p x-show="detail.emp.overtime_eligible"
+             class="text-xs text-slate-400 rounded-xl border border-slate-200 px-4 py-3">
+            No leave bank — absences follow the penalty rules at payroll time.
           </p>
 
           <!-- Pay (read-only pointer) -->
-          <div class="border border-slate-200 rounded-xl p-4 text-sm">
-            <div class="font-semibold text-sm mb-2">Pay <span class="font-normal text-xs text-slate-400">— managed in Salary → Pay Setup</span></div>
-            <div class="grid grid-cols-2 gap-x-4 gap-y-1.5">
-              <div class="text-slate-500">Base salary</div><div x-text="money(detail.emp.base_salary)"></div>
+          <div class="rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="flex items-baseline gap-2">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Pay</div>
+              <div class="ml-auto text-[11px] text-slate-400">managed in Salary → Pay Setup</div>
+            </div>
+            <div class="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+              <div class="text-slate-500">Base salary</div>
+              <div class="text-right tabular-nums font-semibold text-slate-900" x-text="money(detail.emp.base_salary)"></div>
               <div class="text-slate-500">PF / ESI</div>
-              <div x-text="(detail.emp.pf_applicable ? 'PF' : '') + (detail.emp.pf_applicable && detail.emp.esi_applicable ? ' + ' : '') + (detail.emp.esi_applicable ? 'ESI' : '') || '—'"></div>
-              <div class="text-slate-500">Advance outstanding</div><div x-text="money(detail.emp.rem_advance)"></div>
+              <div class="text-right"
+                   :class="(detail.emp.pf_applicable || detail.emp.esi_applicable) ? 'text-slate-700' : 'text-slate-300'"
+                   x-text="(detail.emp.pf_applicable ? 'PF' : '') + (detail.emp.pf_applicable && detail.emp.esi_applicable ? ' + ' : '') + (detail.emp.esi_applicable ? 'ESI' : '') || '—'"></div>
+              <div class="text-slate-500">Advance outstanding</div>
+              <div class="text-right tabular-nums"
+                   :class="Number(detail.emp.rem_advance) ? 'font-semibold text-amber-600' : 'text-slate-300'"
+                   x-text="money(detail.emp.rem_advance)"></div>
             </div>
           </div>
 
           <!-- Documents -->
           <div>
-            <div class="font-semibold text-sm mb-2">Documents</div>
-            <template x-for="d in detail.documents" :key="d.id">
-              <div class="flex items-center gap-2 text-sm py-1">
-                <span x-show="d.label" class="bg-slate-100 rounded-full px-2 py-0.5 text-xs" x-text="d.label"></span>
-                <button @click="viewDoc(d)" class="text-brand-700 hover:underline truncate max-w-[180px] text-left"
-                        x-text="d.filename"></button>
-                <span class="text-xs text-slate-400" x-text="sizeLabel(d.size_bytes)"></span>
-                <button @click="downloadDoc(d)" class="text-slate-400 hover:text-slate-600 text-xs" title="Download">⬇</button>
-                <button @click="deleteDoc(d)" class="text-slate-300 hover:text-rose-600 text-xs" title="Delete">✕</button>
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Documents</div>
+            <div class="rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div class="divide-y divide-slate-100">
+                <template x-for="d in detail.documents" :key="d.id">
+                  <div class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-brand-50/60 transition-colors">
+                    <span x-show="d.label"
+                          class="shrink-0 rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 text-[11px] font-medium"
+                          x-text="d.label"></span>
+                    <button @click="viewDoc(d)"
+                            class="text-brand-700 hover:underline truncate max-w-[180px] text-left font-medium"
+                            x-text="d.filename"></button>
+                    <span class="ml-auto text-[11px] text-slate-400 tabular-nums" x-text="sizeLabel(d.size_bytes)"></span>
+                    <button @click="downloadDoc(d)" class="text-slate-400 hover:text-brand-700 text-xs transition-colors" title="Download">⬇</button>
+                    <button @click="deleteDoc(d)" class="text-slate-300 hover:text-rose-600 text-xs transition-colors" title="Delete">✕</button>
+                  </div>
+                </template>
+                <div x-show="!detail.documents.length" class="px-3 py-5 text-center">
+                  <div class="text-xl opacity-25 leading-none mb-1">📎</div>
+                  <div class="text-xs text-slate-400">Nothing uploaded yet.</div>
+                </div>
               </div>
-            </template>
-            <p x-show="!detail.documents.length" class="text-xs text-slate-400">Nothing uploaded yet.</p>
-            <div class="flex items-center gap-2 mt-2">
-              <input x-model="upload.label" placeholder="Label (e.g. Aadhaar)"
-                     class="border rounded-lg px-2 py-1.5 text-xs w-36" />
-              <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium">
-                <span x-text="upload.busy ? 'Uploading…' : '+ Add files'"></span>
-                <input type="file" multiple accept="image/*,application/pdf" class="hidden"
-                       :disabled="upload.busy" @change="pickFiles($event)" />
-              </label>
+              <div class="border-t border-slate-200 bg-slate-50/70 px-3 py-2 flex items-center gap-2">
+                <input x-model="upload.label" placeholder="Label (e.g. Aadhaar)"
+                       class="border border-slate-300 rounded-lg px-2 py-1.5 text-xs w-36 bg-white
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                <label class="cursor-pointer border border-slate-300 bg-white hover:bg-slate-50 text-slate-700
+                              rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-colors"
+                       title="Images or PDF — big photos are compressed automatically">
+                  <span x-text="upload.busy ? 'Uploading…' : '+ Add files'"></span>
+                  <input type="file" multiple accept="image/*,application/pdf" class="hidden"
+                         :disabled="upload.busy" @change="pickFiles($event)" />
+                </label>
+              </div>
             </div>
-            <p class="text-[11px] text-slate-400 mt-1">Images or PDF. Big photos are compressed automatically.</p>
           </div>
         </div>
 
         <!-- Right: attendance stats -->
         <div>
-          <div class="font-semibold text-sm mb-2" x-text="'Attendance — ' + detail.fy.fy_label"></div>
-          <div class="grid grid-cols-2 gap-3 mb-4">
-            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Present days</div>
-              <div class="text-xl font-bold" x-text="detail.fy.present_days"></div></div>
-            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Absent days</div>
-              <div class="text-xl font-bold" x-text="detail.fy.absent_days"></div></div>
-            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Overtime hours</div>
-              <div class="text-xl font-bold" x-text="detail.fy.overtime_hours"></div></div>
-            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Penalty days</div>
-              <div class="text-xl font-bold" x-text="detail.fy.penalty_days"></div></div>
+          <div class="flex items-baseline gap-2 mb-2">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Attendance</div>
+            <div class="text-[11px] text-slate-400 tabular-nums" x-text="detail.fy.fy_label"></div>
           </div>
-          <div class="font-semibold text-sm mb-2">Recent months</div>
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-left text-xs text-slate-500 border-b">
-                <th class="py-2 pr-3">Month</th>
-                <th class="py-2 pr-3 text-right">Paid days</th>
-                <th class="py-2 pr-3 text-right">Att %</th>
-                <th class="py-2 pr-3 text-right">OT hrs</th>
-                <th class="py-2 text-right">Penalty</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="h in detail.history" :key="h.period">
-                <tr class="border-b last:border-0">
-                  <td class="py-2 pr-3" x-text="h.period"></td>
-                  <td class="py-2 pr-3 text-right" x-text="h.present_days"></td>
-                  <td class="py-2 pr-3 text-right" x-text="h.attendance_percentage.toFixed(1)"></td>
-                  <td class="py-2 pr-3 text-right" x-text="h.total_overtime_hours"></td>
-                  <td class="py-2 text-right" x-text="h.penalty_days"></td>
+          <div class="grid grid-cols-2 gap-3 mb-5">
+            <div class="rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Present days</div>
+              <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="detail.fy.present_days"></div>
+            </div>
+            <div class="rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Absent days</div>
+              <div class="text-2xl font-bold tabular-nums"
+                   :class="detail.fy.absent_days ? 'text-slate-900' : 'text-slate-300'"
+                   x-text="detail.fy.absent_days"></div>
+            </div>
+            <div class="rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Overtime hours</div>
+              <div class="text-2xl font-bold tabular-nums"
+                   :class="detail.fy.overtime_hours ? 'text-slate-900' : 'text-slate-300'"
+                   x-text="detail.fy.overtime_hours"></div>
+            </div>
+            <div class="rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Penalty days</div>
+              <div class="text-2xl font-bold tabular-nums"
+                   :class="detail.fy.penalty_days ? 'text-amber-600' : 'text-slate-300'"
+                   x-text="detail.fy.penalty_days"></div>
+            </div>
+          </div>
+
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2"
+               title="Entered in Salary &amp; Attendance — this is the summary">Recent months</div>
+          <div class="rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-b-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-3 py-2">Month</th>
+                  <th class="px-3 py-2 text-right">Paid days</th>
+                  <th class="px-3 py-2 text-right">Att %</th>
+                  <th class="px-3 py-2 text-right">OT hrs</th>
+                  <th class="px-3 py-2 text-right">Penalty</th>
                 </tr>
-              </template>
-              <tr x-show="!detail.history.length">
-                <td colspan="5" class="py-6 text-center text-slate-400 text-sm">No attendance recorded yet.</td>
-              </tr>
-            </tbody>
-          </table>
-          <p class="text-[11px] text-slate-400 mt-2">Attendance is entered in Salary &amp; Attendance; this is the summary.</p>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="h in detail.history" :key="h.period">
+                  <tr class="odd:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                    <td class="px-3 py-2 font-mono text-xs text-slate-600" x-text="h.period"></td>
+                    <td class="px-3 py-2 text-right tabular-nums font-semibold text-slate-900" x-text="h.present_days"></td>
+                    <td class="px-3 py-2 text-right tabular-nums text-slate-600" x-text="h.attendance_percentage.toFixed(1)"></td>
+                    <td class="px-3 py-2 text-right tabular-nums"
+                        :class="h.total_overtime_hours ? 'text-slate-900' : 'text-slate-300'"
+                        x-text="h.total_overtime_hours"></td>
+                    <td class="px-3 py-2 text-right tabular-nums"
+                        :class="h.penalty_days ? 'text-amber-600 font-semibold' : 'text-slate-300'"
+                        x-text="h.penalty_days"></td>
+                  </tr>
+                </template>
+                <tr x-show="!detail.history.length">
+                  <td colspan="5" class="px-3 py-8 text-center text-sm text-slate-400">No attendance recorded yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -253,51 +351,80 @@
   <template x-if="form">
   <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-10">
-      <div class="px-6 py-4 border-b flex items-center">
-        <div class="text-lg font-bold" x-text="form.id ? 'Edit ' + form.name : 'New employee'"></div>
-        <button @click="form = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Employee</div>
+          <div class="text-lg font-bold text-slate-900" x-text="form.id ? form.name : 'New employee'"></div>
+        </div>
+        <button @click="form = null"
+                class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none transition-colors">✕</button>
       </div>
       <form @submit.prevent="saveEmp()" class="p-6 space-y-4">
         <div class="grid grid-cols-2 gap-4 text-sm">
-          <div class="col-span-2"><label class="block text-xs text-slate-500 mb-1">Full name</label>
-            <input x-model="form.name" class="border rounded-lg px-3 py-2 w-full" /></div>
-          <div><label class="block text-xs text-slate-500 mb-1">Department</label>
-            <select x-model="form.dept" class="border rounded-lg px-3 py-2 w-full">
+          <div class="col-span-2">
+            <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Full name</label>
+            <input x-model="form.name"
+                   class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" /></div>
+          <div>
+            <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Department</label>
+            <!-- options come from fetched meta, so re-assert the selection after they render -->
+            <select x-model="form.dept" x-effect="form.dept && $nextTick(() => $el.value = form.dept)"
+                    class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white
+                           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
               <template x-for="d in meta.departments" :key="d"><option x-text="d"></option></template>
             </select></div>
-          <div><label class="block text-xs text-slate-500 mb-1">Shift</label>
-            <select x-model="form.shift" class="border rounded-lg px-3 py-2 w-full">
+          <div>
+            <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Shift</label>
+            <select x-model="form.shift"
+                    class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white
+                           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
               <option value="D">Day</option><option value="N">Night</option>
             </select></div>
-          <div><label class="block text-xs text-slate-500 mb-1">Date joined</label>
-            <input type="date" x-model="form.date_joined" class="border rounded-lg px-3 py-2 w-full" /></div>
-          <label class="flex items-center gap-2 mt-5 text-sm">
-            <input type="checkbox" x-model="form.overtime_eligible" />
-            Overtime-eligible
-          </label>
-          <p class="col-span-2 text-[11px] text-slate-400 -mt-2">
-            Overtime-eligible = paid for OT, absences use penalty rules (no leave
-            bank). Changing this switches the leave scheme from next attendance save.
+          <div>
+            <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Date joined</label>
+            <input type="date" x-model="form.date_joined"
+                   class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white tabular-nums
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" /></div>
+          <div class="flex items-end pb-0.5">
+            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"
+                   title="Changing this switches the leave scheme from the next attendance save">
+              <input type="checkbox" x-model="form.overtime_eligible" class="rounded border-slate-300" />
+              Overtime-eligible
+            </label>
+          </div>
+          <p class="col-span-2 text-[11px] text-slate-400 -mt-1">
+            Overtime-eligible = paid for OT, absences use penalty rules instead of a leave bank.
           </p>
         </div>
         <!-- One-time payroll setup only when creating; afterwards in Salary -->
-        <div x-show="!form.id" class="border border-slate-200 rounded-xl p-4">
-          <div class="text-sm font-semibold mb-3">Starting pay
-            <span class="font-normal text-xs text-slate-400">— set once here, managed in Salary → Pay Setup afterwards</span></div>
-          <div class="grid grid-cols-2 gap-4 text-sm">
-            <div><label class="block text-xs text-slate-500 mb-1">Base salary (₹/month)</label>
-              <input type="number" min="0" x-model="form.base_salary" class="border rounded-lg px-3 py-2 w-full" /></div>
-            <div class="flex items-end gap-4 pb-1">
-              <label class="flex items-center gap-2"><input type="checkbox" x-model="form.pf_applicable" /> PF</label>
-              <label class="flex items-center gap-2"><input type="checkbox" x-model="form.esi_applicable" /> ESI</label>
+        <div x-show="!form.id" class="rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+          <div class="flex items-baseline gap-2">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Starting pay</div>
+            <div class="ml-auto text-[11px] text-slate-400">set once — afterwards in Salary → Pay Setup</div>
+          </div>
+          <div class="grid grid-cols-2 gap-4 text-sm mt-3">
+            <div>
+              <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Base salary (₹/month)</label>
+              <input type="number" min="0" x-model="form.base_salary"
+                     class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white tabular-nums
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" /></div>
+            <div class="flex items-end gap-4 pb-2">
+              <label class="flex items-center gap-2 text-slate-700 cursor-pointer"><input type="checkbox" x-model="form.pf_applicable" class="rounded border-slate-300" /> PF</label>
+              <label class="flex items-center gap-2 text-slate-700 cursor-pointer"><input type="checkbox" x-model="form.esi_applicable" class="rounded border-slate-300" /> ESI</label>
             </div>
           </div>
         </div>
-        <p x-show="formError" x-text="formError" class="text-rose-600 text-sm"></p>
+        <p x-show="formError" x-text="formError"
+           class="text-rose-700 text-sm bg-rose-50 ring-1 ring-inset ring-rose-600/20 rounded-lg px-3 py-2"></p>
         <div class="flex gap-3">
-          <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg text-sm">Save</button>
+          <button type="submit"
+                  class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg text-sm
+                         shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2
+                         focus-visible:ring-brand-600/40">Save employee</button>
           <button type="button" @click="form = null"
-                  class="flex-1 border border-slate-300 hover:bg-slate-50 text-slate-600 py-2.5 rounded-lg text-sm">Cancel</button>
+                  class="flex-1 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 py-2.5 rounded-lg
+                         text-sm font-medium shadow-sm transition-colors">Cancel</button>
         </div>
       </form>
     </div>

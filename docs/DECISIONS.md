@@ -322,3 +322,15 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   something to ship against, and `over_delivered` now means *beyond the order*
   rather than *beyond the plan*.
 
+- **One design system, written down before the restyle** ([UI-STYLE.md](UI-STYLE.md),
+  2026-08-15). Every page was re-cut to "the instrument panel": tables framed on
+  all four sides with a hard-ruled uppercase header, zebra + hover, tabular
+  right-aligned figures, mono serial numbers, dot-chips for status, segmented
+  controls for view switches, eyebrow labels instead of explainer prose, and
+  long lists scrolling INSIDE their frame (the employees page went from a
+  6,252px-tall wall to a 960px screen). The spec, not taste, is the arbiter —
+  it was written first and each page was verified against it screenshot by
+  screenshot, so nine pages restyled in parallel still came out as one app.
+  Two traps are recorded in the spec because every page hit them: Alpine's
+  `<template x-for>` shifts `nth-child` zebra by one, and `@apply` in a plain
+  `<style>` block is silently dead with the vendored Play build.

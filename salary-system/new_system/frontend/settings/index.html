@@ -6,14 +6,16 @@
   <title>Settings — APEX THERMOCON</title>
   <script src="/vendor/tailwind.js"></script>
   <script>
-    tailwind.config = { theme: { extend: { colors: { brand: { 600: "#1d4ed8", 700: "#1e40af" } } } } };
+    tailwind.config = { theme: { extend: { colors: { brand: {
+      50: "#eff6ff", 100: "#dbeafe", 500: "#3b82f6",
+      600: "#1d4ed8", 700: "#1e40af", 800: "#1e3a8a" } } } } };
   </script>
   <script defer src="settings.js"></script>
   <script defer src="/vendor/alpine.js"></script>
   <style>
     [x-cloak] { display: none !important; }
     body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-    input, select { @apply outline-none; }
+    input:focus, select:focus, textarea:focus { outline: none; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800" x-data="st()" x-init="boot()" x-cloak>
@@ -25,7 +27,7 @@
   <div x-show="booted && authed" class="min-h-screen flex flex-col">
     <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
       <a href="/" title="Back to all modules"
-         class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
+         class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
         <span class="text-base leading-none">⌂</span> Home
       </a>
       <div>
@@ -38,111 +40,149 @@
     </header>
 
     <main class="flex-1 overflow-auto p-6 max-w-5xl w-full mx-auto space-y-5">
-      <p x-show="!isAdmin" class="bg-amber-50 text-amber-800 text-sm rounded-xl p-3">
+      <p x-show="!isAdmin"
+         class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
         You can see the configuration; only an administrator can change it.
       </p>
 
       <!-- Order numbers -->
-      <section class="bg-white rounded-xl shadow-sm p-5">
-        <h2 class="font-bold mb-1">Order numbers</h2>
-        <p class="text-xs text-slate-500 mb-3">
-          Used by Order Tracking. Tokens: <code class="bg-slate-100 px-1 rounded">{FY}</code> financial year (26-27),
-          <code class="bg-slate-100 px-1 rounded">{YYYY}</code> calendar year,
-          <code class="bg-slate-100 px-1 rounded">{SEQ}</code> running number (restarts each financial year).
+      <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
+        <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Order numbers</div>
+        <p class="text-xs text-slate-500 mt-1 mb-3">
+          <code class="font-mono text-[11px] bg-slate-100 text-slate-700 rounded px-1 py-0.5">{FY}</code> financial year ·
+          <code class="font-mono text-[11px] bg-slate-100 text-slate-700 rounded px-1 py-0.5">{YYYY}</code> calendar year ·
+          <code class="font-mono text-[11px] bg-slate-100 text-slate-700 rounded px-1 py-0.5">{SEQ}</code> running number, restarts each financial year.
         </p>
-        <div class="flex items-end gap-3">
+        <div class="flex flex-wrap items-end gap-3">
           <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1">Format</label>
-            <input x-model="fmt" :disabled="!isAdmin" class="border rounded-lg px-3 py-2 text-sm w-64 disabled:bg-slate-50" />
+            <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Format</label>
+            <input x-model="fmt" :disabled="!isAdmin"
+                   class="w-64 border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition
+                          disabled:bg-slate-50 disabled:text-slate-400" />
           </div>
           <button x-show="isAdmin" @click="saveFormat()"
-                  class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Save</button>
-          <div class="ml-auto text-sm text-slate-500">Next order will be
-            <b class="text-slate-800" x-text="data?.order_number_preview"></b></div>
+                  class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm
+                         transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">Save format</button>
+          <div class="ml-auto flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Next order</span>
+            <span class="font-mono text-sm font-bold text-slate-900" x-text="data?.order_number_preview"></span>
+          </div>
         </div>
       </section>
 
       <div class="grid grid-cols-2 gap-5">
         <!-- Units -->
-        <section class="bg-white rounded-xl shadow-sm p-5">
-          <h2 class="font-bold mb-1">Units</h2>
-          <p class="text-xs text-slate-500 mb-3">Every unit dropdown in Parts and Orders searches this list.</p>
-          <input x-model="unitQ" placeholder="Search units…" class="border rounded-lg px-3 py-2 text-sm w-full mb-2" />
-          <div class="flex flex-wrap gap-1.5 max-h-64 overflow-auto mb-3">
-            <template x-for="u in filteredUnits" :key="u">
-              <span class="bg-slate-100 rounded-full px-2.5 py-1 text-xs flex items-center gap-1">
-                <span x-text="u"></span>
-                <button x-show="isAdmin" @click="removeUnit(u)" class="text-slate-400 hover:text-rose-600">✕</button>
-              </span>
-            </template>
+        <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-5 flex flex-col">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+            Units · <span x-text="(data?.units || []).length"></span>
           </div>
-          <form x-show="isAdmin" @submit.prevent="addUnit()" class="flex gap-2">
-            <input x-model="newUnit" placeholder="Add a unit…" class="flex-1 border rounded-lg px-2 py-1.5 text-sm" />
-            <button class="bg-brand-600 hover:bg-brand-700 text-white px-3 rounded-lg text-sm">Add</button>
+          <input x-model="unitQ" placeholder="Search units…"
+                 class="w-full mt-3 mb-2.5 border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+          <div class="rounded-lg border border-slate-200 p-2.5 max-h-64 overflow-y-auto">
+            <div class="flex flex-wrap gap-1.5">
+              <template x-for="u in filteredUnits" :key="u">
+                <span class="group inline-flex items-center gap-1 rounded-full bg-slate-50 pl-2.5 pr-2 py-0.5
+                             text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-600/20">
+                  <span x-text="u"></span>
+                  <button x-show="isAdmin" @click="removeUnit(u)"
+                          class="text-slate-400 opacity-0 group-hover:opacity-100 hover:text-rose-600 transition">✕</button>
+                </span>
+              </template>
+            </div>
+          </div>
+          <form x-show="isAdmin" @submit.prevent="addUnit()" class="mt-auto pt-3 flex gap-2">
+            <input x-model="newUnit" placeholder="Add a unit…"
+                   class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+            <button class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm
+                           transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">Add unit</button>
           </form>
         </section>
 
         <!-- Departments -->
-        <section class="bg-white rounded-xl shadow-sm p-5">
-          <h2 class="font-bold mb-1">Departments</h2>
-          <p class="text-xs text-slate-500 mb-3">Used by employees and payroll (stored with the salary rules).</p>
-          <div class="space-y-1 max-h-64 overflow-auto mb-3">
-            <template x-for="d in data?.departments || []" :key="d">
-              <div class="flex items-center justify-between text-sm px-2 py-1 rounded hover:bg-slate-50">
-                <span x-text="d"></span>
-                <button x-show="isAdmin" @click="removeDept(d)" class="text-slate-300 hover:text-rose-600">✕</button>
-              </div>
-            </template>
+        <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-5 flex flex-col">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+            Departments · <span x-text="(data?.departments || []).length"></span>
           </div>
-          <form x-show="isAdmin" @submit.prevent="addDept()" class="flex gap-2">
-            <input x-model="newDept" placeholder="Add a department…" class="flex-1 border rounded-lg px-2 py-1.5 text-sm" />
-            <button class="bg-brand-600 hover:bg-brand-700 text-white px-3 rounded-lg text-sm">Add</button>
+          <div class="mt-3 rounded-lg border border-slate-200 max-h-64 overflow-y-auto">
+            <div class="divide-y divide-slate-100">
+              <template x-for="d in data?.departments || []" :key="d">
+                <div class="flex items-center justify-between px-3 py-2 text-sm even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                  <span x-text="d"></span>
+                  <button x-show="isAdmin" @click="removeDept(d)"
+                          class="text-slate-300 hover:text-rose-600 transition-colors">✕</button>
+                </div>
+              </template>
+            </div>
+          </div>
+          <form x-show="isAdmin" @submit.prevent="addDept()" class="mt-auto pt-3 flex gap-2">
+            <input x-model="newDept" placeholder="Add a department…"
+                   class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+            <button class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm
+                           transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">Add department</button>
           </form>
         </section>
       </div>
 
       <!-- Operations & rates -->
-      <section class="bg-white rounded-xl shadow-sm p-5">
-        <h2 class="font-bold mb-1">Machining operations &amp; hourly rates</h2>
-        <p class="text-xs text-slate-500 mb-3">
-          The costing builder in Parts &amp; Pricing prices each operation at these ₹/hour rates.
-          Changing a rate affects <b>new</b> costings only — old ones keep the rate they used.
-        </p>
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="text-left text-xs text-slate-500 border-b">
-              <th class="py-2">Operation</th>
-              <th class="py-2 w-44">Rate (₹/hour)</th>
-              <th class="py-2 w-24"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="op in data?.operations || []" :key="op.id">
-              <tr class="border-b last:border-0">
-                <td class="py-1.5" x-text="op.name"></td>
-                <td class="py-1.5">
-                  <input type="number" min="0" x-model="op.rate_per_hour" :disabled="!isAdmin"
-                         class="border rounded-lg px-2 py-1 text-sm w-28 disabled:bg-slate-50" />
-                </td>
-                <td class="py-1.5 whitespace-nowrap" x-show="isAdmin">
-                  <button @click="saveOpRate(op)" class="text-brand-700 hover:underline text-xs mr-2">Save</button>
-                  <button @click="removeOp(op)" class="text-slate-300 hover:text-rose-600 text-xs">✕</button>
-                </td>
+      <section class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div class="px-5 pt-4 pb-3">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+            Machining operations &amp; hourly rates · <span x-text="(data?.operations || []).length"></span>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">
+            Changing a rate affects <b class="font-semibold text-slate-600">new</b> costings only — old ones keep the rate they used.
+          </p>
+        </div>
+        <div class="border-t border-slate-200 max-h-[65vh] overflow-y-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <th class="sticky top-0 z-10 bg-slate-50 border-b-2 border-slate-200 px-4 py-2.5">Operation</th>
+                <th class="sticky top-0 z-10 bg-slate-50 border-b-2 border-slate-200 px-3 py-2.5 text-right w-40">Rate ₹/hour</th>
+                <th class="sticky top-0 z-10 bg-slate-50 border-b-2 border-slate-200 px-4 py-2.5 w-28"></th>
               </tr>
-            </template>
-          </tbody>
-        </table>
-        <form x-show="isAdmin" @submit.prevent="addOp()" class="flex gap-2 mt-3">
-          <input x-model="newOp.name" placeholder="New operation…" class="flex-1 border rounded-lg px-2 py-1.5 text-sm" />
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <template x-for="op in data?.operations || []" :key="op.id">
+                <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                  <td class="px-4 py-2 font-medium text-slate-800" x-text="op.name"></td>
+                  <td class="px-3 py-2 text-right">
+                    <input type="number" min="0" x-model="op.rate_per_hour" :disabled="!isAdmin"
+                           class="w-28 text-right tabular-nums border border-slate-300 rounded-lg px-2 py-1 text-sm bg-white
+                                  focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition
+                                  disabled:bg-slate-50 disabled:text-slate-400" />
+                  </td>
+                  <td class="px-4 py-2 text-right whitespace-nowrap">
+                    <span x-show="isAdmin" class="inline-flex items-center gap-3">
+                      <button @click="saveOpRate(op)" class="text-xs font-medium text-brand-700 hover:underline">Save rate</button>
+                      <button @click="removeOp(op)" class="text-xs text-slate-300 hover:text-rose-600 transition-colors">✕</button>
+                    </span>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <form x-show="isAdmin" @submit.prevent="addOp()"
+              class="border-t border-slate-200 bg-slate-50 px-4 py-3 flex items-center gap-2">
+          <input x-model="newOp.name" placeholder="New operation…"
+                 class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
           <input x-model="newOp.rate_per_hour" type="number" min="0" placeholder="₹/hr"
-                 class="border rounded-lg px-2 py-1.5 text-sm w-28" />
-          <button class="bg-brand-600 hover:bg-brand-700 text-white px-3 rounded-lg text-sm">Add</button>
+                 class="w-28 text-right tabular-nums border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+          <button class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm
+                         transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">Add operation</button>
         </form>
       </section>
 
       <p class="text-xs text-slate-400">
-        Payroll policy (leave, penalties, bonus) is still edited in Salary &amp; Attendance → Rules.
-        Sync &amp; update sources live in <code>config/</code> files — see the user guide.
+        Payroll policy (leave, penalties, bonus) is edited in Salary &amp; Attendance → Rules ·
+        sync &amp; update sources live in <code class="font-mono">config/</code> files — see the user guide.
       </p>
     </main>
   </div>

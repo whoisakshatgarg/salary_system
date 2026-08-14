@@ -7,14 +7,16 @@
   <!-- Vendored locally so the app works fully offline (no CDN needed). -->
   <script src="/vendor/tailwind.js"></script>
   <script>
-    tailwind.config = { theme: { extend: { colors: { brand: { 600: "#1d4ed8", 700: "#1e40af" } } } } };
+    tailwind.config = { theme: { extend: { colors: { brand: {
+      50: "#eff6ff", 100: "#dbeafe", 500: "#3b82f6",
+      600: "#1d4ed8", 700: "#1e40af", 800: "#1e3a8a" } } } } };
   </script>
   <script defer src="inventory.js"></script>
   <script defer src="/vendor/alpine.js"></script>
   <style>
     [x-cloak] { display: none !important; }
     body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-    input, select, textarea { @apply outline-none; }
+    input:focus, select:focus, textarea:focus { outline: none; }
     table { border-collapse: collapse; }
   </style>
 </head>
@@ -28,15 +30,14 @@
 
   <!-- Not signed in (module is admin-only) -->
   <div x-show="booted && !authed" class="min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 text-center">
-      <div class="text-2xl font-bold text-brand-700">APEX THERMOCON</div>
-      <div class="text-slate-500 text-sm mt-1 mb-5">Raw Material Inventory</div>
-      <p class="text-sm text-slate-600 mb-5">
-        Your session ended, or this account doesn't have access to Inventory.
-        Go back to the Home screen and sign in with an account that does.
-      </p>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-md p-8 text-center">
+      <div class="text-xl font-bold uppercase tracking-[0.2em] text-brand-700">Apex Thermocon</div>
+      <div class="mx-auto mt-3 mb-4 h-px w-16 bg-slate-200"></div>
+      <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-5">Raw Material Inventory</div>
+      <p class="text-sm text-slate-600 mb-5">Your session ended, or this account can't open Inventory.</p>
       <button @click="window.location.href = '/'"
-              class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg">
+              class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg shadow-sm transition-colors
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
         Go to Home
       </button>
     </div>
@@ -51,18 +52,18 @@
       </a>
       <div>
         <div class="text-white font-bold leading-tight">Raw Material Inventory</div>
-        <div class="text-[11px] text-slate-400">APEX THERMOCON · rod &amp; bar stock by heat</div>
+        <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Apex Thermocon</div>
       </div>
-      <nav class="flex gap-1 ml-4">
-        <template x-for="t in [{k:'stock',label:'Stock'},{k:'check',label:'Material Check'},{k:'log',label:'Usage Log'},{k:'settings',label:'Lists'}]">
+      <nav class="ml-4 inline-flex items-center gap-0.5 bg-white/10 rounded-xl p-1">
+        <template x-for="t in [{k:'stock',label:'Stock'},{k:'check',label:'Material check'},{k:'log',label:'Usage log'},{k:'settings',label:'Lists'}]">
           <button @click="tab = t.k; if (t.k==='log') loadLog()"
-                  class="px-4 py-1.5 rounded-lg text-sm font-medium transition"
-                  :class="tab === t.k ? 'bg-brand-600 text-white' : 'hover:bg-slate-800'"
+                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                  :class="tab === t.k ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'"
                   x-text="t.label"></button>
         </template>
       </nav>
       <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
-        <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
+        <span>Signed in as <span class="text-white font-medium" x-text="user?.username"></span></span>
       </div>
     </header>
 
@@ -71,256 +72,265 @@
       <!-- ============================= STOCK ============================= -->
       <section x-show="tab === 'stock'">
         <!-- Stat strip -->
-        <div class="grid grid-cols-4 gap-4 mb-5" x-show="stats">
-          <div class="bg-white rounded-xl shadow-sm p-4">
-            <div class="text-slate-500 text-sm">Heats</div>
-            <div class="text-2xl font-bold mt-0.5" x-text="num(stats?.total_heats)"></div>
+        <div class="grid grid-cols-4 gap-4 mb-4" x-show="stats">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Heats</div>
+            <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="num(stats?.total_heats)"></div>
           </div>
-          <div class="bg-white rounded-xl shadow-sm p-4">
-            <div class="text-slate-500 text-sm">Rods in stock</div>
-            <div class="text-2xl font-bold mt-0.5 text-emerald-700" x-text="num(stats?.rods_in_stock)"></div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Rods in stock</div>
+            <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="num(stats?.rods_in_stock)"></div>
           </div>
-          <div class="bg-white rounded-xl shadow-sm p-4">
-            <div class="text-slate-500 text-sm">Stock value</div>
-            <div class="text-2xl font-bold mt-0.5" x-text="money(stats?.stock_value)"></div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Stock value</div>
+            <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="money(stats?.stock_value)"></div>
           </div>
-          <div class="bg-white rounded-xl shadow-sm p-4">
-            <div class="text-slate-500 text-sm">Rods issued (all time)</div>
-            <div class="text-2xl font-bold mt-0.5" x-text="num(stats?.rods_issued)"></div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Rods issued</div>
+            <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="num(stats?.rods_issued)"></div>
+            <div class="text-xs text-slate-400">All time</div>
           </div>
         </div>
 
-        <!-- Filters -->
-        <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
-          <div class="flex flex-wrap items-end gap-3">
-            <div class="flex-1 min-w-[220px]">
-              <label class="block text-xs font-medium text-slate-500 mb-1">Search</label>
-              <input x-model="f.q" @input.debounce.400ms="loadHeats()"
-                     placeholder="Heat no / grade / supplier / rack"
-                     class="w-full border rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1">Material</label>
-              <select x-model="f.material_class" @change="loadHeats()" class="border rounded-lg px-2 py-2 text-sm">
-                <option value="">All</option>
-                <template x-for="o in options.material_class"><option :value="o" x-text="o"></option></template>
+        <!-- Toolbar -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-3 py-2.5 mb-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <label class="sr-only" for="inv-q">Search heats</label>
+            <input id="inv-q" x-model="f.q" @input.debounce.400ms="loadHeats()"
+                   placeholder="Search heat no, grade, supplier, rack…"
+                   class="flex-1 min-w-[200px] border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+            <select x-model="f.material_class" @change="loadHeats()" aria-label="Material"
+                    class="border border-slate-300 rounded-lg px-2 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
+              <option value="">All materials</option>
+              <template x-for="o in options.material_class"><option :value="o" x-text="o"></option></template>
+            </select>
+            <select x-model="f.shape" @change="loadHeats()" aria-label="Shape"
+                    class="border border-slate-300 rounded-lg px-2 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
+              <option value="">All shapes</option>
+              <template x-for="o in options.shape"><option :value="o" x-text="o"></option></template>
+            </select>
+            <select x-model="f.status" @change="loadHeats()" aria-label="Status"
+                    class="border border-slate-300 rounded-lg px-2 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
+              <option value="">All statuses</option>
+              <option value="in_stock">In stock</option>
+              <option value="consumed">Consumed</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <div class="flex items-center gap-1 rounded-lg bg-slate-50 border border-slate-200 px-1.5 py-1"
+                 title="Filter by chemical composition">
+              <select x-model="f.element" @change="loadHeats()" aria-label="Element"
+                      class="border border-slate-300 rounded-md px-1.5 py-1 text-sm bg-white w-[68px] focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
+                <option value="">Elem.</option>
+                <template x-for="o in options.element"><option :value="o" x-text="o"></option></template>
               </select>
+              <input x-model="f.pct_min" @input.debounce.400ms="loadHeats()" type="number" step="0.01" min="0" max="100"
+                     placeholder="min %" aria-label="Minimum percent" :disabled="!f.element"
+                     class="border border-slate-300 rounded-md px-1.5 py-1 text-sm bg-white w-[70px] tabular-nums disabled:bg-slate-100 disabled:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+              <span class="text-slate-300">–</span>
+              <input x-model="f.pct_max" @input.debounce.400ms="loadHeats()" type="number" step="0.01" min="0" max="100"
+                     placeholder="max %" aria-label="Maximum percent" :disabled="!f.element"
+                     class="border border-slate-300 rounded-md px-1.5 py-1 text-sm bg-white w-[70px] tabular-nums disabled:bg-slate-100 disabled:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
             </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1">Shape</label>
-              <select x-model="f.shape" @change="loadHeats()" class="border rounded-lg px-2 py-2 text-sm">
-                <option value="">All</option>
-                <template x-for="o in options.shape"><option :value="o" x-text="o"></option></template>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
-              <select x-model="f.status" @change="loadHeats()" class="border rounded-lg px-2 py-2 text-sm">
-                <option value="">All</option>
-                <option value="in_stock">In stock</option>
-                <option value="consumed">Consumed</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1">Composition</label>
-              <div class="flex items-center gap-1">
-                <select x-model="f.element" @change="loadHeats()" class="border rounded-lg px-2 py-2 text-sm w-20">
-                  <option value="">—</option>
-                  <template x-for="o in options.element"><option :value="o" x-text="o"></option></template>
-                </select>
-                <input x-model="f.pct_min" @input.debounce.400ms="loadHeats()" type="number" step="0.01" min="0" max="100"
-                       placeholder="min %" class="border rounded-lg px-2 py-2 text-sm w-20" :disabled="!f.element" />
-                <span class="text-slate-400">–</span>
-                <input x-model="f.pct_max" @input.debounce.400ms="loadHeats()" type="number" step="0.01" min="0" max="100"
-                       placeholder="max %" class="border rounded-lg px-2 py-2 text-sm w-20" :disabled="!f.element" />
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1">Sort</label>
-              <select x-model="f.sort" @change="loadHeats()" class="border rounded-lg px-2 py-2 text-sm">
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="remaining_asc">Remaining ↑</option>
-                <option value="remaining_desc">Remaining ↓</option>
-              </select>
-            </div>
-            <button @click="clearFilters()" class="text-sm text-slate-500 hover:text-slate-700 px-2 py-2">Clear</button>
+            <select x-model="f.sort" @change="loadHeats()" aria-label="Sort"
+                    class="border border-slate-300 rounded-lg px-2 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="remaining_asc">Remaining ↑</option>
+              <option value="remaining_desc">Remaining ↓</option>
+            </select>
+            <button @click="clearFilters()"
+                    class="text-sm font-medium text-slate-500 hover:text-slate-800 px-2 py-2 transition-colors">Clear</button>
+            <span class="ml-auto pl-2 border-l border-slate-200 text-xs text-slate-400 tabular-nums whitespace-nowrap"
+                  x-text="rows.length + (rows.length === 1 ? ' heat' : ' heats')"></span>
             <button @click="newHeat()"
-                    class="ml-auto bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                    class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm
+                           transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
               + New heat
             </button>
           </div>
         </div>
 
         <!-- Table -->
-        <div class="bg-white rounded-xl shadow-sm overflow-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-left text-xs text-slate-500 border-b bg-slate-50">
-                <th class="px-4 py-3">Heat no.</th>
-                <th class="px-3 py-3">Received</th>
-                <th class="px-3 py-3">Supplier</th>
-                <th class="px-3 py-3">Material</th>
-                <th class="px-3 py-3">Grade</th>
-                <th class="px-3 py-3">Shape</th>
-                <th class="px-3 py-3">Size</th>
-                <th class="px-3 py-3">Rack</th>
-                <th class="px-3 py-3">Stock</th>
-                <th class="px-3 py-3 text-right">Value</th>
-                <th class="px-3 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="r in rows" :key="r.id">
-                <tr @click="openHeat(r.id)" class="border-b last:border-0 hover:bg-brand-600/5 cursor-pointer">
-                  <td class="px-4 py-2.5 font-semibold text-brand-700" x-text="r.heat_number"></td>
-                  <td class="px-3 py-2.5 whitespace-nowrap" x-text="fmtDate(r.date_received)"></td>
-                  <td class="px-3 py-2.5" x-text="r.supplier || '—'"></td>
-                  <td class="px-3 py-2.5" x-text="r.material_class || '—'"></td>
-                  <td class="px-3 py-2.5" x-text="r.grade || '—'"></td>
-                  <td class="px-3 py-2.5" x-text="r.shape || '—'"></td>
-                  <td class="px-3 py-2.5 text-slate-500" x-text="r.size_section || '—'"></td>
-                  <td class="px-3 py-2.5" x-text="r.rack || '—'"></td>
-                  <td class="px-3 py-2.5 whitespace-nowrap">
-                    <span class="font-semibold" x-text="r.remaining"></span><span class="text-slate-400" x-text="' / ' + r.rods_received"></span>
-                    <div class="h-1.5 w-20 bg-slate-100 rounded-full mt-1">
-                      <div class="h-1.5 rounded-full"
-                           :class="r.status === 'rejected' ? 'bg-rose-400' : 'bg-emerald-500'"
-                           :style="`width:${Math.round(r.remaining / r.rods_received * 100)}%`"></div>
-                    </div>
-                  </td>
-                  <td class="px-3 py-2.5 text-right whitespace-nowrap" x-text="money(r.stock_value)"></td>
-                  <td class="px-3 py-2.5">
-                    <span class="px-2 py-0.5 rounded-full text-xs font-medium" :class="statusClass(r.status)"
-                          x-text="statusLabel(r.status)"></span>
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-b-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">Heat no.</th>
+                  <th class="px-3 py-2.5">Received</th>
+                  <th class="px-3 py-2.5">Supplier</th>
+                  <th class="px-3 py-2.5">Material</th>
+                  <th class="px-3 py-2.5">Grade</th>
+                  <th class="px-3 py-2.5">Shape</th>
+                  <th class="px-3 py-2.5">Size</th>
+                  <th class="px-3 py-2.5">Rack</th>
+                  <th class="px-3 py-2.5">Stock</th>
+                  <th class="px-3 py-2.5 text-right">Value</th>
+                  <th class="px-3 py-2.5">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="r in rows" :key="r.id">
+                  <tr @click="openHeat(r.id)"
+                      class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
+                    <td class="px-4 py-2.5 font-mono text-xs font-semibold text-brand-700 whitespace-nowrap" x-text="r.heat_number"></td>
+                    <td class="px-3 py-2.5 whitespace-nowrap text-slate-500" x-text="fmtDate(r.date_received)"></td>
+                    <td class="px-3 py-2.5" :class="invDimCls(r.supplier)" x-text="r.supplier || '—'"></td>
+                    <td class="px-3 py-2.5" :class="invDimCls(r.material_class)" x-text="r.material_class || '—'"></td>
+                    <td class="px-3 py-2.5" :class="invDimCls(r.grade)" x-text="r.grade || '—'"></td>
+                    <td class="px-3 py-2.5" :class="invDimCls(r.shape)" x-text="r.shape || '—'"></td>
+                    <td class="px-3 py-2.5 text-slate-500" :class="invDimCls(r.size_section)" x-text="r.size_section || '—'"></td>
+                    <td class="px-3 py-2.5" :class="invDimCls(r.rack)" x-text="r.rack || '—'"></td>
+                    <td class="px-3 py-2.5 whitespace-nowrap">
+                      <div class="tabular-nums">
+                        <span class="font-semibold" :class="invStockPct(r) ? 'text-slate-900' : 'text-slate-300'" x-text="r.remaining"></span><span class="text-slate-400" x-text="' / ' + r.rods_received"></span>
+                      </div>
+                      <div class="h-1.5 w-20 bg-slate-200 rounded-full mt-1 overflow-hidden">
+                        <div class="h-1.5 rounded-full transition-all" :class="invBarCls(r)"
+                             :style="`width:${invStockPct(r)}%`"></div>
+                      </div>
+                    </td>
+                    <td class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums font-semibold"
+                        :class="r.stock_value ? 'text-slate-900' : 'text-slate-300'" x-text="money(r.stock_value)"></td>
+                    <td class="px-3 py-2.5">
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+                            :class="statusClass(r.status)">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="invStatusDot(r.status)"></span>
+                        <span x-text="statusLabel(r.status)"></span>
+                      </span>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="!rows.length && !loading">
+                  <td colspan="11" class="px-4 py-12 text-center">
+                    <div class="text-3xl text-slate-200 leading-none mb-2">▤</div>
+                    <div class="text-sm text-slate-400">No heats match these filters.</div>
                   </td>
                 </tr>
-              </template>
-              <tr x-show="!rows.length && !loading">
-                <td colspan="11" class="px-4 py-10 text-center text-slate-400">
-                  No heats match — add the first one with “+ New heat”.
-                </td>
-              </tr>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
       <!-- ========================== MATERIAL CHECK ========================== -->
       <!-- Advisory: what could the rack actually YIELD? Reserves nothing. -->
       <section x-show="tab === 'check'">
-        <div class="bg-white rounded-xl shadow-sm p-5 mb-4">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-4">
           <div class="flex items-start gap-6 mb-4">
             <div>
-              <div class="font-bold">Can we make it?</div>
-              <p class="text-xs text-slate-500 mt-0.5 max-w-xl">
-                Counts the complete parts each individual bar would yield — not
-                total weight divided by part weight, because offcuts can't be
-                welded back together. Nothing is reserved.
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Material check</div>
+              <div class="text-sm font-semibold text-slate-900 mt-0.5">Can we make it?</div>
+              <p class="text-xs text-slate-400 mt-1 max-w-xl">
+                Counts whole parts per bar — offcuts can't be welded back together. Nothing is reserved.
               </p>
             </div>
-            <div class="ml-auto flex gap-1 shrink-0">
+            <div class="ml-auto shrink-0 inline-flex items-center gap-0.5 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
               <button @click="chk.method='dimension'; chkResult=null"
-                      class="px-3 py-1.5 rounded-lg text-sm font-medium border"
-                      :class="chk.method==='dimension' ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-300 text-slate-600 hover:bg-slate-50'">
+                      class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                      :class="chk.method==='dimension' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'">
                 By dimension
               </button>
               <button @click="chk.method='quantity'; chkResult=null"
-                      class="px-3 py-1.5 rounded-lg text-sm font-medium border"
-                      :class="chk.method==='quantity' ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-300 text-slate-600 hover:bg-slate-50'">
+                      title="Ignores dimensions — counts the pieces still on the rack"
+                      class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                      :class="chk.method==='quantity' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'">
                 By quantity
               </button>
             </div>
           </div>
 
-          <div class="grid grid-cols-4 gap-4 text-sm">
+          <div class="grid grid-cols-4 gap-3 text-sm">
             <div>
               <label class="block text-xs font-medium text-slate-500 mb-1">Material</label>
-              <select x-model="chk.material_class" class="border rounded-lg px-2 py-2 w-full">
+              <select x-model="chk.material_class"
+                      class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
                 <option value="">Any material</option>
                 <template x-for="o in options.material_class" :key="o"><option :value="o" x-text="o"></option></template>
               </select>
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-500 mb-1">Grade</label>
-              <select x-model="chk.grade" class="border rounded-lg px-2 py-2 w-full">
+              <select x-model="chk.grade"
+                      class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
                 <option value="">Any grade</option>
                 <template x-for="o in options.grade" :key="o"><option :value="o" x-text="o"></option></template>
               </select>
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-500 mb-1">Parts required</label>
-              <input x-model="chk.required_qty" type="number" min="0" step="1"
-                     class="border rounded-lg px-2 py-2 w-full" placeholder="e.g. 250" />
+              <input x-model="chk.required_qty" type="number" min="0" step="1" placeholder="e.g. 250"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
             </div>
             <div class="flex items-end">
               <button @click="runCheck()" :disabled="chkBusy"
-                      class="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                      class="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm
+                             transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40"
                       x-text="chkBusy ? 'Checking…' : 'Check availability'"></button>
             </div>
           </div>
 
-          <div class="grid grid-cols-4 gap-4 text-sm mt-4" x-show="chk.method==='dimension'">
+          <div class="grid grid-cols-4 gap-3 text-sm mt-3" x-show="chk.method==='dimension'">
             <div>
               <label class="block text-xs font-medium text-slate-500 mb-1">Part length *</label>
-              <input x-model="chk.part_length" type="number" min="0" step="0.01"
-                     class="border rounded-lg px-2 py-2 w-full" placeholder="e.g. 120" />
+              <input x-model="chk.part_length" type="number" min="0" step="0.01" placeholder="e.g. 120"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-500 mb-1">Part diameter</label>
-              <input x-model="chk.part_diameter" type="number" min="0" step="0.01"
-                     class="border rounded-lg px-2 py-2 w-full" placeholder="bar must be at least this" />
+              <input x-model="chk.part_diameter" type="number" min="0" step="0.01" placeholder="bar must be at least this"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-500 mb-1">Tolerance / margin</label>
-              <input x-model="chk.margin" type="number" min="0" step="0.01"
-                     class="border rounded-lg px-2 py-2 w-full" placeholder="cut-off per part" />
+              <input x-model="chk.margin" type="number" min="0" step="0.01" placeholder="cut-off per part"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
             </div>
-            <div class="flex items-end text-xs text-slate-500">
+            <div class="flex items-end pb-2 text-xs text-slate-400">
               <span x-show="Number(chk.part_length) > 0">
-                Each part eats
-                <b x-text="dim((Number(chk.part_length)||0) + (Number(chk.margin)||0))"></b>
-                of bar.
+                <b class="tabular-nums text-slate-600" x-text="dim((Number(chk.part_length)||0) + (Number(chk.margin)||0))"></b>
+                of bar per part
               </span>
             </div>
           </div>
-          <p class="text-xs text-slate-400 mt-3" x-show="chk.method==='quantity'">
-            Quantity mode ignores dimensions and just counts the pieces still on the rack.
-          </p>
         </div>
 
         <!-- ---------------------------- RESULT ---------------------------- -->
         <template x-if="chkResult">
           <div>
-            <div class="bg-white rounded-xl shadow-sm p-5 mb-4">
-              <div class="flex items-center gap-6 flex-wrap">
-                <span class="px-3 py-1 rounded-full text-sm font-semibold"
-                      :class="availClass(chkResult?.status)"
-                      x-text="availLabel(chkResult?.status)"></span>
-                <div><div class="text-xs text-slate-500">Required</div>
-                     <div class="text-xl font-bold" x-text="chkResult?.requirement.required_qty || '—'"></div></div>
-                <div><div class="text-xs text-slate-500">Can make</div>
-                     <div class="text-xl font-bold text-emerald-700" x-text="chkResult?.total_feasible"></div></div>
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4 mb-4">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2.5">Verdict</div>
+              <div class="flex items-center gap-8 flex-wrap">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium"
+                      :class="availClass(chkResult?.status)">
+                  <span class="w-1.5 h-1.5 rounded-full" :class="invAvailDot(chkResult?.status)"></span>
+                  <span x-text="availLabel(chkResult?.status)"></span>
+                </span>
+                <div><div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Required</div>
+                     <div class="text-xl font-bold tabular-nums text-slate-900" x-text="chkResult?.requirement.required_qty || '—'"></div></div>
+                <div><div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Can make</div>
+                     <div class="text-xl font-bold tabular-nums text-emerald-600" x-text="chkResult?.total_feasible"></div></div>
                 <div x-show="chkResult?.shortfall > 0">
-                     <div class="text-xs text-slate-500">Short by</div>
-                     <div class="text-xl font-bold text-rose-700" x-text="chkResult?.shortfall"></div></div>
-                <div><div class="text-xs text-slate-500">Heats considered</div>
-                     <div class="text-xl font-bold" x-text="chkResult?.heats_considered"></div></div>
-                <div class="text-xs text-slate-500 ml-auto max-w-xs" x-show="chkResult?.method==='dimension'">
-                  Part <b x-text="dim(chkResult?.requirement.part_length)"></b>
+                     <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Short by</div>
+                     <div class="text-xl font-bold tabular-nums text-rose-600" x-text="chkResult?.shortfall"></div></div>
+                <div><div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Heats considered</div>
+                     <div class="text-xl font-bold tabular-nums text-slate-900" x-text="chkResult?.heats_considered"></div></div>
+                <div class="text-xs text-slate-400 ml-auto max-w-xs" x-show="chkResult?.method==='dimension'">
+                  Part <b class="tabular-nums text-slate-600" x-text="dim(chkResult?.requirement.part_length)"></b>
                   <template x-if="chkResult?.requirement.margin">
-                    <span>+ <b x-text="dim(chkResult?.requirement.margin)"></b> margin</span>
+                    <span>+ <b class="tabular-nums text-slate-600" x-text="dim(chkResult?.requirement.margin)"></b> margin</span>
                   </template>
-                  = <b x-text="dim(chkResult?.requirement.length_per_part)"></b> per part
+                  = <b class="tabular-nums text-slate-600" x-text="dim(chkResult?.requirement.length_per_part)"></b> per part
                 </div>
               </div>
             </div>
 
-            <div class="bg-white rounded-xl shadow-sm overflow-auto">
+            <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+              <div class="overflow-x-auto">
               <table class="w-full text-sm">
-                <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
-                  <tr>
+                <thead class="bg-slate-50 border-b-2 border-slate-200">
+                  <tr class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                     <th class="text-left px-4 py-2.5">Heat no.</th>
                     <th class="text-left px-4 py-2.5">Material</th>
                     <th class="text-right px-4 py-2.5">Length</th>
@@ -331,113 +341,129 @@
                     <th class="text-right px-4 py-2.5">Left over each</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y">
+                <tbody class="divide-y divide-slate-100">
                   <template x-for="r in checkRows()" :key="r.key">
-                    <tr :class="r.piece && !r.piece.parts ? 'text-slate-400' : ''">
-                      <td class="px-4 py-2.5 font-mono font-semibold"
+                    <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                      <td class="px-4 py-2.5 font-mono text-xs font-semibold whitespace-nowrap"
+                          :class="r.piece && !r.piece.parts ? 'text-slate-400' : 'text-brand-700'"
                           x-text="r.first ? r.heat.heat_number : ''"></td>
                       <td class="px-4 py-2.5 text-slate-500"
                           x-text="r.first ? [r.heat.material_class, r.heat.grade].filter(Boolean).join(' \u00b7 ') : ''"></td>
                       <template x-if="!r.piece">
-                        <td class="px-4 py-2.5 text-slate-400 italic" colspan="6"
+                        <td class="px-4 py-2.5 text-slate-400 text-xs" colspan="6"
                             x-text="r.heat.skipped ? (r.heat.rods_remaining + ' rod(s) on the rack, but ' + r.heat.skipped) : '\u2014'"></td>
                       </template>
-                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right" x-text="dim(r.piece.length_mm)"></td></template>
-                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right" x-text="dim(r.piece.diameter_mm)"></td></template>
-                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right" x-text="r.piece.available"></td></template>
-                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right" x-text="r.piece.parts_per_piece === null ? '\u2014' : r.piece.parts_per_piece"></td></template>
-                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right font-semibold" x-text="r.piece.parts"></td></template>
-                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right text-slate-500 text-xs" x-text="r.piece.reason ? r.piece.reason : dim(r.piece.leftover_each)"></td></template>
+                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right tabular-nums text-slate-600" x-text="dim(r.piece.length_mm)"></td></template>
+                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right tabular-nums" :class="invDimCls(r.piece.diameter_mm)" x-text="dim(r.piece.diameter_mm)"></td></template>
+                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right tabular-nums text-slate-600" x-text="r.piece.available"></td></template>
+                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right tabular-nums" :class="invDimCls(r.piece.parts_per_piece)" x-text="r.piece.parts_per_piece === null ? '\u2014' : r.piece.parts_per_piece"></td></template>
+                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right tabular-nums font-semibold" :class="r.piece.parts ? 'text-slate-900' : 'text-slate-300'" x-text="r.piece.parts"></td></template>
+                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right text-xs" :class="r.piece.reason ? 'text-slate-400' : 'text-slate-500 tabular-nums'" x-text="r.piece.reason ? r.piece.reason : dim(r.piece.leftover_each)"></td></template>
                     </tr>
                   </template>
                 </tbody>
+                <tfoot>
+                  <tr class="bg-slate-50 border-t-2 border-slate-200 font-semibold">
+                    <td colspan="6" class="px-4 py-2.5 text-[11px] uppercase tracking-wider text-slate-500">Total manufacturable from stock</td>
+                    <td colspan="2" class="px-4 py-2.5 text-right text-base tabular-nums text-slate-900"
+                        x-text="chkResult?.total_feasible + ' part(s)'"></td>
+                  </tr>
+                </tfoot>
               </table>
-              <div class="px-4 py-3 bg-slate-50 border-t flex items-center text-sm">
-                <span class="text-slate-500">Total manufacturable from stock</span>
-                <span class="ml-auto text-lg font-bold" x-text="chkResult?.total_feasible + ' part(s)'"></span>
               </div>
             </div>
-            <p class="text-xs text-slate-400 mt-3">
-              Advisory only — nothing has been reserved. Stock still leaves through the Usage Log.
-            </p>
+            <p class="text-xs text-slate-400 mt-2">Advisory only — nothing is reserved.</p>
           </div>
         </template>
       </section>
 
       <!-- ============================= GLOBAL LOG ============================= -->
       <section x-show="tab === 'log'">
-        <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex items-end gap-3">
-          <div class="flex-1 max-w-md">
-            <label class="block text-xs font-medium text-slate-500 mb-1">Search by Order ID or heat number</label>
-            <input x-model="log.q" @input.debounce.400ms="loadLog()"
-                   placeholder="e.g. PO-2026-118" class="w-full border rounded-lg px-3 py-2 text-sm" />
-          </div>
-          <p class="text-xs text-slate-400 pb-2">Trace any order back to the heats that fed it.</p>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-3 py-2.5 mb-4 flex items-center gap-3">
+          <label class="sr-only" for="inv-log-q">Search the usage log</label>
+          <input id="inv-log-q" x-model="log.q" @input.debounce.400ms="loadLog()"
+                 placeholder="Search by Order ID or heat number — e.g. PO-2026-118"
+                 class="flex-1 max-w-md border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+          <span class="ml-auto text-xs text-slate-400 tabular-nums whitespace-nowrap"
+                x-text="log.rows.length + (log.rows.length === 1 ? ' entry' : ' entries')"></span>
         </div>
-        <div class="bg-white rounded-xl shadow-sm overflow-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-left text-xs text-slate-500 border-b bg-slate-50">
-                <th class="px-4 py-3">Date</th>
-                <th class="px-3 py-3">Heat</th>
-                <th class="px-3 py-3">Grade</th>
-                <th class="px-3 py-3">Type</th>
-                <th class="px-3 py-3">Order ID</th>
-                <th class="px-3 py-3 text-right">Rods</th>
-                <th class="px-3 py-3 text-right">Weight (kg)</th>
-                <th class="px-3 py-3">Remarks</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="m in log.rows" :key="m.id">
-                <tr class="border-b last:border-0">
-                  <td class="px-4 py-2.5 whitespace-nowrap" x-text="fmtDate(m.mv_date)"></td>
-                  <td class="px-3 py-2.5">
-                    <button @click="openFromLog(m.heat_id)" class="font-semibold text-brand-700 hover:underline"
-                            x-text="m.heat_number"></button>
-                  </td>
-                  <td class="px-3 py-2.5" x-text="m.grade || '—'"></td>
-                  <td class="px-3 py-2.5">
-                    <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                          :class="m.type === 'issue' ? 'bg-sky-100 text-sky-700' : 'bg-rose-100 text-rose-700'"
-                          x-text="m.type === 'issue' ? 'Issued' : 'Rejected'"></span>
-                  </td>
-                  <td class="px-3 py-2.5 font-medium" x-text="m.order_id || '—'"></td>
-                  <td class="px-3 py-2.5 text-right" x-text="m.rods"></td>
-                  <td class="px-3 py-2.5 text-right" x-text="m.weight_kg ?? '—'"></td>
-                  <td class="px-3 py-2.5 text-slate-500" x-text="m.remarks || ''"></td>
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="overflow-x-auto max-h-[65vh] overflow-y-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-b-2 border-slate-200 sticky top-0 z-10">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 bg-slate-50">
+                  <th class="px-4 py-2.5 bg-slate-50">Date</th>
+                  <th class="px-3 py-2.5 bg-slate-50">Heat</th>
+                  <th class="px-3 py-2.5 bg-slate-50">Grade</th>
+                  <th class="px-3 py-2.5 bg-slate-50">Type</th>
+                  <th class="px-3 py-2.5 bg-slate-50">Order ID</th>
+                  <th class="px-3 py-2.5 text-right bg-slate-50">Rods</th>
+                  <th class="px-3 py-2.5 text-right bg-slate-50">Weight kg</th>
+                  <th class="px-3 py-2.5 bg-slate-50">Remarks</th>
                 </tr>
-              </template>
-              <tr x-show="!log.rows.length">
-                <td colspan="8" class="px-4 py-10 text-center text-slate-400">No log entries yet.</td>
-              </tr>
-            </tbody>
-          </table>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="m in log.rows" :key="m.id">
+                  <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                    <td class="px-4 py-2.5 whitespace-nowrap text-slate-500" x-text="fmtDate(m.mv_date)"></td>
+                    <td class="px-3 py-2.5">
+                      <button @click="openFromLog(m.heat_id)"
+                              class="font-mono text-xs font-semibold text-brand-700 hover:underline"
+                              x-text="m.heat_number"></button>
+                    </td>
+                    <td class="px-3 py-2.5" :class="invDimCls(m.grade)" x-text="m.grade || '—'"></td>
+                    <td class="px-3 py-2.5">
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+                            :class="m.type === 'issue' ? 'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20' : 'bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20'">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="m.type === 'issue' ? 'bg-sky-500' : 'bg-rose-500'"></span>
+                        <span x-text="m.type === 'issue' ? 'Issued' : 'Rejected'"></span>
+                      </span>
+                    </td>
+                    <td class="px-3 py-2.5 font-mono text-xs" :class="m.order_id ? 'text-slate-700' : 'text-slate-300'" x-text="m.order_id || '—'"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="m.rods"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums" :class="invDimCls(m.weight_kg)" x-text="m.weight_kg ?? '—'"></td>
+                    <td class="px-3 py-2.5 text-slate-500" x-text="m.remarks || ''"></td>
+                  </tr>
+                </template>
+                <tr x-show="!log.rows.length">
+                  <td colspan="8" class="px-4 py-12 text-center">
+                    <div class="text-3xl text-slate-200 leading-none mb-2">▤</div>
+                    <div class="text-sm text-slate-400">No log entries yet.</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
       <!-- ============================= LISTS (dropdown admin) ============================= -->
       <section x-show="tab === 'settings'">
-        <p class="text-sm text-slate-500 mb-4">
-          These lists feed the dropdowns on the heat form. Removing a value never
-          changes heats already recorded with it.
-        </p>
+        <p class="text-xs text-slate-400 mb-3">Removing a value never changes heats already recorded with it.</p>
         <div class="grid grid-cols-5 gap-4">
           <template x-for="k in ['material_class','shape','grade','element','supplier']" :key="k">
-            <div class="bg-white rounded-xl shadow-sm p-4">
-              <div class="font-semibold mb-3"
-                   x-text="{material_class:'Material classes', shape:'Rod shapes', grade:'Grades', element:'Elements', supplier:'Suppliers'}[k]"></div>
-              <div class="space-y-1 mb-3 max-h-80 overflow-auto">
+            <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+              <div class="bg-slate-50 border-b-2 border-slate-200 px-3 py-2.5 flex items-baseline gap-2">
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500"
+                     x-text="{material_class:'Material classes', shape:'Rod shapes', grade:'Grades', element:'Elements', supplier:'Suppliers'}[k]"></div>
+                <span class="ml-auto text-[11px] text-slate-400 tabular-nums" x-text="options[k].length"></span>
+              </div>
+              <div class="divide-y divide-slate-100 max-h-80 overflow-y-auto">
                 <template x-for="v in options[k]" :key="v">
-                  <div class="flex items-center justify-between text-sm px-2 py-1 rounded hover:bg-slate-50">
+                  <div class="flex items-center gap-2 text-sm px-3 py-1.5 even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
                     <span x-text="v"></span>
-                    <button @click="removeOpt(k, v)" class="text-slate-300 hover:text-rose-600" title="Remove">✕</button>
+                    <button @click="removeOpt(k, v)" class="ml-auto text-slate-300 hover:text-rose-600 transition-colors" title="Remove">✕</button>
                   </div>
                 </template>
+                <div x-show="!options[k].length" class="px-3 py-6 text-center text-xs text-slate-400">Empty.</div>
               </div>
-              <form @submit.prevent="addOpt(k)" class="flex gap-2">
-                <input x-model="newOpt[k]" placeholder="Add new…" class="flex-1 border rounded-lg px-2 py-1.5 text-sm" />
-                <button class="bg-brand-600 hover:bg-brand-700 text-white px-3 rounded-lg text-sm">Add</button>
+              <form @submit.prevent="addOpt(k)" class="mt-auto flex gap-2 bg-slate-50 border-t border-slate-200 px-3 py-2.5">
+                <input x-model="newOpt[k]" placeholder="Add new…"
+                       class="flex-1 min-w-0 border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                <button class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-3 rounded-lg text-sm shadow-sm transition-colors
+                               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">Add</button>
               </form>
             </div>
           </template>
@@ -450,173 +476,196 @@
   <!-- template x-if (not x-show): bindings must not evaluate while detail is null -->
   <template x-if="detail">
   <div class="fixed inset-0 z-40 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl my-4">
-      <div class="flex items-center gap-3 px-6 py-4 border-b">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-5xl my-4">
+      <div class="flex items-center gap-3 px-6 py-4 border-b border-slate-200">
         <div>
-          <div class="text-xl font-bold" x-text="'Heat ' + (detail?.heat_number || '')"></div>
-          <div class="text-xs text-slate-500"
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Heat</div>
+          <div class="flex items-center gap-2.5">
+            <div class="text-xl font-bold font-mono tracking-tight text-slate-900" x-text="detail?.heat_number || ''"></div>
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                  :class="statusClass(detail?.status)">
+              <span class="w-1.5 h-1.5 rounded-full" :class="invStatusDot(detail?.status)"></span>
+              <span x-text="statusLabel(detail?.status)"></span>
+            </span>
+          </div>
+          <div class="text-xs text-slate-400 mt-0.5"
                x-text="[detail?.material_class, detail?.grade, detail?.shape, detail?.size_section].filter(Boolean).join(' · ')"></div>
         </div>
-        <span class="px-2.5 py-1 rounded-full text-xs font-medium" :class="statusClass(detail?.status)"
-              x-text="statusLabel(detail?.status)"></span>
         <div class="ml-auto flex gap-2">
-          <button @click="editHeat()" class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm">Edit</button>
+          <button @click="editHeat()"
+                  class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">Edit</button>
           <button @click="deleteHeat()" :disabled="detail?.movements.length"
                   :title="detail?.movements.length ? 'Delete the usage-log entries first' : ''"
-                  class="border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg text-sm">Delete</button>
-          <button @click="closeDetail()" class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+                  class="border border-rose-200 bg-white text-rose-600 hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">Delete</button>
+          <button @click="closeDetail()" class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none transition-colors">✕</button>
         </div>
       </div>
 
       <div class="p-6 grid grid-cols-3 gap-6">
         <!-- Left: facts + composition + attachments -->
-        <div class="space-y-5">
-          <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <div class="text-slate-500">Received</div><div x-text="fmtDate(detail?.date_received)"></div>
-            <div class="text-slate-500">Supplier</div><div x-text="detail?.supplier || '—'"></div>
-            <div class="text-slate-500">Rack</div><div x-text="detail?.rack || '—'"></div>
-            <div class="text-slate-500">Rods received</div><div x-text="detail?.rods_received"></div>
-            <div class="text-slate-500">Remaining</div>
-            <div class="font-semibold" x-text="detail?.remaining"></div>
-            <div class="text-slate-500">Issued / rejected</div>
-            <div x-text="(detail?.issued || 0) + ' / ' + (detail?.rejected_rods || 0)"></div>
-            <div class="text-slate-500">Total weight</div>
-            <div x-text="detail?.total_weight_kg ? detail.total_weight_kg + ' kg' : '—'"></div>
-            <div class="text-slate-500">Purchase price</div><div x-text="money(detail?.price_total)"></div>
-            <div class="text-slate-500">Rate</div>
-            <div x-text="detail?.price_rate_per_kg ? '₹' + detail.price_rate_per_kg + '/kg' : '—'"></div>
-            <div class="text-slate-500">Stock value</div><div x-text="money(detail?.stock_value)"></div>
-          </div>
-          <div x-show="detail?.notes" class="text-sm bg-amber-50 rounded-lg p-3 text-amber-900" x-text="detail?.notes"></div>
-
-          <div>
-            <div class="font-semibold text-sm mb-2">Chemical composition</div>
-            <div class="flex flex-wrap gap-1.5" x-show="detail?.composition.length">
-              <template x-for="c in detail?.composition || []">
-                <span class="bg-slate-100 rounded-full px-2.5 py-1 text-xs">
-                  <b x-text="c.element"></b> <span x-text="c.percent + '%'"></span>
-                </span>
-              </template>
+        <div class="space-y-4">
+          <div class="rounded-xl border border-slate-200 overflow-hidden">
+            <div class="bg-slate-50 border-b-2 border-slate-200 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Heat record</div>
+            <div class="divide-y divide-slate-100 text-sm">
+              <div class="flex items-baseline gap-3 px-3 py-1.5"><span class="text-slate-500">Received</span><span class="ml-auto text-right tabular-nums" x-text="fmtDate(detail?.date_received)"></span></div>
+              <div class="flex items-baseline gap-3 px-3 py-1.5 bg-slate-50/60"><span class="text-slate-500">Supplier</span><span class="ml-auto text-right" :class="invDimCls(detail?.supplier)" x-text="detail?.supplier || '—'"></span></div>
+              <div class="flex items-baseline gap-3 px-3 py-1.5"><span class="text-slate-500">Rack</span><span class="ml-auto text-right" :class="invDimCls(detail?.rack)" x-text="detail?.rack || '—'"></span></div>
+              <div class="flex items-baseline gap-3 px-3 py-1.5 bg-slate-50/60"><span class="text-slate-500">Rods received</span><span class="ml-auto text-right tabular-nums" x-text="detail?.rods_received"></span></div>
+              <div class="flex items-baseline gap-3 px-3 py-1.5"><span class="text-slate-500">Remaining</span><span class="ml-auto text-right tabular-nums font-semibold" :class="detail?.remaining ? 'text-slate-900' : 'text-slate-300'" x-text="detail?.remaining"></span></div>
+              <div class="flex items-baseline gap-3 px-3 py-1.5 bg-slate-50/60"><span class="text-slate-500">Issued / rejected</span><span class="ml-auto text-right tabular-nums" x-text="(detail?.issued || 0) + ' / ' + (detail?.rejected_rods || 0)"></span></div>
+              <div class="flex items-baseline gap-3 px-3 py-1.5"><span class="text-slate-500">Total weight</span><span class="ml-auto text-right tabular-nums" :class="invDimCls(detail?.total_weight_kg)" x-text="detail?.total_weight_kg ? detail.total_weight_kg + ' kg' : '—'"></span></div>
+              <div class="flex items-baseline gap-3 px-3 py-1.5 bg-slate-50/60"><span class="text-slate-500">Purchase price</span><span class="ml-auto text-right tabular-nums" :class="invDimCls(detail?.price_total)" x-text="money(detail?.price_total)"></span></div>
+              <div class="flex items-baseline gap-3 px-3 py-1.5"><span class="text-slate-500">Rate</span><span class="ml-auto text-right tabular-nums" :class="invDimCls(detail?.price_rate_per_kg)" x-text="detail?.price_rate_per_kg ? '₹' + detail.price_rate_per_kg + '/kg' : '—'"></span></div>
+              <div class="flex items-baseline gap-3 px-3 py-1.5 bg-slate-50/60"><span class="text-slate-500">Stock value</span><span class="ml-auto text-right tabular-nums font-semibold text-slate-900" x-text="money(detail?.stock_value)"></span></div>
             </div>
-            <p x-show="!detail?.composition.length" class="text-xs text-slate-400">Not entered.</p>
+          </div>
+          <div x-show="detail?.notes" class="text-sm bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-900" x-text="detail?.notes"></div>
+
+          <div class="rounded-xl border border-slate-200 overflow-hidden">
+            <div class="bg-slate-50 border-b-2 border-slate-200 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Chemical composition</div>
+            <div class="p-3">
+              <div class="flex flex-wrap gap-1.5" x-show="detail?.composition.length">
+                <template x-for="c in detail?.composition || []">
+                  <span class="bg-slate-100 rounded-md px-2 py-0.5 font-mono text-xs text-slate-700">
+                    <b class="text-slate-900" x-text="c.element"></b> <span class="tabular-nums" x-text="c.percent + '%'"></span>
+                  </span>
+                </template>
+              </div>
+              <p x-show="!detail?.composition.length" class="text-xs text-slate-300">Not entered.</p>
+            </div>
           </div>
 
-          <div>
-            <div class="font-semibold text-sm mb-2">Attachments</div>
+          <div class="rounded-xl border border-slate-200 overflow-hidden">
+            <div class="bg-slate-50 border-b-2 border-slate-200 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Attachments</div>
+            <div class="p-3">
             <template x-for="kind in ['certificate','invoice']" :key="kind">
-              <div class="mb-3">
-                <div class="text-xs text-slate-500 mb-1" x-text="kindLabel(kind)"></div>
+              <div class="mb-2.5">
+                <div class="text-xs text-slate-500" x-text="kindLabel(kind)"></div>
                 <template x-for="a in (detail?.attachments || []).filter(x => x.kind === kind)" :key="a.id">
                   <div class="flex items-center gap-2 text-sm py-1">
                     <button @click="viewAtt(a)" class="text-brand-700 hover:underline truncate max-w-[180px] text-left"
                             x-text="a.filename"></button>
-                    <span class="text-xs text-slate-400" x-text="sizeLabel(a.size_bytes)"></span>
-                    <button @click="downloadAtt(a)" class="text-slate-400 hover:text-slate-600 text-xs" title="Download">⬇</button>
-                    <button @click="deleteAtt(a)" class="text-slate-300 hover:text-rose-600 text-xs" title="Delete">✕</button>
+                    <span class="text-xs text-slate-400 tabular-nums" x-text="sizeLabel(a.size_bytes)"></span>
+                    <button @click="downloadAtt(a)" class="text-slate-400 hover:text-slate-600 text-xs transition-colors" title="Download">⬇</button>
+                    <button @click="deleteAtt(a)" class="text-slate-300 hover:text-rose-600 text-xs transition-colors" title="Delete">✕</button>
                   </div>
                 </template>
               </div>
             </template>
             <div class="flex items-center gap-2 mt-2">
-              <select x-model="upload.kind" class="border rounded-lg px-2 py-1.5 text-xs">
+              <select x-model="upload.kind"
+                      class="border border-slate-300 rounded-lg px-2 py-1.5 text-xs bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
                 <option value="certificate">Certificate</option>
                 <option value="invoice">Invoice / receipt</option>
               </select>
-              <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium">
+              <label class="cursor-pointer border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-colors"
+                     title="Images or PDF — big photos are compressed automatically">
                 <span x-text="upload.busy ? 'Uploading…' : '+ Add files'"></span>
                 <input type="file" multiple accept="image/*,application/pdf" class="hidden"
                        :disabled="upload.busy" @change="pickFiles($event)" />
               </label>
             </div>
-            <p class="text-[11px] text-slate-400 mt-1">Images or PDF. Big photos are compressed automatically.</p>
+            </div>
           </div>
         </div>
 
         <!-- Right (2 cols): usage log -->
         <div class="col-span-2">
           <div class="flex items-center mb-2">
-            <div class="font-semibold text-sm">Usage log</div>
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Usage log</div>
             <button @click="rejectRemaining()" x-show="detail?.remaining > 0"
-                    class="ml-auto border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-xs font-medium">
-              Reject remaining batch (<span x-text="detail?.remaining"></span> rods)
+                    class="ml-auto border border-rose-200 bg-white text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-xs font-medium shadow-sm transition-colors">
+              Reject remaining batch (<span class="tabular-nums" x-text="detail?.remaining"></span> rods)
             </button>
           </div>
 
           <!-- add entry -->
-          <div class="bg-slate-50 rounded-xl p-3 mb-3">
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 mb-3">
             <div class="grid grid-cols-6 gap-2 items-end">
               <div class="col-span-2">
                 <label class="block text-[11px] text-slate-500 mb-1">Type</label>
                 <select x-model="mv.type" @change="if (mv.type === 'reject') mv.order_id = ''"
-                        class="w-full border rounded-lg px-2 py-1.5 text-sm bg-white">
+                        class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
                   <option value="issue">Issued to order</option>
                   <option value="reject">Rejected → supplier</option>
                 </select>
               </div>
               <div>
                 <label class="block text-[11px] text-slate-500 mb-1">Date</label>
-                <input type="date" x-model="mv.mv_date" class="w-full border rounded-lg px-2 py-1.5 text-sm bg-white" />
+                <input type="date" x-model="mv.mv_date"
+                       class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
               </div>
               <div>
                 <label class="block text-[11px] text-slate-500 mb-1">Order ID<span x-show="mv.type==='issue'" class="text-rose-500">*</span></label>
                 <input x-model="mv.order_id" :disabled="mv.type==='reject'" placeholder="PO-…"
-                       class="w-full border rounded-lg px-2 py-1.5 text-sm bg-white disabled:bg-slate-100" />
+                       class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white disabled:bg-slate-100 disabled:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
               </div>
               <div>
                 <label class="block text-[11px] text-slate-500 mb-1">Rods</label>
-                <input type="number" min="1" x-model="mv.rods" class="w-full border rounded-lg px-2 py-1.5 text-sm bg-white" />
+                <input type="number" min="1" x-model="mv.rods"
+                       class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white text-right tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
               </div>
               <div>
                 <label class="block text-[11px] text-slate-500 mb-1">Weight kg</label>
-                <input type="number" min="0" step="0.1" x-model="mv.weight_kg" class="w-full border rounded-lg px-2 py-1.5 text-sm bg-white" />
+                <input type="number" min="0" step="0.1" x-model="mv.weight_kg"
+                       class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white text-right tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
               </div>
             </div>
             <div class="flex gap-2 mt-2">
               <input x-model="mv.remarks" placeholder="Remarks (optional)"
-                     class="flex-1 border rounded-lg px-2 py-1.5 text-sm bg-white" />
+                     class="flex-1 border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
               <button @click="saveMovement()"
-                      class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium">Add entry</button>
+                      class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-4 py-1.5 rounded-lg text-sm shadow-sm transition-colors
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">Add entry</button>
             </div>
           </div>
 
           <!-- entries -->
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-left text-xs text-slate-500 border-b">
-                <th class="py-2 pr-3">Date</th>
-                <th class="py-2 pr-3">Type</th>
-                <th class="py-2 pr-3">Order ID</th>
-                <th class="py-2 pr-3 text-right">Rods</th>
-                <th class="py-2 pr-3 text-right">Weight</th>
-                <th class="py-2 pr-3">Remarks</th>
-                <th class="py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="m in detail?.movements || []" :key="m.id">
-                <tr class="border-b last:border-0">
-                  <td class="py-2 pr-3 whitespace-nowrap" x-text="fmtDate(m.mv_date)"></td>
-                  <td class="py-2 pr-3">
-                    <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                          :class="m.type === 'issue' ? 'bg-sky-100 text-sky-700' : 'bg-rose-100 text-rose-700'"
-                          x-text="m.type === 'issue' ? 'Issued' : 'Rejected'"></span>
-                  </td>
-                  <td class="py-2 pr-3" x-text="m.order_id || '—'"></td>
-                  <td class="py-2 pr-3 text-right font-medium" x-text="m.rods"></td>
-                  <td class="py-2 pr-3 text-right" x-text="m.weight_kg ?? '—'"></td>
-                  <td class="py-2 pr-3 text-slate-500" x-text="m.remarks || ''"></td>
-                  <td class="py-2 text-right">
-                    <button @click="deleteMovement(m.id)" class="text-slate-300 hover:text-rose-600" title="Delete (undo)">✕</button>
-                  </td>
-                </tr>
-              </template>
-              <tr x-show="!detail?.movements.length">
-                <td colspan="7" class="py-6 text-center text-slate-400 text-sm">
-                  Nothing logged yet — all <span x-text="detail?.rods_received"></span> rods are on the rack.
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="overflow-x-auto max-h-[42vh] overflow-y-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b-2 border-slate-200 sticky top-0 z-10">
+                  <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    <th class="px-3 py-2 bg-slate-50">Date</th>
+                    <th class="px-3 py-2 bg-slate-50">Type</th>
+                    <th class="px-3 py-2 bg-slate-50">Order ID</th>
+                    <th class="px-3 py-2 text-right bg-slate-50">Rods</th>
+                    <th class="px-3 py-2 text-right bg-slate-50">Weight</th>
+                    <th class="px-3 py-2 bg-slate-50">Remarks</th>
+                    <th class="px-3 py-2 bg-slate-50"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="m in detail?.movements || []" :key="m.id">
+                    <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                      <td class="px-3 py-2 whitespace-nowrap text-slate-500" x-text="fmtDate(m.mv_date)"></td>
+                      <td class="px-3 py-2">
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+                              :class="m.type === 'issue' ? 'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20' : 'bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20'">
+                          <span class="w-1.5 h-1.5 rounded-full" :class="m.type === 'issue' ? 'bg-sky-500' : 'bg-rose-500'"></span>
+                          <span x-text="m.type === 'issue' ? 'Issued' : 'Rejected'"></span>
+                        </span>
+                      </td>
+                      <td class="px-3 py-2 font-mono text-xs" :class="m.order_id ? 'text-slate-700' : 'text-slate-300'" x-text="m.order_id || '—'"></td>
+                      <td class="px-3 py-2 text-right tabular-nums font-semibold text-slate-900" x-text="m.rods"></td>
+                      <td class="px-3 py-2 text-right tabular-nums" :class="invDimCls(m.weight_kg)" x-text="m.weight_kg ?? '—'"></td>
+                      <td class="px-3 py-2 text-slate-500" x-text="m.remarks || ''"></td>
+                      <td class="px-3 py-2 text-right">
+                        <button @click="deleteMovement(m.id)" class="text-slate-300 hover:text-rose-600 transition-colors" title="Delete (undo)">✕</button>
+                      </td>
+                    </tr>
+                  </template>
+                  <tr x-show="!detail?.movements.length">
+                    <td colspan="7" class="px-3 py-10 text-center">
+                      <div class="text-3xl text-slate-200 leading-none mb-2">▤</div>
+                      <div class="text-sm text-slate-400">Nothing logged — all
+                        <span class="tabular-nums" x-text="detail?.rods_received"></span> rods are on the rack.</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -636,15 +685,16 @@
       </button>
       <div>
         <div class="text-white font-bold leading-tight">Add incoming material</div>
-        <div class="text-[11px] text-slate-400">one delivery · a row per piece · every row keeps its own heat number</div>
+        <div class="text-[11px] text-slate-500">Every row keeps its own heat number</div>
       </div>
       <div class="ml-auto flex items-center gap-4">
         <div class="text-right text-xs text-slate-400 leading-tight">
-          <div><span class="text-white font-bold" x-text="intakeHeatCount()"></span> heat(s)</div>
-          <div><span class="text-white font-bold" x-text="intakeRodCount()"></span> piece(s)</div>
+          <div><span class="text-white font-bold tabular-nums" x-text="intakeHeatCount()"></span> heat(s)</div>
+          <div><span class="text-white font-bold tabular-nums" x-text="intakeRodCount()"></span> piece(s)</div>
         </div>
         <button @click="saveIntake()"
-                class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg text-sm font-medium">
+                class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2 rounded-lg text-sm shadow-sm transition-colors
+                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
           Save delivery
         </button>
       </div>
@@ -655,68 +705,72 @@
 
         <!-- delivery-level details: defaults every row inherits -->
         <aside class="col-span-1 space-y-4">
-          <div class="bg-white rounded-xl shadow-sm p-4">
-            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">The delivery</div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">The delivery</div>
             <div class="space-y-3 text-sm">
               <div><label class="block text-xs text-slate-500 mb-1">Date received *</label>
-                <input x-model="intake.date_received" type="date" class="border rounded-lg px-2 py-1.5 w-full" /></div>
+                <input x-model="intake.date_received" type="date"
+                       class="border border-slate-300 rounded-lg px-2 py-1.5 w-full text-sm bg-white tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" /></div>
               <div><label class="block text-xs text-slate-500 mb-1">Supplier</label>
                 <select x-model="intake.supplier"
                         @change="intake.supplier === '__add__' && inlineAdd('supplier', intake, 'supplier')"
-                        class="border rounded-lg px-2 py-1.5 w-full">
+                        class="border border-slate-300 rounded-lg px-2 py-1.5 w-full text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
                   <option value="">—</option>
                   <template x-for="o in options.supplier" :key="o"><option :value="o" x-text="o"></option></template>
                   <option value="__add__">+ Add new…</option>
                 </select></div>
               <div><label class="block text-xs text-slate-500 mb-1">Rack</label>
-                <input x-model="intake.rack" class="border rounded-lg px-2 py-1.5 w-full" /></div>
+                <input x-model="intake.rack"
+                       class="border border-slate-300 rounded-lg px-2 py-1.5 w-full text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" /></div>
               <div><label class="block text-xs text-slate-500 mb-1">Notes</label>
-                <textarea x-model="intake.notes" rows="2" class="border rounded-lg px-2 py-1.5 w-full"></textarea></div>
+                <textarea x-model="intake.notes" rows="2"
+                          class="border border-slate-300 rounded-lg px-2 py-1.5 w-full text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition"></textarea></div>
             </div>
           </div>
 
-          <div class="bg-white rounded-xl shadow-sm p-4">
-            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Applies to every row</div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Applies to every row</div>
             <p class="text-[11px] text-slate-400 mb-3">A row can override any of these.</p>
             <div class="space-y-3 text-sm">
               <div><label class="block text-xs text-slate-500 mb-1">Material</label>
-                <select x-model="intake.material_class" class="border rounded-lg px-2 py-1.5 w-full">
+                <select x-model="intake.material_class"
+                        class="border border-slate-300 rounded-lg px-2 py-1.5 w-full text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
                   <option value="">—</option>
                   <template x-for="o in options.material_class" :key="o"><option :value="o" x-text="o"></option></template>
                 </select></div>
               <div><label class="block text-xs text-slate-500 mb-1">Grade</label>
-                <select x-model="intake.grade" class="border rounded-lg px-2 py-1.5 w-full">
+                <select x-model="intake.grade"
+                        class="border border-slate-300 rounded-lg px-2 py-1.5 w-full text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
                   <option value="">—</option>
                   <template x-for="o in options.grade" :key="o"><option :value="o" x-text="o"></option></template>
                 </select></div>
               <div><label class="block text-xs text-slate-500 mb-1">Shape</label>
-                <select x-model="intake.shape" class="border rounded-lg px-2 py-1.5 w-full">
+                <select x-model="intake.shape"
+                        class="border border-slate-300 rounded-lg px-2 py-1.5 w-full text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
                   <option value="">—</option>
                   <template x-for="o in options.shape" :key="o"><option :value="o" x-text="o"></option></template>
                 </select></div>
             </div>
           </div>
 
-          <div class="bg-white rounded-xl shadow-sm p-4">
-            <div class="flex items-center mb-2">
-              <div class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Composition</div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div class="flex items-center">
+              <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Composition</div>
               <button type="button" @click="intake.composition.push({element:'',percent:''})"
-                      class="ml-auto text-xs text-brand-700 hover:underline">+ element</button>
+                      class="ml-auto shrink-0 whitespace-nowrap text-xs font-medium text-brand-700 hover:underline">+ element</button>
             </div>
-            <p class="text-[11px] text-slate-400 mb-2">
-              Fallback only — used for any heat whose row has no chemistry of its own.
-            </p>
+            <p class="text-[11px] text-slate-400 mb-2.5">Fallback for rows with no chemistry of their own.</p>
             <template x-for="(c, i) in intake.composition" :key="i">
               <div class="flex gap-2 mb-2">
                 <select x-model="c.element" x-effect="c.element && $nextTick(() => $el.value = c.element)"
-                        class="border rounded-lg px-2 py-1 text-sm w-24">
+                        class="border border-slate-300 rounded-lg px-2 py-1 text-sm w-24 bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
                   <option value="">—</option>
                   <template x-for="o in options.element" :key="o"><option :value="o" x-text="o"></option></template>
                 </select>
-                <input x-model="c.percent" type="number" step="0.001" min="0" max="100"
-                       placeholder="%" class="border rounded-lg px-2 py-1 text-sm flex-1" />
+                <input x-model="c.percent" type="number" step="0.001" min="0" max="100" placeholder="%"
+                       class="border border-slate-300 rounded-lg px-2 py-1 text-sm flex-1 min-w-0 bg-white text-right tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
                 <button type="button" @click="intake.composition.splice(i,1)"
-                        class="text-slate-300 hover:text-rose-600 px-1">✕</button>
+                        class="text-slate-300 hover:text-rose-600 px-1 transition-colors">✕</button>
               </div>
             </template>
           </div>
@@ -724,127 +778,139 @@
 
         <!-- the pieces -->
         <section class="col-span-3">
-          <div class="bg-white rounded-xl shadow-sm p-5">
-            <div class="flex items-center mb-1">
-              <div>
-                <div class="font-bold">Pieces in this delivery</div>
-                <p class="text-xs text-slate-500 mt-0.5">
-                  Each row is one bar (or several identical ones). Heat numbers stay
-                  separate records — two bars of the same size from different heats
-                  are different steel.
-                </p>
-              </div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <div class="flex items-center mb-3">
+              <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Pieces in this delivery</div>
               <button type="button" @click="addRow()"
-                      class="ml-auto shrink-0 whitespace-nowrap bg-slate-100 hover:bg-slate-200 border border-slate-300 px-3 py-1.5 rounded-lg text-sm font-medium">
+                      class="ml-auto shrink-0 whitespace-nowrap border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">
                 + Add piece
               </button>
             </div>
 
-            <!-- One card per piece. Composition belongs to the HEAT, which is
-                 why it lives on the row and not on the delivery: two rows with
-                 different heat numbers are different metal. -->
-            <div class="mt-4 space-y-3">
-              <template x-for="(r, i) in intake.pieces" :key="i">
-                <div class="border rounded-xl p-3"
-                     :class="r.showComp ? 'border-brand-600' : 'border-slate-200'">
-                  <div class="flex flex-wrap items-end gap-3">
-                    <div class="text-slate-400 text-sm w-5 pb-2" x-text="i + 1"></div>
-                    <div class="w-40">
-                      <label class="block text-xs text-slate-500 mb-1">Heat number *</label>
-                      <input x-model="r.heat_number" placeholder="H1001"
-                             class="border rounded-lg px-2 py-1.5 w-full font-mono text-sm" />
-                    </div>
-                    <div class="w-36">
-                      <label class="block text-xs text-slate-500 mb-1">Material</label>
-                      <select x-model="r.material_class" class="border rounded-lg px-2 py-1.5 w-full text-sm">
-                        <option value="" x-text="intake.material_class || '—'"></option>
-                        <template x-for="o in options.material_class" :key="o"><option :value="o" x-text="o"></option></template>
-                      </select>
-                    </div>
-                    <div class="w-32">
-                      <label class="block text-xs text-slate-500 mb-1">Grade</label>
-                      <select x-model="r.grade" class="border rounded-lg px-2 py-1.5 w-full text-sm">
-                        <option value="" x-text="intake.grade || '—'"></option>
-                        <template x-for="o in options.grade" :key="o"><option :value="o" x-text="o"></option></template>
-                      </select>
-                    </div>
-                    <div class="w-24">
-                      <label class="block text-xs text-slate-500 mb-1">Length *</label>
-                      <input x-model="r.length_mm" type="number" step="0.01" min="0"
-                             class="border rounded-lg px-2 py-1.5 w-full text-right text-sm" />
-                    </div>
-                    <div class="w-20">
-                      <label class="block text-xs text-slate-500 mb-1">Ø</label>
-                      <input x-model="r.diameter_mm" type="number" step="0.01" min="0"
-                             class="border rounded-lg px-2 py-1.5 w-full text-right text-sm" />
-                    </div>
-                    <div class="w-16">
-                      <label class="block text-xs text-slate-500 mb-1">Qty</label>
-                      <input x-model="r.quantity" type="number" step="1" min="1"
-                             class="border rounded-lg px-2 py-1.5 w-full text-right text-sm" />
-                    </div>
-                    <div class="flex-1 min-w-[120px]">
-                      <label class="block text-xs text-slate-500 mb-1">Note</label>
-                      <input x-model="r.note" class="border rounded-lg px-2 py-1.5 w-full text-sm" />
-                    </div>
-                    <div class="flex items-center gap-1 pb-1">
-                      <button type="button" @click="toggleComp(r)"
-                              class="px-2 py-1.5 rounded-lg text-xs font-medium border"
-                              :class="compCount(r) ? 'border-brand-600 text-brand-700 bg-brand-50' : 'border-slate-300 text-slate-500 hover:bg-slate-50'"
-                              x-text="compCount(r) ? 'Chemistry (' + compCount(r) + ')' : '+ Chemistry'"></button>
-                      <button type="button" @click="copyDown(i)" title="Duplicate this piece"
-                              class="text-slate-300 hover:text-brand-600 px-1 text-lg leading-none">⧉</button>
-                      <button type="button" @click="removeRow(i)" title="Remove this piece"
-                              class="text-slate-300 hover:text-rose-600 px-1 text-lg leading-none">✕</button>
-                    </div>
-                  </div>
-
-                  <!-- per-heat chemistry -->
-                  <div x-show="r.showComp" x-cloak class="mt-3 pt-3 border-t">
-                    <div class="flex items-center mb-2">
-                      <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                        Composition of heat <span class="font-mono" x-text="r.heat_number || '—'"></span>
-                      </div>
-                      <button type="button" @click="addRowComp(r)"
-                              class="ml-auto text-xs text-brand-700 hover:underline">+ element</button>
-                    </div>
-                    <p class="text-[11px] text-slate-400 mb-2">
-                      From the spectroscopy report. Rows sharing this heat number share one analysis.
-                    </p>
-                    <div class="flex flex-wrap gap-2">
-                      <template x-for="(c, ci) in r.composition" :key="ci">
-                        <div class="flex items-center gap-1">
-                          <!-- x-effect re-applies the value AFTER x-for has rendered the
-                               options; without it a prefilled select shows blank. -->
-                          <select x-model="c.element" x-effect="c.element && $nextTick(() => $el.value = c.element)"
-                                  class="border rounded-lg px-2 py-1 text-sm w-24">
-                            <option value="">—</option>
-                            <template x-for="o in options.element" :key="o"><option :value="o" x-text="o"></option></template>
+            <!-- One tbody per piece: the chemistry drawer is a SECOND <tr>, and
+                 sibling <tr>s may not share one x-for — so x-for wraps the tbody.
+                 Composition belongs to the HEAT, which is why it lives on the row
+                 and not on the delivery: two rows with different heat numbers are
+                 different metal. -->
+            <div class="rounded-xl border border-slate-200 overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="bg-slate-50 border-b-2 border-slate-200">
+                    <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                      <th class="px-3 py-2 w-8">#</th>
+                      <th class="px-2 py-2 whitespace-nowrap">Heat no. *</th>
+                      <th class="px-2 py-2 whitespace-nowrap">Material</th>
+                      <th class="px-2 py-2 whitespace-nowrap">Grade</th>
+                      <th class="px-2 py-2 text-right whitespace-nowrap">Length *</th>
+                      <th class="px-2 py-2 text-right">Ø</th>
+                      <th class="px-2 py-2 text-right">Qty</th>
+                      <th class="px-2 py-2">Note</th>
+                      <th class="px-2 py-2"></th>
+                    </tr>
+                  </thead>
+                  <template x-for="(r, i) in intake.pieces" :key="i">
+                    <tbody>
+                      <tr class="border-t border-slate-100 transition-colors" :class="r.showComp ? 'bg-brand-50/40' : ''">
+                        <td class="px-3 py-2 text-slate-300 tabular-nums align-middle" x-text="i + 1"></td>
+                        <td class="px-2 py-2">
+                          <input x-model="r.heat_number" placeholder="H1001" aria-label="Heat number"
+                                 class="border border-slate-300 rounded-lg px-2 py-1.5 w-24 font-mono text-xs bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                        </td>
+                        <td class="px-2 py-2">
+                          <select x-model="r.material_class" aria-label="Material"
+                                  class="border border-slate-300 rounded-lg px-1.5 py-1.5 w-28 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
+                            <option value="" x-text="intake.material_class || '—'"></option>
+                            <template x-for="o in options.material_class" :key="o"><option :value="o" x-text="o"></option></template>
                           </select>
-                          <input x-model="c.percent" type="number" step="0.001" min="0" max="100"
-                                 placeholder="%" class="border rounded-lg px-2 py-1 text-sm w-20 text-right" />
-                          <button type="button" @click="r.composition.splice(ci,1)"
-                                  class="text-slate-300 hover:text-rose-600 px-1">✕</button>
-                        </div>
-                      </template>
-                    </div>
-                  </div>
-                </div>
-              </template>
+                        </td>
+                        <td class="px-2 py-2">
+                          <select x-model="r.grade" aria-label="Grade"
+                                  class="border border-slate-300 rounded-lg px-1.5 py-1.5 w-24 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
+                            <option value="" x-text="intake.grade || '—'"></option>
+                            <template x-for="o in options.grade" :key="o"><option :value="o" x-text="o"></option></template>
+                          </select>
+                        </td>
+                        <td class="px-2 py-2 text-right">
+                          <input x-model="r.length_mm" type="number" step="0.01" min="0" aria-label="Length"
+                                 class="border border-slate-300 rounded-lg px-2 py-1.5 w-20 text-right tabular-nums text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                        </td>
+                        <td class="px-2 py-2 text-right">
+                          <input x-model="r.diameter_mm" type="number" step="0.01" min="0" aria-label="Diameter"
+                                 class="border border-slate-300 rounded-lg px-2 py-1.5 w-16 text-right tabular-nums text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                        </td>
+                        <td class="px-2 py-2 text-right">
+                          <input x-model="r.quantity" type="number" step="1" min="1" aria-label="Quantity"
+                                 class="border border-slate-300 rounded-lg px-1.5 py-1.5 w-14 text-right tabular-nums text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                        </td>
+                        <td class="px-2 py-2">
+                          <input x-model="r.note" placeholder="Note" aria-label="Note"
+                                 class="border border-slate-300 rounded-lg px-2 py-1.5 w-full min-w-[80px] text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                        </td>
+                        <td class="px-2 py-2">
+                          <div class="flex items-center justify-end gap-1 whitespace-nowrap">
+                            <button type="button" @click="toggleComp(r)"
+                                    title="Rows sharing this heat number share one analysis"
+                                    class="px-1.5 py-1.5 rounded-lg text-[11px] font-medium border whitespace-nowrap transition-colors"
+                                    :class="compCount(r) ? 'border-brand-600 text-brand-700 bg-brand-50' : 'border-slate-300 text-slate-500 hover:bg-slate-50'"
+                                    x-text="compCount(r) ? 'Chem. (' + compCount(r) + ')' : '+ Chem.'"></button>
+                            <button type="button" @click="copyDown(i)" title="Duplicate this piece"
+                                    class="text-slate-300 hover:text-brand-600 px-0.5 text-base leading-none transition-colors">⧉</button>
+                            <button type="button" @click="removeRow(i)" title="Remove this piece"
+                                    class="text-slate-300 hover:text-rose-600 px-0.5 text-base leading-none transition-colors">✕</button>
+                          </div>
+                        </td>
+                      </tr>
+                      <!-- per-heat chemistry -->
+                      <tr x-show="r.showComp" x-cloak class="bg-brand-50/40">
+                        <td colspan="9" class="px-3 pb-3">
+                          <div class="flex items-center mb-1.5">
+                            <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                              Composition of heat
+                              <span class="font-mono normal-case tracking-normal text-slate-600" x-text="r.heat_number || '—'"></span>
+                            </div>
+                            <button type="button" @click="addRowComp(r)"
+                                    class="ml-auto shrink-0 whitespace-nowrap text-xs font-medium text-brand-700 hover:underline">+ element</button>
+                          </div>
+                          <div class="flex flex-wrap gap-2">
+                            <template x-for="(c, ci) in r.composition" :key="ci">
+                              <div class="flex items-center gap-1">
+                                <!-- x-effect re-applies the value AFTER x-for has rendered the
+                                     options; without it a prefilled select shows blank. -->
+                                <select x-model="c.element" x-effect="c.element && $nextTick(() => $el.value = c.element)"
+                                        class="border border-slate-300 rounded-lg px-2 py-1 text-sm w-24 bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
+                                  <option value="">—</option>
+                                  <template x-for="o in options.element" :key="o"><option :value="o" x-text="o"></option></template>
+                                </select>
+                                <input x-model="c.percent" type="number" step="0.001" min="0" max="100" placeholder="%"
+                                       class="border border-slate-300 rounded-lg px-2 py-1 text-sm w-20 text-right tabular-nums bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                                <button type="button" @click="r.composition.splice(ci,1)"
+                                        class="text-slate-300 hover:text-rose-600 px-1 transition-colors">✕</button>
+                              </div>
+                            </template>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </template>
+                  <tfoot>
+                    <tr class="bg-slate-50 border-t-2 border-slate-200">
+                      <td colspan="9" class="px-3 py-2.5 text-xs text-slate-500">
+                        <span class="font-bold text-slate-800 tabular-nums" x-text="intakeHeatCount()"></span> heat number(s),
+                        <span class="font-bold text-slate-800 tabular-nums" x-text="intakeRodCount()"></span> piece(s) in this delivery
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
 
-            <div class="mt-4 pt-4 border-t flex items-center text-sm">
-              <div class="text-slate-500">
-                <span class="font-bold text-slate-800" x-text="intakeHeatCount()"></span> heat number(s),
-                <span class="font-bold text-slate-800" x-text="intakeRodCount()"></span> piece(s) in this delivery
-              </div>
-              <div class="ml-auto flex items-center gap-3">
-                <span class="text-rose-600 text-sm" x-text="formError"></span>
-                <button @click="saveIntake()"
-                        class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg text-sm font-medium">
-                  Save delivery
-                </button>
-              </div>
+            <div class="mt-4 flex items-center gap-3">
+              <span class="text-rose-600 text-sm" x-text="formError"></span>
+              <button @click="saveIntake()"
+                      class="ml-auto bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2 rounded-lg text-sm shadow-sm transition-colors
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
+                Save delivery
+              </button>
             </div>
           </div>
         </section>
@@ -857,27 +923,30 @@
   <!-- Adding opens the full-screen page further down; editing stays a modal. -->
   <template x-if="form && !addPage">
   <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-4">
-      <div class="px-6 py-4 border-b flex items-center">
-        <div class="text-lg font-bold" x-text="form?.id ? 'Edit heat ' + form.heat_number : 'New heat'"></div>
-        <button @click="form = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-3xl my-4">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold" x-text="form?.id ? 'Edit heat' : 'New heat'"></div>
+          <div class="text-lg font-bold font-mono tracking-tight text-slate-900" x-text="form?.id ? form.heat_number : '—'"></div>
+        </div>
+        <button @click="form = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none transition-colors">✕</button>
       </div>
       <form @submit.prevent="saveHeat()" class="p-6">
         <div class="grid grid-cols-3 gap-4">
           <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">Heat number *</label>
             <input x-model="form.heat_number" placeholder="From the mill certificate"
-                   class="w-full border rounded-lg px-3 py-2 text-sm font-semibold" />
+                   class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition font-mono font-semibold" />
           </div>
           <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">Date received *</label>
-            <input type="date" x-model="form.date_received" class="w-full border rounded-lg px-3 py-2 text-sm" />
+            <input type="date" x-model="form.date_received" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
           </div>
           <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">Supplier</label>
             <select x-model="form.supplier" x-effect="form.supplier && $nextTick(() => $el.value = form.supplier)"
                     @change="form.supplier === '__add__' && inlineAdd('supplier', form, 'supplier')"
-                    class="w-full border rounded-lg px-3 py-2 text-sm">
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
               <option value="">—</option>
               <!-- a supplier pruned from the list must not be blanked on save -->
               <template x-if="form.supplier && !options.supplier.includes(form.supplier)">
@@ -890,7 +959,7 @@
           <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">Material class</label>
             <select x-model="form.material_class" x-effect="form.material_class && $nextTick(() => $el.value = form.material_class)" @change="form.material_class === '__add__' && inlineAdd('material_class', form, 'material_class')"
-                    class="w-full border rounded-lg px-2 py-2 text-sm">
+                    class="w-full border border-slate-300 rounded-lg px-2 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
               <option value="">—</option>
               <template x-for="o in options.material_class"><option :value="o" x-text="o"></option></template>
               <option value="__add__">+ Add new…</option>
@@ -899,7 +968,7 @@
           <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">Grade</label>
             <select x-model="form.grade" x-effect="form.grade && $nextTick(() => $el.value = form.grade)" @change="form.grade === '__add__' && inlineAdd('grade', form, 'grade')"
-                    class="w-full border rounded-lg px-2 py-2 text-sm">
+                    class="w-full border border-slate-300 rounded-lg px-2 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
               <option value="">—</option>
               <template x-for="o in options.grade"><option :value="o" x-text="o"></option></template>
               <option value="__add__">+ Add new…</option>
@@ -908,7 +977,7 @@
           <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">Rod shape</label>
             <select x-model="form.shape" x-effect="form.shape && $nextTick(() => $el.value = form.shape)" @change="form.shape === '__add__' && inlineAdd('shape', form, 'shape')"
-                    class="w-full border rounded-lg px-2 py-2 text-sm">
+                    class="w-full border border-slate-300 rounded-lg px-2 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
               <option value="">—</option>
               <template x-for="o in options.shape"><option :value="o" x-text="o"></option></template>
               <option value="__add__">+ Add new…</option>
@@ -916,49 +985,50 @@
           </div>
           <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">Size / section</label>
-            <input x-model="form.size_section" placeholder="Ø25 mm × 3 m" class="w-full border rounded-lg px-3 py-2 text-sm" />
+            <input x-model="form.size_section" placeholder="Ø25 mm × 3 m" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
           </div>
           <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">Rods received *</label>
-            <input type="number" min="1" x-model="form.rods_received" class="w-full border rounded-lg px-3 py-2 text-sm" />
+            <input type="number" min="1" x-model="form.rods_received" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition text-right tabular-nums" />
           </div>
           <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">Total weight (kg)</label>
-            <input type="number" min="0" step="0.1" x-model="form.total_weight_kg" class="w-full border rounded-lg px-3 py-2 text-sm" />
+            <input type="number" min="0" step="0.1" x-model="form.total_weight_kg" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition text-right tabular-nums" />
           </div>
           <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">Rack no.</label>
-            <input x-model="form.rack" class="w-full border rounded-lg px-3 py-2 text-sm" />
+            <input x-model="form.rack" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
           </div>
           <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">Purchase price (₹ total)</label>
-            <input type="number" min="0" step="0.01" x-model="form.price_total" class="w-full border rounded-lg px-3 py-2 text-sm" />
+            <input type="number" min="0" step="0.01" x-model="form.price_total" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition text-right tabular-nums" />
           </div>
           <div>
             <label class="block text-xs font-medium text-slate-500 mb-1">Rate (₹/kg)</label>
-            <input type="number" min="0" step="0.01" x-model="form.price_rate_per_kg" class="w-full border rounded-lg px-3 py-2 text-sm" />
+            <input type="number" min="0" step="0.01" x-model="form.price_rate_per_kg" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition text-right tabular-nums" />
           </div>
         </div>
 
         <div class="mt-5">
           <div class="flex items-center mb-2">
-            <div class="text-sm font-semibold">Chemical composition <span class="text-slate-400 font-normal">(from the spectroscopy report)</span></div>
-            <button type="button" @click="addComp()" class="ml-auto text-sm text-brand-700 hover:underline">+ Add element</button>
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold"
+                 title="From the spectroscopy report">Chemical composition</div>
+            <button type="button" @click="addComp()" class="ml-auto text-sm font-medium text-brand-700 hover:underline">+ Add element</button>
           </div>
           <div class="space-y-2">
             <template x-for="(c, i) in form?.composition || []" :key="i">
               <div class="flex items-center gap-2">
                 <select x-model="c.element" x-effect="c.element && $nextTick(() => $el.value = c.element)"
                         @change="c.element === '__add__' && inlineAdd('element', c, 'element')"
-                        class="border rounded-lg px-2 py-1.5 text-sm w-32">
+                        class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-32 bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
                   <option value="">Element…</option>
                   <template x-for="o in options.element"><option :value="o" x-text="o"></option></template>
                   <option value="__add__">+ Add new…</option>
                 </select>
                 <input type="number" step="0.001" min="0" max="100" x-model="c.percent" placeholder="%"
-                       class="border rounded-lg px-2 py-1.5 text-sm w-28" />
+                       class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-28 text-right tabular-nums bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
                 <span class="text-slate-400 text-sm">%</span>
-                <button type="button" @click="removeComp(i)" class="text-slate-300 hover:text-rose-600">✕</button>
+                <button type="button" @click="removeComp(i)" class="text-slate-300 hover:text-rose-600 transition-colors">✕</button>
               </div>
             </template>
           </div>
@@ -966,59 +1036,86 @@
 
         <!-- Piece dimensions: what makes a dimensional feasibility check possible.
              Editing them here keeps the rod count in step automatically. -->
-        <div class="mt-5 pt-4 border-t">
-          <div class="flex items-center mb-1">
+        <div class="mt-5 pt-4 border-t border-slate-200">
+          <div class="flex items-center mb-2">
             <div>
-              <div class="text-sm font-semibold">Pieces</div>
-              <p class="text-xs text-slate-500">
-                Individual bars under this heat. Length and Ø are what the material
-                check measures against — without them this heat can only be checked
-                by quantity.
-              </p>
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Pieces</div>
+              <p class="text-xs text-slate-400">Length and Ø are what the material check measures against.</p>
             </div>
-            <button type="button" @click="addPiece()" class="ml-auto text-sm text-brand-700 hover:underline">+ Add piece</button>
+            <button type="button" @click="addPiece()" class="ml-auto text-sm font-medium text-brand-700 hover:underline">+ Add piece</button>
           </div>
-          <div class="space-y-2 mt-2">
-            <template x-for="(pc, i) in form?.pieces || []" :key="i">
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-slate-400 w-4" x-text="i + 1"></span>
-                <input type="number" step="0.01" min="0" x-model="pc.length_mm" placeholder="length"
-                       class="border rounded-lg px-2 py-1.5 text-sm w-28 text-right" />
-                <input type="number" step="0.01" min="0" x-model="pc.diameter_mm" placeholder="Ø"
-                       class="border rounded-lg px-2 py-1.5 text-sm w-24 text-right" />
-                <span class="text-slate-400 text-sm">×</span>
-                <input type="number" step="1" min="1" x-model="pc.quantity" placeholder="qty"
-                       class="border rounded-lg px-2 py-1.5 text-sm w-20 text-right" />
-                <input x-model="pc.note" placeholder="note" class="border rounded-lg px-2 py-1.5 text-sm flex-1" />
-                <button type="button" @click="removePiece(i)" class="text-slate-300 hover:text-rose-600">✕</button>
-              </div>
-            </template>
-            <p class="text-xs text-slate-400" x-show="!(form?.pieces || []).length">
-              No piece dimensions recorded — add one to make this heat checkable by dimension.
-            </p>
-            <p class="text-xs text-slate-500" x-show="pieceRods() > 0">
-              These pieces total <b x-text="pieceRods()"></b> rod(s), which replaces the
-              &ldquo;rods received&rdquo; figure above on save.
-            </p>
+          <div class="rounded-xl border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b-2 border-slate-200">
+                  <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    <th class="px-3 py-2 w-8">#</th>
+                    <th class="px-2 py-2 text-right">Length</th>
+                    <th class="px-2 py-2 text-right">Ø</th>
+                    <th class="px-2 py-2 text-right">Qty</th>
+                    <th class="px-2 py-2">Note</th>
+                    <th class="px-2 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="(pc, i) in form?.pieces || []" :key="i">
+                    <tr>
+                      <td class="px-3 py-2 text-xs text-slate-300 tabular-nums" x-text="i + 1"></td>
+                      <td class="px-2 py-2 text-right">
+                        <input type="number" step="0.01" min="0" x-model="pc.length_mm" placeholder="length" aria-label="Length"
+                               class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-28 text-right tabular-nums bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                      </td>
+                      <td class="px-2 py-2 text-right">
+                        <input type="number" step="0.01" min="0" x-model="pc.diameter_mm" placeholder="Ø" aria-label="Diameter"
+                               class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-24 text-right tabular-nums bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                      </td>
+                      <td class="px-2 py-2 text-right">
+                        <input type="number" step="1" min="1" x-model="pc.quantity" placeholder="qty" aria-label="Quantity"
+                               class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-20 text-right tabular-nums bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                      </td>
+                      <td class="px-2 py-2">
+                        <input x-model="pc.note" placeholder="note" aria-label="Note"
+                               class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-full bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                      </td>
+                      <td class="px-2 py-2 text-right">
+                        <button type="button" @click="removePiece(i)" class="text-slate-300 hover:text-rose-600 transition-colors">✕</button>
+                      </td>
+                    </tr>
+                  </template>
+                  <tr x-show="!(form?.pieces || []).length">
+                    <td colspan="6" class="px-3 py-6 text-center text-xs text-slate-400">
+                      No pieces — this heat can only be checked by quantity.
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot x-show="pieceRods() > 0">
+                  <tr class="bg-slate-50 border-t-2 border-slate-200">
+                    <td colspan="6" class="px-3 py-2 text-xs text-slate-500">
+                      <b class="text-slate-800 tabular-nums" x-text="pieceRods()"></b> rod(s) —
+                      replaces &ldquo;rods received&rdquo; on save.
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </div>
 
         <div class="mt-5">
           <label class="block text-xs font-medium text-slate-500 mb-1">Notes</label>
-          <textarea x-model="form.notes" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm"></textarea>
+          <textarea x-model="form.notes" rows="2" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition"></textarea>
         </div>
 
         <p x-show="formError" x-text="formError" class="text-rose-600 text-sm mt-3"></p>
-        <p class="text-xs text-slate-400 mt-3" x-show="!form?.id">
-          Attachments (certificates, invoices) are added from the heat's detail view after saving.
-        </p>
 
         <div class="flex gap-3 mt-5">
-          <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-6 py-2.5 rounded-lg text-sm">
+          <button type="submit"
+                  class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-6 py-2.5 rounded-lg text-sm shadow-sm transition-colors
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
             <span x-text="form?.id ? 'Save changes' : 'Add heat'"></span>
           </button>
           <button type="button" @click="form = null"
-                  class="border border-slate-300 hover:bg-slate-50 text-slate-600 px-5 py-2.5 rounded-lg text-sm">Cancel</button>
+                  class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 px-5 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-colors">Cancel</button>
         </div>
       </form>
     </div>

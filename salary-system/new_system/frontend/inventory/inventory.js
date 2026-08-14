@@ -138,12 +138,35 @@ function inv() {
     statusLabel(s) {
       return { in_stock: "In stock", consumed: "Consumed", rejected: "Rejected" }[s] || s;
     },
+    // Dot-chip body (bg 50 / text 700 / inset ring 600/20). The dot itself is
+    // invStatusDot() — one shape for every status on every screen.
     statusClass(s) {
       return {
-        in_stock: "bg-emerald-100 text-emerald-700",
-        consumed: "bg-slate-200 text-slate-600",
-        rejected: "bg-rose-100 text-rose-700",
-      }[s] || "bg-slate-100";
+        in_stock: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20",
+        consumed: "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20",
+        rejected: "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20",
+      }[s] || "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20";
+    },
+    invStatusDot(s) {
+      return { in_stock: "bg-emerald-500", consumed: "bg-slate-400",
+               rejected: "bg-rose-500" }[s] || "bg-slate-400";
+    },
+    // Presentation only: dim absent values so filled cells carry the eye.
+    invDimCls(v) {
+      return (v === null || v === undefined || v === "" || v === 0) ? "text-slate-300" : "";
+    },
+    // How full is this heat's rack line, 0–100. Guards a 0-rod heat so the bar
+    // never gets a NaN width.
+    invStockPct(r) {
+      const total = Number(r.rods_received) || 0;
+      if (!total) return 0;
+      return Math.round((Number(r.remaining) || 0) / total * 100);
+    },
+    // Emerald when healthy, amber when the rack line is running low, rose once
+    // the batch was rejected.
+    invBarCls(r) {
+      if (r.status === "rejected") return "bg-rose-400";
+      return this.invStockPct(r) <= 25 ? "bg-amber-500" : "bg-emerald-500";
     },
     kindLabel(k) { return k === "certificate" ? "Spectroscopy / mill certificates" : "Purchase receipts / invoices"; },
     sizeLabel(b) {
@@ -433,9 +456,14 @@ function inv() {
                none: "Not available" }[s] || s;
     },
     availClass(s) {
-      return { available: "bg-emerald-100 text-emerald-800",
-               partial: "bg-amber-100 text-amber-800",
-               none: "bg-rose-100 text-rose-800" }[s] || "bg-slate-100 text-slate-700";
+      return { available: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20",
+               partial: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20",
+               none: "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20" }[s]
+             || "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20";
+    },
+    invAvailDot(s) {
+      return { available: "bg-emerald-500", partial: "bg-amber-500",
+               none: "bg-rose-500" }[s] || "bg-slate-400";
     },
     // dim(), not num(): num() already exists here and formats Indian-grouped
     // integers for the stat strip. Dimensions want the plain decimal.

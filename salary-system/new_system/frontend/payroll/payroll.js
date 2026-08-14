@@ -153,6 +153,15 @@ function app() {
 
     // ---- dashboard ------------------------------------------------------- //
     dash: { total: 0, cnc: 0, ot: 0, advance: 0 },
+    // Display-only: headcount split, derived from the roster already in memory.
+    get dashDepts() {
+      const by = {};
+      for (const e of this.employees) by[e.dept] = (by[e.dept] || 0) + 1;
+      const max = Math.max(1, ...Object.values(by));
+      return Object.entries(by)
+        .sort((a, b) => b[1] - a[1])
+        .map(([dept, n]) => ({ dept, n, pct: Math.round((n / max) * 100) }));
+    },
     enter_dashboard() {
       this.dash.total = this.employees.length;
       this.dash.cnc = this.employees.filter((e) => e.dept === "CNC").length;
@@ -311,10 +320,10 @@ function app() {
       return status === "P" && this.isSunday(period, day) ? "S" : status;
     },
     statusClass(period, day, status) {
-      if (status !== "P") return "bg-rose-100 text-rose-700";
+      if (status !== "P") return "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20";
       return this.isSunday(period, day)
-        ? "bg-amber-200 text-amber-800"
-        : "bg-emerald-100 text-emerald-700";
+        ? "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20"
+        : "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20";
     },
     async loadAttendance() {
       try {
@@ -589,6 +598,20 @@ function app() {
 
     // ---- pay history ----------------------------------------------------- //
     history: { period: prevMonth(), rows: [] },
+    // Display-only: column totals for the register's footer row.
+    get historyTotals() {
+      const t = { base: 0, pf: 0, esi: 0, adv: 0, total: 0, cheque: 0, cash: 0 };
+      for (const r of this.history.rows) {
+        t.base += Number(r.base) || 0;
+        t.pf += Number(r.pf) || 0;
+        t.esi += Number(r.esi) || 0;
+        t.adv += Number(r.adv_deducted) || 0;
+        t.total += Number(r.total) || 0;
+        t.cheque += Number(r.cheque) || 0;
+        t.cash += Number(r.cash) || 0;
+      }
+      return t;
+    },
     async loadHistory() {
       try { this.history.rows = await api(`/api/pay?period=${this.history.period}`); }
       catch (e) { this.fail(e); }

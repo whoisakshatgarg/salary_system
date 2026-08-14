@@ -66,11 +66,52 @@ function cu() {
       return s.length ? Math.max(1, ...s.map((x) => x.amount)) : 1;
     },
     barPct(v) { return Math.max(2, Math.round((v / this.chartMax) * 100)); },
+    // dot-chips: the pill (bg-50 / text-700 / ring-600/20) and its dot (the 500)
     stageClass(s) {
-      return { payment: "bg-emerald-100 text-emerald-700", dispatch: "bg-teal-100 text-teal-700",
-               production: "bg-amber-100 text-amber-800", qc: "bg-purple-100 text-purple-700",
-               po: "bg-indigo-100 text-indigo-700", quote: "bg-sky-100 text-sky-700",
-             }[s] || "bg-slate-200 text-slate-600";
+      return { payment: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20",
+               dispatch: "bg-teal-50 text-teal-700 ring-1 ring-inset ring-teal-600/20",
+               production: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20",
+               qc: "bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/20",
+               po: "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-600/20",
+               quote: "bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20",
+             }[s] || "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20";
+    },
+    cuDot(s) {
+      return { payment: "bg-emerald-500", dispatch: "bg-teal-500", production: "bg-amber-500",
+               qc: "bg-violet-500", po: "bg-indigo-500", quote: "bg-sky-500",
+             }[s] || "bg-slate-400";
+    },
+    // the same words the Orders board uses, so a stage reads the same everywhere
+    cuStageLabel(s) {
+      return { enquiry: "Enquiry", quote: "Quote", po: "PO received", production: "Production",
+               qc: "QC", dispatch: "Dispatch", payment: "Payment received" }[s] || s;
+    },
+    cuKindClass(k) {
+      return k === "invoice" ? "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-600/20"
+                             : "bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20";
+    },
+    cuKindDot(k) { return k === "invoice" ? "bg-indigo-500" : "bg-sky-500"; },
+
+    // footer count lines
+    get cuListLine() {
+      const n = this.rows.length;
+      if (!n) return "";
+      const withOrders = this.rows.filter((c) => c.orders).length;
+      return `${n} customer${n === 1 ? "" : "s"} · ${withOrders} with orders`;
+    },
+    get cuOrderLine() {
+      const n = (this.biz?.orders || []).length;
+      return n ? `${n} order${n === 1 ? "" : "s"}, newest first` : "";
+    },
+    get cuDocLine() {
+      const d = this.biz?.documents || [];
+      if (!d.length) return "";
+      const q = d.filter((x) => x.kind === "quotation").length;
+      return `${d.length} document${d.length === 1 ? "" : "s"} · ${q} quotation${q === 1 ? "" : "s"} · ${d.length - q} invoice${d.length - q === 1 ? "" : "s"}`;
+    },
+    get cuRateLine() {
+      const n = (this.detail?.operation_rates || []).length;
+      return n ? `${n} negotiated rate${n === 1 ? "" : "s"}` : "";
     },
     printDoc(d) { window.open(`/api/quotations/${d.id}/print`, "_blank"); },
 

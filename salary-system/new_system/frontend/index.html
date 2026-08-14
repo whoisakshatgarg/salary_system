@@ -7,53 +7,54 @@
   <!-- Vendored locally so the app works fully offline (no CDN needed). -->
   <script src="/vendor/tailwind.js"></script>
   <script>
-    tailwind.config = { theme: { extend: { colors: { brand: { 600: "#1d4ed8", 700: "#1e40af" } } } } };
+    tailwind.config = { theme: { extend: { colors: { brand: {
+      50: "#eff6ff", 100: "#dbeafe", 500: "#3b82f6",
+      600: "#1d4ed8", 700: "#1e40af", 800: "#1e3a8a" } } } } };
   </script>
   <script defer src="shell/shell.js"></script>
   <script defer src="/vendor/alpine.js"></script>
   <style>
     [x-cloak] { display: none !important; }
     body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-    input, select { @apply outline-none; }
+    input, select, textarea { outline: none; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800" x-data="shell()" x-init="boot()" x-cloak>
 
   <!-- Toast -->
   <div x-show="toast.show" x-transition
-       class="fixed top-4 right-4 z-[70] px-4 py-3 rounded-lg shadow-lg text-white text-sm"
+       class="fixed top-4 right-4 z-[70] px-4 py-2.5 rounded-xl shadow-lg text-white text-sm font-medium ring-1 ring-inset ring-white/15"
        :class="toast.kind === 'err' ? 'bg-rose-600' : 'bg-emerald-600'"
        x-text="toast.msg"></div>
 
   <!-- ====================== UPDATE-AVAILABLE POPUP ====================== -->
   <div x-show="upd.show" x-cloak
        class="fixed inset-0 z-[60] bg-slate-900/60 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md p-6">
       <template x-if="!upd.done">
         <div>
-          <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-full bg-brand-600/10 text-brand-700 flex items-center justify-center text-xl">⬆</div>
-            <div>
-              <div class="text-lg font-bold text-slate-800">Update available</div>
-              <div class="text-sm text-slate-500">
-                Version <b x-text="'v' + (upd.info?.latest || '')"></b> is ready —
-                you have <span x-text="'v' + (upd.info?.current || '')"></span>.
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-600/10 flex items-center justify-center text-xl shrink-0">⬆</div>
+            <div class="min-w-0">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Update</div>
+              <div class="text-base font-bold text-slate-900">
+                <span x-text="'v' + (upd.info?.latest || '')"></span> available
               </div>
             </div>
+            <span class="ml-auto font-mono text-xs text-slate-400 whitespace-nowrap shrink-0"
+                  x-text="'now v' + (upd.info?.current || '')"></span>
           </div>
-          <p x-show="upd.info && !upd.info.can_apply" class="text-xs text-amber-700 bg-amber-50 rounded-lg p-3 mb-3">
-            This copy can't update itself (it runs from source or the new build isn't
-            finished yet). On the installed Windows app this button does everything.
+          <p x-show="upd.info && !upd.info.can_apply"
+             class="text-xs text-amber-800 bg-amber-50 ring-1 ring-inset ring-amber-600/20 rounded-lg px-3 py-2 mb-3">
+            This copy can't update itself — the installed Windows app can.
           </p>
-          <p class="text-xs text-slate-400 mb-4">
-            Your data is safe — everything lives outside the app and is untouched by updates.
-          </p>
+          <p class="text-xs text-slate-400 mb-4">Your data lives outside the app and is untouched.</p>
           <div class="flex gap-3">
             <button @click="applyUpdate()" :disabled="upd.busy || !upd.info?.can_apply"
-                    class="flex-1 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg"
+                    class="flex-1 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg shadow-sm text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40"
                     x-text="upd.busy ? 'Downloading…' : 'Update now'"></button>
             <button @click="upd.show = false" :disabled="upd.busy"
-                    class="flex-1 border border-slate-300 hover:bg-slate-50 disabled:opacity-50 text-slate-600 font-medium py-2.5 rounded-lg">
+                    class="flex-1 border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 font-medium py-2.5 rounded-lg shadow-sm text-sm transition-colors">
               Not now
             </button>
           </div>
@@ -62,10 +63,10 @@
       <template x-if="upd.done">
         <div class="text-center py-4">
           <div class="text-3xl mb-2">✅</div>
-          <div class="text-lg font-bold text-slate-800 mb-1">Update downloaded</div>
+          <div class="text-lg font-bold text-slate-900 mb-1">Update downloaded</div>
           <p class="text-sm text-slate-500">
-            The app will now close and reopen itself with the new version.<br />
-            If it doesn't come back in ~15 seconds, just double-click it again.
+            Closing and reopening with the new version.<br />
+            If it doesn't come back in ~15 seconds, double-click it again.
           </p>
         </div>
       </template>
@@ -73,40 +74,50 @@
   </div>
 
   <!-- ============================= LOGIN ============================= -->
-  <div x-show="booted && !user" class="min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-      <div class="text-center mb-6">
-        <div class="text-2xl font-bold text-brand-700">APEX THERMOCON</div>
-        <div class="text-slate-500 text-sm mt-1">Workshop Management</div>
+  <div x-show="booted && !user"
+       class="min-h-screen flex items-center justify-center p-4
+              bg-[radial-gradient(60rem_38rem_at_50%_-6%,#e2e8f0_0%,transparent_70%)]">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-md px-8 py-9">
+      <!-- machined nameplate -->
+      <div class="text-center mb-8">
+        <div class="text-[21px] font-bold uppercase tracking-[0.26em] text-slate-900 pl-[0.26em]">Apex Thermocon</div>
+        <div class="mx-auto mt-3.5 h-px w-14 bg-brand-600"></div>
+        <div class="mt-3.5 text-[10px] uppercase tracking-[0.22em] text-slate-400 font-semibold">Workshop Management</div>
       </div>
       <template x-if="edition !== 'operator'">
         <form @submit.prevent="doLogin()" class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-slate-600 mb-1">Username</label>
+            <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">Username</label>
             <input x-model="login.username" type="text" autocomplete="username"
-                   class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-600" />
+                   class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-600 mb-1">Password</label>
+            <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">Password</label>
             <input x-model="login.password" type="password" autocomplete="current-password"
-                   class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-600" />
+                   class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
           </div>
-          <p x-show="loginError" x-text="loginError" class="text-rose-600 text-sm"></p>
-          <button class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg">
+          <p x-show="loginError" x-text="loginError"
+             class="text-rose-700 text-xs bg-rose-50 ring-1 ring-inset ring-rose-600/20 rounded-lg px-3 py-2"></p>
+          <button class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg shadow-sm
+                         text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
             Sign in
           </button>
         </form>
       </template>
       <template x-if="edition === 'operator'">
         <div class="text-center">
-          <p x-show="loginError" x-text="loginError" class="text-rose-600 text-sm mb-3"></p>
+          <p x-show="loginError" x-text="loginError"
+             class="text-rose-700 text-xs bg-rose-50 ring-1 ring-inset ring-rose-600/20 rounded-lg px-3 py-2 mb-3"></p>
           <button @click="kioskRetry()"
-                  class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg">
+                  class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg shadow-sm
+                         text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
             Start
           </button>
         </div>
       </template>
-      <p class="text-[11px] text-slate-400 mt-5 text-center" x-show="version"
+      <p class="font-mono text-[11px] text-slate-300 mt-6 text-center" x-show="version"
          x-text="'v' + version"></p>
     </div>
   </div>
@@ -114,15 +125,15 @@
   <!-- ============================= SHELL ============================= -->
   <div x-show="user" class="min-h-screen flex flex-col">
     <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
-      <button @click="view = 'home'" class="text-left">
-        <div class="text-white font-bold leading-tight">APEX THERMOCON</div>
-        <div class="text-[11px] text-slate-400">Workshop Management</div>
+      <button @click="view = 'home'" class="text-left group">
+        <div class="text-white font-bold uppercase tracking-[0.16em] text-sm leading-tight group-hover:text-brand-100 transition-colors">Apex Thermocon</div>
+        <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500 mt-0.5">Workshop Management</div>
       </button>
       <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
         <button @click="checkUpdates(true)" title="Check for updates"
-                class="hover:text-slate-200" x-text="version ? 'v' + version : ''"></button>
-        <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
-        <button @click="logout()" class="text-rose-400 hover:text-rose-300 font-medium">Logout</button>
+                class="font-mono hover:text-slate-200 transition-colors" x-text="version ? 'v' + version : ''"></button>
+        <span>Signed in as <span class="text-white font-medium" x-text="user?.username"></span></span>
+        <button @click="logout()" class="text-slate-400 hover:text-rose-400 font-medium transition-colors">Logout</button>
       </div>
     </header>
 
@@ -130,51 +141,56 @@
 
       <!-- ============ HOME: one tile per granted module ============ -->
       <section x-show="view === 'home'">
-        <h1 class="text-2xl font-bold mb-1">Home</h1>
-        <p class="text-slate-500 text-sm mb-6">Pick a module. Your account sees only what it has access to.</p>
-        <div x-show="homeError" class="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-4 mb-4 text-sm flex items-center gap-3">
+        <h1 class="text-2xl font-bold text-slate-900 mb-5">Home</h1>
+        <div x-show="homeError" class="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl px-4 py-3 mb-4 text-sm flex items-center gap-3">
           <span x-text="homeError"></span>
-          <button @click="enter()" class="ml-auto bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium">Try again</button>
+          <button @click="enter()" class="ml-auto bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow-sm transition-colors">Try again</button>
         </div>
         <div x-show="data && !isAdmin && !grantedModules.length"
-             class="bg-white rounded-xl shadow-sm p-8 text-center text-slate-500 text-sm mb-4">
-          Your account doesn't have access to any modules yet — ask the owner to
-          grant some in <b>Users &amp; Access</b>.
+             class="rounded-xl border border-slate-200 bg-white shadow-sm p-8 text-center text-slate-500 text-sm mb-4">
+          <div class="text-2xl text-slate-300 mb-2">🔒</div>
+          No modules granted yet — ask the owner for access in <b class="text-slate-700">Users &amp; Access</b>.
         </div>
         <div class="grid grid-cols-3 gap-4">
           <template x-for="m in grantedModules" :key="m.key">
             <button @click="open(m)"
-                    class="bg-white rounded-xl shadow-sm hover:shadow-md transition p-5 text-left flex flex-col min-h-[132px]">
+                    class="rounded-xl border border-slate-200 bg-white shadow-sm p-5 text-left flex flex-col min-h-[128px]
+                           hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 transition-all">
               <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-xl bg-brand-600/10 text-brand-700 flex items-center justify-center text-2xl"
+                <div class="w-11 h-11 rounded-xl bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-600/10 flex items-center justify-center text-2xl shrink-0"
                      x-text="m.icon"></div>
-                <div class="font-bold text-slate-800" x-text="m.label"></div>
+                <div class="font-semibold text-slate-900 leading-tight" x-text="m.label"></div>
                 <span x-show="!m.built"
-                      class="ml-auto text-[10px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">Planned</span>
+                      class="ml-auto shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium
+                             bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Planned
+                </span>
               </div>
-              <p class="text-sm text-slate-500 mt-3" x-text="m.desc"></p>
+              <p class="text-[13px] leading-snug text-slate-500 mt-3" x-text="m.desc"></p>
             </button>
           </template>
           <!-- Admin-only: account management -->
           <button x-show="isAdmin" @click="openUsers()"
-                  class="bg-white rounded-xl shadow-sm hover:shadow-md transition p-5 text-left flex flex-col min-h-[132px]">
+                  class="rounded-xl border border-slate-200 bg-white shadow-sm p-5 text-left flex flex-col min-h-[128px]
+                         hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 transition-all">
             <div class="flex items-center gap-3">
-              <div class="w-11 h-11 rounded-xl bg-slate-800/10 text-slate-700 flex items-center justify-center text-2xl">🔑</div>
-              <div class="font-bold text-slate-800">Users &amp; Access</div>
+              <div class="w-11 h-11 rounded-xl bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-900/5 flex items-center justify-center text-2xl shrink-0">🔑</div>
+              <div class="font-semibold text-slate-900 leading-tight">Users &amp; Access</div>
             </div>
-            <p class="text-sm text-slate-500 mt-3">Add accounts and choose which modules each one can open.</p>
+            <p class="text-[13px] leading-snug text-slate-500 mt-3">Accounts and module permissions</p>
           </button>
 
           <!-- Not a module (no grant, no registry entry) — just the manual,
                and OWNER-ONLY: the server refuses /help/ to anyone else, so this
                tile is hidden to match rather than offering a dead end. -->
           <a x-show="isAdmin" href="/help/"
-             class="bg-white rounded-xl shadow-sm hover:shadow-md transition p-5 text-left flex flex-col min-h-[132px] no-underline">
+             class="rounded-xl border border-slate-200 bg-white shadow-sm p-5 text-left flex flex-col min-h-[128px] no-underline
+                    hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 transition-all">
             <div class="flex items-center gap-3">
-              <div class="w-11 h-11 rounded-xl bg-emerald-600/10 text-emerald-700 flex items-center justify-center text-2xl">📖</div>
-              <div class="font-bold text-slate-800">User Guide</div>
+              <div class="w-11 h-11 rounded-xl bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-900/5 flex items-center justify-center text-2xl shrink-0">📖</div>
+              <div class="font-semibold text-slate-900 leading-tight">User Guide</div>
             </div>
-            <p class="text-sm text-slate-500 mt-3">How to do everything, step by step, with pictures of every screen.</p>
+            <p class="text-[13px] leading-snug text-slate-500 mt-3">Every screen, step by step</p>
           </a>
         </div>
 
@@ -182,90 +198,113 @@
              Bottom-left of Home, under the tiles. Only appears when there is
              something to warn about, and only for accounts that can see orders
              (the fetch simply fails closed for anyone else). -->
-        <div class="grid grid-cols-3 gap-4 mt-6" x-show="dueSoon && (dueSoon.overdue.length || dueSoon.this_week.length || dueSoon.this_month.length)">
-          <div class="col-span-2 bg-white rounded-xl shadow-sm p-5">
+        <template x-if="dueSoon && (dueSoon.overdue.length || dueSoon.this_week.length || dueSoon.this_month.length)">
+          <div class="mt-8">
             <div class="flex items-center mb-3">
-              <div class="font-bold text-slate-800">⏰ Deadlines coming up</div>
-              <button @click="loadDueSoon()" class="ml-auto text-xs text-slate-400 hover:text-slate-600">Refresh</button>
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Deadlines</div>
+              <button @click="loadDueSoon()"
+                      class="ml-auto text-xs text-slate-400 hover:text-brand-700 transition-colors">Refresh</button>
             </div>
+            <div class="grid grid-cols-3 gap-4 items-start">
 
-            <template x-if="dueSoon && dueSoon.overdue.length">
-              <div class="mb-4">
-                <div class="text-xs font-semibold uppercase tracking-wide text-rose-700 mb-1.5">
-                  Overdue (<span x-text="dueSoon.overdue.length"></span>)
+              <!-- Overdue -->
+              <div class="rounded-xl border border-slate-200 border-l-4 border-l-rose-500 bg-white shadow-sm overflow-hidden">
+                <div class="flex items-center px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200">
+                  <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Overdue</span>
+                  <span class="ml-auto text-[11px] tabular-nums font-semibold"
+                        :class="dueSoon.overdue.length ? 'text-rose-600' : 'text-slate-300'"
+                        x-text="dueSoon.overdue.length"></span>
                 </div>
-                <template x-for="o in dueSoon.overdue" :key="o.id">
-                  <div class="flex items-center gap-3 text-sm py-1.5 border-b last:border-0 border-slate-100">
-                    <span class="font-medium text-slate-800" x-text="o.customer_name"></span>
-                    <span class="font-mono text-xs text-slate-400" x-text="o.order_no"></span>
-                    <span class="text-slate-500 text-xs" x-text="o.qty_pending + ' still to send'"></span>
-                    <span class="ml-auto text-rose-700 font-semibold text-xs whitespace-nowrap"
-                          x-text="(-o.days_left) + ' day(s) late'"></span>
-                  </div>
-                </template>
-              </div>
-            </template>
-
-            <div class="grid grid-cols-2 gap-5">
-              <div>
-                <div class="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-1.5">
-                  Next 7 days (<span x-text="dueSoon ? dueSoon.this_week.length : 0"></span>)
+                <div class="divide-y divide-slate-100">
+                  <template x-for="o in dueSoon.overdue" :key="o.id">
+                    <div class="px-4 py-2 hover:bg-brand-50/60 transition-colors">
+                      <div class="flex items-center gap-2">
+                        <span class="font-mono text-xs font-semibold text-brand-700 shrink-0" x-text="o.order_no"></span>
+                        <span class="text-sm text-slate-800 truncate min-w-0" x-text="o.customer_name"></span>
+                        <span class="ml-auto shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium tabular-nums
+                                     bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20 whitespace-nowrap">
+                          <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span><span x-text="(-o.days_left) + 'd late'"></span>
+                        </span>
+                      </div>
+                      <div class="text-[11px] text-slate-400 tabular-nums mt-0.5" x-text="o.qty_pending + ' left'"></div>
+                    </div>
+                  </template>
+                  <div x-show="!dueSoon.overdue.length" class="px-4 py-3 text-xs text-slate-300">Nothing overdue</div>
                 </div>
-                <template x-for="o in (dueSoon ? dueSoon.this_week : [])" :key="o.id">
-                  <div class="text-sm py-1.5 border-b last:border-0 border-slate-100">
-                    <div class="flex items-center gap-2">
-                      <span class="font-medium text-slate-800" x-text="o.customer_name"></span>
-                      <span class="ml-auto text-amber-700 font-semibold text-xs whitespace-nowrap"
-                            x-text="o.days_left === 0 ? 'today' : ('in ' + o.days_left + 'd')"></span>
-                    </div>
-                    <div class="text-xs text-slate-400">
-                      <span class="font-mono" x-text="o.order_no"></span>
-                      · <span x-text="o.qty_pending + ' left'"></span>
-                    </div>
-                  </div>
-                </template>
-                <div x-show="dueSoon && !dueSoon.this_week.length"
-                     class="text-sm text-slate-400 py-1.5">Nothing due this week.</div>
               </div>
 
-              <div>
-                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">
-                  Next month (<span x-text="dueSoon ? dueSoon.this_month.length : 0"></span>)
+              <!-- Next 7 days -->
+              <div class="rounded-xl border border-slate-200 border-l-4 border-l-amber-500 bg-white shadow-sm overflow-hidden">
+                <div class="flex items-center px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200">
+                  <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Next 7 days</span>
+                  <span class="ml-auto text-[11px] tabular-nums font-semibold"
+                        :class="dueSoon.this_week.length ? 'text-amber-600' : 'text-slate-300'"
+                        x-text="dueSoon.this_week.length"></span>
                 </div>
-                <template x-for="o in (dueSoon ? dueSoon.this_month : [])" :key="o.id">
-                  <div class="text-sm py-1.5 border-b last:border-0 border-slate-100">
-                    <div class="flex items-center gap-2">
-                      <span class="font-medium text-slate-800" x-text="o.customer_name"></span>
-                      <span class="ml-auto text-slate-500 text-xs whitespace-nowrap"
-                            x-text="'in ' + o.days_left + 'd'"></span>
+                <div class="divide-y divide-slate-100">
+                  <template x-for="o in dueSoon.this_week" :key="o.id">
+                    <div class="px-4 py-2 hover:bg-brand-50/60 transition-colors">
+                      <div class="flex items-center gap-2">
+                        <span class="font-mono text-xs font-semibold text-brand-700 shrink-0" x-text="o.order_no"></span>
+                        <span class="text-sm text-slate-800 truncate min-w-0" x-text="o.customer_name"></span>
+                        <span class="ml-auto shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium tabular-nums
+                                     bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 whitespace-nowrap">
+                          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span><span x-text="o.days_left === 0 ? 'today' : ('in ' + o.days_left + 'd')"></span>
+                        </span>
+                      </div>
+                      <div class="text-[11px] text-slate-400 tabular-nums mt-0.5" x-text="o.qty_pending + ' left'"></div>
                     </div>
-                    <div class="text-xs text-slate-400">
-                      <span class="font-mono" x-text="o.order_no"></span>
-                      · <span x-text="o.qty_pending + ' left'"></span>
-                    </div>
-                  </div>
-                </template>
-                <div x-show="dueSoon && !dueSoon.this_month.length"
-                     class="text-sm text-slate-400 py-1.5">Nothing due next month.</div>
+                  </template>
+                  <div x-show="!dueSoon.this_week.length" class="px-4 py-3 text-xs text-slate-300">Nothing due</div>
+                </div>
               </div>
+
+              <!-- Next 31 days -->
+              <div class="rounded-xl border border-slate-200 border-l-4 border-l-slate-400 bg-white shadow-sm overflow-hidden">
+                <div class="flex items-center px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200">
+                  <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Next 31 days</span>
+                  <span class="ml-auto text-[11px] tabular-nums font-semibold"
+                        :class="dueSoon.this_month.length ? 'text-slate-600' : 'text-slate-300'"
+                        x-text="dueSoon.this_month.length"></span>
+                </div>
+                <div class="divide-y divide-slate-100">
+                  <template x-for="o in dueSoon.this_month" :key="o.id">
+                    <div class="px-4 py-2 hover:bg-brand-50/60 transition-colors">
+                      <div class="flex items-center gap-2">
+                        <span class="font-mono text-xs font-semibold text-brand-700 shrink-0" x-text="o.order_no"></span>
+                        <span class="text-sm text-slate-800 truncate min-w-0" x-text="o.customer_name"></span>
+                        <span class="ml-auto shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium tabular-nums
+                                     bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-900/10 whitespace-nowrap">
+                          <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span><span x-text="'in ' + o.days_left + 'd'"></span>
+                        </span>
+                      </div>
+                      <div class="text-[11px] text-slate-400 tabular-nums mt-0.5" x-text="o.qty_pending + ' left'"></div>
+                    </div>
+                  </template>
+                  <div x-show="!dueSoon.this_month.length" class="px-4 py-3 text-xs text-slate-300">Nothing due</div>
+                </div>
+              </div>
+
             </div>
           </div>
-        </div>
+        </template>
       </section>
 
       <!-- ============ PLACEHOLDER for unbuilt modules ============ -->
       <section x-show="view === 'ph'">
         <template x-if="ph">
-          <div class="max-w-xl mx-auto text-center bg-white rounded-2xl shadow-sm p-10 mt-10">
+          <div class="max-w-xl mx-auto text-center rounded-2xl border border-slate-200 bg-white shadow-sm p-10 mt-10">
             <div class="text-5xl mb-4" x-text="ph.icon"></div>
-            <h1 class="text-2xl font-bold mb-2" x-text="ph.label"></h1>
-            <p class="text-slate-500 mb-1" x-text="ph.desc"></p>
-            <p class="text-sm text-slate-400 mb-6">
-              This module is planned but not built yet — its tile will open the real
-              screen automatically once it ships (see docs/ROADMAP.md).
-            </p>
+            <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium
+                        bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 mb-3">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Planned
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 mb-2" x-text="ph.label"></h1>
+            <p class="text-sm text-slate-500 mb-1" x-text="ph.desc"></p>
+            <p class="text-xs text-slate-400 mb-6">This tile opens the real screen once it ships.</p>
             <button @click="view = 'home'"
-                    class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-6 py-2.5 rounded-lg">
+                    class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2 rounded-lg shadow-sm text-sm
+                           transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
               ← Back to Home
             </button>
           </div>
@@ -274,53 +313,70 @@
 
       <!-- ============ USERS & ACCESS (admin) ============ -->
       <section x-show="view === 'users'">
-        <div class="flex items-center mb-6">
+        <div class="flex items-end mb-5">
           <div>
-            <h1 class="text-2xl font-bold">Users &amp; Access</h1>
-            <p class="text-slate-500 text-sm">Each account opens only the modules ticked for it. Administrators always have everything.</p>
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Administration</div>
+            <h1 class="text-2xl font-bold text-slate-900 leading-tight">Users &amp; Access</h1>
           </div>
-          <div class="ml-auto flex gap-3">
-            <button @click="view = 'home'" class="border border-slate-300 hover:bg-slate-50 text-slate-600 px-4 py-2 rounded-lg text-sm">← Home</button>
-            <button @click="newUser()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">+ Add account</button>
+          <div class="ml-auto flex gap-2">
+            <button @click="view = 'home'"
+                    class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">← Home</button>
+            <button @click="newUser()"
+                    class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm
+                           transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">+ Add account</button>
           </div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm overflow-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-left text-xs text-slate-500 border-b bg-slate-50">
-                <th class="px-4 py-3">Account</th>
-                <th class="px-3 py-3">Type</th>
-                <th class="px-3 py-3">Can open</th>
-                <th class="px-3 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="u in users" :key="u.id">
-                <tr class="border-b last:border-0">
-                  <td class="px-4 py-3 font-semibold" x-text="u.username"></td>
-                  <td class="px-3 py-3">
-                    <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                          :class="u.role === 'admin' ? 'bg-brand-600/10 text-brand-700' : 'bg-slate-200 text-slate-600'"
-                          x-text="u.role === 'admin' ? 'Administrator' : 'Staff'"></span>
-                  </td>
-                  <td class="px-3 py-3">
-                    <span x-show="u.role === 'admin'" class="text-slate-400 text-xs">every module</span>
-                    <div x-show="u.role !== 'admin'" class="flex flex-wrap gap-1">
-                      <template x-for="g in u.grants" :key="g">
-                        <span class="bg-slate-100 rounded-full px-2 py-0.5 text-xs"
-                              x-text="(data?.modules.find(m => m.key === g) || {label: g}).label"></span>
-                      </template>
-                      <span x-show="!u.grants.length" class="text-slate-400 text-xs">nothing yet</span>
-                    </div>
-                  </td>
-                  <td class="px-3 py-3 text-right whitespace-nowrap">
-                    <button @click="editUser(u)" class="text-brand-700 hover:underline text-sm mr-3">Edit</button>
-                    <button @click="deleteUser(u)" class="text-slate-300 hover:text-rose-600" title="Delete">✕</button>
-                  </td>
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-b-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">Account</th>
+                  <th class="px-3 py-2.5">Type</th>
+                  <th class="px-3 py-2.5">Can open</th>
+                  <th class="px-3 py-2.5 text-right">Actions</th>
                 </tr>
-              </template>
-            </tbody>
-          </table>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <!-- zebra is odd: not even: — the x-for <template> is itself
+                     nth-child(1) of the tbody, so it shifts the count by one. -->
+                <template x-for="u in users" :key="u.id">
+                  <tr class="odd:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                    <td class="px-4 py-2.5 font-semibold text-slate-900" x-text="u.username"></td>
+                    <td class="px-3 py-2.5">
+                      <span x-show="u.role === 'admin'"
+                            class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium
+                                   bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-600/20">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>Administrator
+                      </span>
+                      <span x-show="u.role !== 'admin'" class="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>Staff
+                      </span>
+                    </td>
+                    <td class="px-3 py-2.5">
+                      <span x-show="u.role === 'admin'" class="text-xs text-slate-400">every module</span>
+                      <div x-show="u.role !== 'admin'" class="flex flex-wrap gap-1">
+                        <template x-for="g in u.grants" :key="g">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium
+                                       bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-900/5"
+                                x-text="(data?.modules.find(m => m.key === g) || {label: g}).label"></span>
+                        </template>
+                        <span x-show="!u.grants.length" class="text-xs text-slate-300">nothing yet</span>
+                      </div>
+                    </td>
+                    <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                      <button @click="editUser(u)" class="text-brand-700 hover:underline text-sm font-medium">Edit</button>
+                      <span class="text-slate-200 mx-2">·</span>
+                      <button @click="deleteUser(u)" class="text-slate-400 hover:text-rose-600 text-sm transition-colors" title="Delete account">Delete</button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-4 py-2 border-t border-slate-100 bg-slate-50/60 text-xs text-slate-400">
+            <span class="tabular-nums" x-text="users.length"></span> accounts
+          </div>
         </div>
       </section>
     </main>
@@ -329,42 +385,57 @@
   <!-- ============ ACCOUNT FORM (add / edit) ============ -->
   <template x-if="uform">
     <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md my-10">
-        <div class="px-6 py-4 border-b flex items-center">
-          <div class="text-lg font-bold" x-text="uform.id ? 'Edit ' + uform.username : 'New account'"></div>
-          <button @click="uform = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md my-10">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Account</div>
+            <div class="text-base font-bold text-slate-900 leading-tight"
+                 x-text="uform.id ? uform.username : 'New account'"></div>
+          </div>
+          <button @click="uform = null"
+                  class="ml-auto text-slate-300 hover:text-slate-600 px-2 text-xl leading-none transition-colors">✕</button>
         </div>
         <form @submit.prevent="saveUser()" class="p-6 space-y-4">
           <div x-show="!uform.id">
-            <label class="block text-xs font-medium text-slate-500 mb-1">Username</label>
-            <input x-model="uform.username" placeholder="e.g. office" class="w-full border rounded-lg px-3 py-2 text-sm" />
+            <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">Username</label>
+            <input x-model="uform.username" placeholder="e.g. office"
+                   class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-500 mb-1"
-                   x-text="uform.id ? 'New password (leave blank to keep current)' : 'Password'"></label>
-            <input x-model="uform.password" type="password" class="w-full border rounded-lg px-3 py-2 text-sm" />
+            <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5"
+                   x-text="uform.id ? 'New password — blank keeps current' : 'Password'"></label>
+            <input x-model="uform.password" type="password"
+                   class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
           </div>
-          <label class="flex items-center gap-2 text-sm">
-            <input type="checkbox" :checked="uform.role === 'admin'"
+          <label class="flex items-center gap-2.5 text-sm text-slate-700 border border-slate-200 rounded-lg px-3 py-2.5
+                        hover:bg-slate-50 transition-colors cursor-pointer">
+            <input type="checkbox" class="accent-brand-600 w-4 h-4" :checked="uform.role === 'admin'"
                    @change="uform.role = $event.target.checked ? 'admin' : 'operator'" />
-            Administrator — full access to every module and this screen
+            <span><b class="font-semibold text-slate-900">Administrator</b> — full access</span>
           </label>
           <div x-show="uform.role !== 'admin'">
-            <div class="text-xs font-medium text-slate-500 mb-2">Modules this account can open</div>
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Can open</div>
             <div class="grid grid-cols-2 gap-2">
               <template x-for="m in (data?.modules || [])" :key="m.key">
-                <label class="flex items-center gap-2 text-sm bg-slate-50 rounded-lg px-3 py-2">
-                  <input type="checkbox" :checked="uform.grants.includes(m.key)" @change="toggleGrant(m.key)" />
-                  <span x-text="m.label"></span>
+                <label class="flex items-center gap-2 text-[13px] text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2
+                              hover:bg-white hover:border-slate-300 transition-colors cursor-pointer">
+                  <input type="checkbox" class="accent-brand-600 w-4 h-4 shrink-0"
+                         :checked="uform.grants.includes(m.key)" @change="toggleGrant(m.key)" />
+                  <span class="truncate" x-text="m.label"></span>
                 </label>
               </template>
             </div>
           </div>
-          <p x-show="uformError" x-text="uformError" class="text-rose-600 text-sm"></p>
+          <p x-show="uformError" x-text="uformError"
+             class="text-rose-700 text-xs bg-rose-50 ring-1 ring-inset ring-rose-600/20 rounded-lg px-3 py-2"></p>
           <div class="flex gap-3 pt-1">
-            <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg text-sm">Save</button>
+            <button type="submit"
+                    class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg shadow-sm text-sm
+                           transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">Save account</button>
             <button type="button" @click="uform = null"
-                    class="flex-1 border border-slate-300 hover:bg-slate-50 text-slate-600 py-2.5 rounded-lg text-sm">Cancel</button>
+                    class="flex-1 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg shadow-sm text-sm transition-colors">Cancel</button>
           </div>
         </form>
       </div>

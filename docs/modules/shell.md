@@ -55,7 +55,9 @@ grants ignored for admins. Seeded accounts: `admin` (all), `operator`
 
 ## Screens
 guide-images: shell-login, shell-home (now includes the deadlines panel),
-shell-home-restricted, shell-users, shell-user-form, shell-placeholder.
+shell-home-restricted, shell-users, shell-user-form. (shell-placeholder was
+retired — every registry module is built, so the placeholder screen is
+unreachable.)
 
 ## Known bugs
 None known.

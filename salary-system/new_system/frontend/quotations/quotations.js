@@ -63,13 +63,28 @@ function qi() {
            required_qty: "", part_length: "", part_diameter: "", margin: "" },
     chkResult: null, chkBusy: false, chkRefs: { material_class: [], grade: [] },
 
+    // Dot-chips: the chip body (bg / text / ring) and the 500-shade dot are two
+    // class strings on two elements — same palette, one shape everywhere.
     kindLabel(k) { return k === "quotation" ? "Quotation" : "Invoice"; },
-    kindClass(k) { return k === "quotation" ? "bg-sky-100 text-sky-700" : "bg-indigo-100 text-indigo-700"; },
-    statusClass(s) {
-      return { draft: "bg-slate-200 text-slate-600", sent: "bg-amber-100 text-amber-800",
-               accepted: "bg-emerald-100 text-emerald-700", paid: "bg-emerald-100 text-emerald-700",
-               cancelled: "bg-rose-100 text-rose-700" }[s] || "bg-slate-100";
+    kindClass(k) {
+      return k === "quotation"
+        ? "bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20"
+        : "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-600/20";
     },
+    qiKindDot(k) { return k === "quotation" ? "bg-sky-500" : "bg-indigo-500"; },
+    statusClass(s) {
+      const slate = "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20";
+      const emerald = "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20";
+      return { draft: slate, sent: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20",
+               accepted: emerald, paid: emerald,
+               cancelled: "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20" }[s] || slate;
+    },
+    qiStatusDot(s) {
+      return { draft: "bg-slate-400", sent: "bg-amber-500", accepted: "bg-emerald-500",
+               paid: "bg-emerald-500", cancelled: "bg-rose-500" }[s] || "bg-slate-400";
+    },
+    // Footer count line only ("1 quotation", not "1 quotations") — display only.
+    qiPlural(n, one, many) { const v = Number(n) || 0; return v + " " + (v === 1 ? one : many); },
 
     async boot() {
       window.addEventListener("unauth", () => { this.authed = false; });
@@ -175,9 +190,14 @@ function qi() {
                none: "Not available" }[s] || s;
     },
     availClass(s) {
-      return { available: "bg-emerald-100 text-emerald-800",
-               partial: "bg-amber-100 text-amber-800",
-               none: "bg-rose-100 text-rose-800" }[s] || "bg-slate-100 text-slate-700";
+      return { available: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20",
+               partial: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20",
+               none: "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20"
+             }[s] || "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20";
+    },
+    qiAvailDot(s) {
+      return { available: "bg-emerald-500", partial: "bg-amber-500",
+               none: "bg-rose-500" }[s] || "bg-slate-400";
     },
     dim(v) {
       if (v === null || v === undefined || v === "") return "—";

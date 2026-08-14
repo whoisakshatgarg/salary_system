@@ -6,7 +6,9 @@
   <title>Customers — APEX THERMOCON</title>
   <script src="/vendor/tailwind.js"></script>
   <script>
-    tailwind.config = { theme: { extend: { colors: { brand: { 600: "#1d4ed8", 700: "#1e40af" } } } } };
+    tailwind.config = { theme: { extend: { colors: { brand: {
+      50: "#eff6ff", 100: "#dbeafe", 500: "#3b82f6",
+      600: "#1d4ed8", 700: "#1e40af", 800: "#1e3a8a" } } } } };
   </script>
   <script defer src="customers.js"></script>
   <script defer src="/vendor/alpine.js"></script>
@@ -14,6 +16,7 @@
     [x-cloak] { display: none !important; }
     body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
     input, select, textarea { @apply outline-none; }
+    input[type="checkbox"] { accent-color: #1d4ed8; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800" x-data="cu()" x-init="boot()" x-cloak>
@@ -25,74 +28,96 @@
   <div x-show="booted && authed" class="min-h-screen flex flex-col">
     <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
       <a href="/" title="Back to all modules"
-         class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
+         class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
         <span class="text-base leading-none">⌂</span> Home
       </a>
       <div>
         <div class="text-white font-bold leading-tight">Customers</div>
-        <div class="text-[11px] text-slate-400">APEX THERMOCON · customer master</div>
+        <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-semibold">Apex Thermocon</div>
       </div>
       <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
         <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
       </div>
     </header>
 
-    <main class="flex-1 overflow-auto p-6 max-w-5xl w-full mx-auto">
-      <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-end gap-3">
-        <div class="flex-1 min-w-[220px]">
-          <label class="block text-xs font-medium text-slate-500 mb-1">Search</label>
-          <input x-model="q" @input.debounce.400ms="load()" placeholder="Name or GSTIN"
-                 class="w-full border rounded-lg px-3 py-2 text-sm" />
+    <main class="flex-1 overflow-auto p-6 max-w-6xl w-full mx-auto">
+      <!-- toolbar: one compact row -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 mb-4 flex flex-wrap items-center gap-3">
+        <div class="flex-1 min-w-[240px]">
+          <label for="cu-q" class="sr-only">Search customers</label>
+          <input id="cu-q" x-model="q" @input.debounce.400ms="load()" placeholder="Name, code or GSTIN"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
         </div>
-        <label class="flex items-center gap-2 text-sm pb-2">
-          <input type="checkbox" x-model="activeOnly" @change="load()" /> Active only
+        <label class="inline-flex items-center gap-2 text-sm text-slate-600 select-none cursor-pointer">
+          <input type="checkbox" x-model="activeOnly" @change="load()" class="rounded border-slate-300" /> Active only
         </label>
         <button @click="newCust()"
-                class="ml-auto bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                class="ml-auto bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm
+                       px-4 py-2 text-sm transition-colors focus-visible:outline-none
+                       focus-visible:ring-2 focus-visible:ring-brand-600/40">
           + Add customer
         </button>
       </div>
 
-      <div class="bg-white rounded-xl shadow-sm overflow-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="text-left text-xs text-slate-500 border-b bg-slate-50">
-              <th class="px-4 py-3">Code</th>
-              <th class="px-3 py-3">Name</th>
-              <th class="px-3 py-3">GSTIN</th>
-              <th class="px-3 py-3">Payment terms</th>
-              <th class="px-3 py-3 text-right">Contacts</th>
-              <th class="px-3 py-3 text-right">Orders</th>
-              <th class="px-3 py-3 text-right">Drawings</th>
-              <th class="px-3 py-3">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="c in rows" :key="c.id">
-              <tr @click="open(c.id)" class="border-b last:border-0 hover:bg-brand-600/5 cursor-pointer"
-                  :class="!c.active && 'opacity-50'">
-                <td class="px-4 py-2.5 font-mono text-xs font-bold text-slate-500" x-text="c.code || '—'"></td>
-                <td class="px-3 py-2.5 font-semibold text-brand-700" x-text="c.name"></td>
-                <td class="px-3 py-2.5 font-mono text-xs" x-text="c.gstin || '—'"></td>
-                <td class="px-3 py-2.5" x-text="c.payment_terms || '—'"></td>
-                <td class="px-3 py-2.5 text-right" x-text="c.contacts"></td>
-                <td class="px-3 py-2.5 text-right" x-text="c.orders"></td>
-                <td class="px-3 py-2.5 text-right" x-text="c.drawings"></td>
-                <td class="px-3 py-2.5">
-                  <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                        :class="c.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
-                        x-text="c.active ? 'Active' : 'Inactive'"></span>
+      <!-- the instrument -->
+      <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-b-2 border-slate-200">
+              <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <th class="px-4 py-2.5">Code</th>
+                <th class="px-3 py-2.5">Customer</th>
+                <th class="px-3 py-2.5">GSTIN</th>
+                <th class="px-3 py-2.5">Payment terms</th>
+                <th class="px-3 py-2.5 text-center">Contacts</th>
+                <th class="px-3 py-2.5 text-center">Orders</th>
+                <th class="px-3 py-2.5 text-center">Drawings</th>
+                <th class="px-3 py-2.5">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <template x-for="c in rows" :key="c.id">
+                <tr @click="open(c.id)"
+                    class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer"
+                    :class="!c.active && 'opacity-60'">
+                  <td class="px-4 py-2.5 font-mono text-xs font-semibold text-slate-500" x-text="c.code || '—'"></td>
+                  <td class="px-3 py-2.5 font-semibold text-brand-700" x-text="c.name"></td>
+                  <td class="px-3 py-2.5 font-mono text-xs"
+                      :class="c.gstin ? 'text-slate-400' : 'text-slate-300'" x-text="c.gstin || '—'"></td>
+                  <td class="px-3 py-2.5"
+                      :class="c.payment_terms ? 'text-slate-600' : 'text-slate-300'"
+                      x-text="c.payment_terms || '—'"></td>
+                  <td class="px-3 py-2.5 text-center tabular-nums"
+                      :class="c.contacts ? 'font-medium text-slate-700' : 'text-slate-300'" x-text="c.contacts"></td>
+                  <td class="px-3 py-2.5 text-center tabular-nums"
+                      :class="c.orders ? 'font-medium text-slate-700' : 'text-slate-300'" x-text="c.orders"></td>
+                  <td class="px-3 py-2.5 text-center tabular-nums"
+                      :class="c.drawings ? 'font-medium text-slate-700' : 'text-slate-300'" x-text="c.drawings"></td>
+                  <td class="px-3 py-2.5">
+                    <span class="inline-flex items-center gap-1.5 text-xs font-medium"
+                          :class="c.active ? 'text-slate-500'
+                                           : 'px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20'">
+                      <span class="w-1.5 h-1.5 rounded-full" :class="c.active ? 'bg-emerald-500' : 'bg-rose-500'"></span>
+                      <span x-text="c.active ? 'Active' : 'Inactive'"></span>
+                    </span>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="!rows.length">
+                <td colspan="8" class="px-4 py-12 text-center">
+                  <div class="text-3xl text-slate-300 leading-none mb-2">▤</div>
+                  <div class="text-sm text-slate-400" x-text="q ? 'Nothing matches this search' : 'No customers yet'"></div>
+                  <button @click="newCust()"
+                          class="mt-3 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm
+                                 px-4 py-2 text-sm transition-colors">+ Add customer</button>
                 </td>
               </tr>
-            </template>
-            <tr x-show="!rows.length">
-              <td colspan="8" class="px-4 py-10 text-center text-slate-400">
-                No customers yet — add the first with “+ Add customer”.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
       </div>
+      <div class="mt-2 px-1 text-xs text-slate-400" x-text="cuListLine"></div>
     </main>
   </div>
 
@@ -105,223 +130,373 @@
   <div class="fixed inset-0 z-40 bg-slate-100 flex flex-col">
     <div class="bg-slate-900 text-slate-300 flex items-center gap-3 px-6 py-3 shrink-0">
       <button @click="closeDetail()" title="Back to all customers"
-              class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
+              class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
         <span class="text-base leading-none">←</span> Back
       </button>
         <div>
-          <div class="text-xl font-bold text-white">
-            <span class="font-mono text-slate-400 text-base" x-text="detail.code"></span>
+          <div class="text-xl font-bold text-white flex items-baseline gap-2">
+            <span class="font-mono text-slate-400 text-sm" x-text="detail.code"></span>
             <span x-text="detail.name"></span>
           </div>
-          <div class="text-xs text-slate-400 font-mono" x-text="detail.gstin || 'no GSTIN'"></div>
+          <div class="text-[11px] text-slate-500 font-mono" x-text="detail.gstin || 'no GSTIN'"></div>
         </div>
-        <div class="flex gap-1 ml-2">
-          <button @click="tab = 'profile'" class="px-3 py-1.5 rounded-lg text-xs font-medium"
-                  :class="tab === 'profile' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800'">Profile</button>
-          <button @click="tab = 'business'" class="px-3 py-1.5 rounded-lg text-xs font-medium"
-                  :class="tab === 'business' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800'">Business</button>
-          <button @click="tab = 'rates'" class="px-3 py-1.5 rounded-lg text-xs font-medium"
-                  :class="tab === 'rates' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800'">
-            Rates <span x-show="detail.operation_rates?.length" class="opacity-60"
+
+        <!-- segmented control, dark surface -->
+        <div class="ml-2 inline-flex items-center gap-0.5 bg-slate-800/80 rounded-xl p-1">
+          <button @click="tab = 'profile'" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                  :class="tab === 'profile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Profile</button>
+          <button @click="tab = 'business'" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                  :class="tab === 'business' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Business</button>
+          <button @click="tab = 'rates'" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                  :class="tab === 'rates' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">
+            Rates <span x-show="detail.operation_rates?.length" class="text-[11px] font-normal opacity-60"
                         x-text="detail.operation_rates?.length"></span></button>
         </div>
-        <span class="px-2.5 py-1 rounded-full text-xs font-medium"
-              :class="detail.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
-              x-text="detail.active ? 'Active' : 'Inactive'"></span>
+
+        <span class="inline-flex items-center gap-1.5 text-xs font-medium"
+              :class="detail.active ? 'text-slate-400'
+                                    : 'px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 ring-1 ring-inset ring-rose-400/30'">
+          <span class="w-1.5 h-1.5 rounded-full" :class="detail.active ? 'bg-emerald-400' : 'bg-rose-400'"></span>
+          <span x-text="detail.active ? 'Active' : 'Inactive'"></span>
+        </span>
+
         <div class="ml-auto flex gap-2">
-          <button @click="editCust()" class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm">Edit</button>
-          <button @click="toggleActive()" class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm"
+          <button @click="editCust()" class="border border-slate-600 bg-slate-800/60 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">Edit</button>
+          <button @click="toggleActive()" class="border border-slate-600 bg-slate-800/60 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
                   x-text="detail.active ? 'Deactivate' : 'Reactivate'"></button>
-          <button @click="removeCust()" class="border border-rose-400/60 text-rose-300 hover:bg-rose-900/40 px-3 py-1.5 rounded-lg text-sm">Delete</button>
+          <button @click="removeCust()" class="border border-rose-400/50 text-rose-300 hover:bg-rose-900/40 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">Delete</button>
         </div>
     </div>
+
     <div class="flex-1 overflow-auto">
       <div class="max-w-6xl mx-auto p-6">
-        <div class="bg-white rounded-2xl shadow-sm">
-      <div x-show="tab === 'profile'" class="p-6 grid grid-cols-2 gap-6">
-        <div class="space-y-3 text-sm">
-          <div><div class="text-xs text-slate-500 mb-0.5">Billing address</div>
-            <div class="whitespace-pre-line" x-text="detail.address_billing || '—'"></div></div>
-          <div><div class="text-xs text-slate-500 mb-0.5">Shipping address</div>
-            <div class="whitespace-pre-line" x-text="detail.address_shipping || '—'"></div></div>
-          <div><div class="text-xs text-slate-500 mb-0.5">Payment terms</div>
-            <div x-text="detail.payment_terms || '—'"></div></div>
-          <div x-show="detail.notes"><div class="text-xs text-slate-500 mb-0.5">Notes</div>
-            <div class="whitespace-pre-line" x-text="detail.notes"></div></div>
-        </div>
-        <div>
-          <div class="font-semibold text-sm mb-2">Contact persons</div>
-          <template x-for="k in detail.contacts" :key="k.id">
-            <div class="flex items-center gap-2 text-sm py-1.5 border-b last:border-0">
+
+      <!-- ============ PROFILE: addresses, terms, contact persons ============ -->
+      <div x-show="tab === 'profile'" class="grid grid-cols-5 gap-4 items-start">
+        <div class="col-span-2 space-y-4">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Addresses</div>
+            <div class="mt-3 space-y-3 text-sm">
               <div>
-                <div class="font-medium" x-text="k.name + (k.role ? ' · ' + k.role : '')"></div>
-                <div class="text-xs text-slate-500" x-text="[k.phone, k.email].filter(Boolean).join(' · ')"></div>
+                <div class="text-xs font-medium text-slate-400 mb-0.5">Billing</div>
+                <div class="whitespace-pre-line" :class="detail.address_billing ? 'text-slate-700' : 'text-slate-300'"
+                     x-text="detail.address_billing || '—'"></div>
               </div>
-              <button @click="removeContact(k)" class="ml-auto text-slate-300 hover:text-rose-600">✕</button>
+              <div>
+                <div class="text-xs font-medium text-slate-400 mb-0.5">Shipping</div>
+                <div class="whitespace-pre-line" :class="detail.address_shipping ? 'text-slate-700' : 'text-slate-300'"
+                     x-text="detail.address_shipping || '—'"></div>
+              </div>
             </div>
-          </template>
-          <p x-show="!detail.contacts.length" class="text-xs text-slate-400">None yet.</p>
-          <div class="grid grid-cols-2 gap-2 mt-3">
-            <input x-model="contact.name" placeholder="Name" class="border rounded-lg px-2 py-1.5 text-sm" />
-            <input x-model="contact.role" placeholder="Role (e.g. Purchase)" class="border rounded-lg px-2 py-1.5 text-sm" />
-            <input x-model="contact.phone" placeholder="Phone" class="border rounded-lg px-2 py-1.5 text-sm" />
-            <input x-model="contact.email" placeholder="Email" class="border rounded-lg px-2 py-1.5 text-sm" />
+          </div>
+
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Terms</div>
+            <div class="mt-3 space-y-3 text-sm">
+              <div>
+                <div class="text-xs font-medium text-slate-400 mb-0.5">Payment terms</div>
+                <div :class="detail.payment_terms ? 'text-slate-700' : 'text-slate-300'"
+                     x-text="detail.payment_terms || '—'"></div>
+              </div>
+              <div x-show="detail.notes">
+                <div class="text-xs font-medium text-slate-400 mb-0.5">Notes</div>
+                <div class="whitespace-pre-line text-slate-700" x-text="detail.notes"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-span-3 bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Contact persons</div>
+          <div class="mt-3 rounded-lg border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b-2 border-slate-200">
+                  <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    <th class="px-3 py-2">Name</th>
+                    <th class="px-3 py-2">Role</th>
+                    <th class="px-3 py-2">Phone</th>
+                    <th class="px-3 py-2">Email</th>
+                    <th class="px-3 py-2 w-8"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="k in detail.contacts" :key="k.id">
+                    <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                      <td class="px-3 py-2 font-medium text-slate-800" x-text="k.name"></td>
+                      <td class="px-3 py-2" :class="k.role ? 'text-slate-600' : 'text-slate-300'"
+                          x-text="k.role || '—'"></td>
+                      <td class="px-3 py-2 font-mono text-xs"
+                          :class="k.phone ? 'text-slate-600' : 'text-slate-300'" x-text="k.phone || '—'"></td>
+                      <td class="px-3 py-2 text-xs"
+                          :class="k.email ? 'text-slate-600' : 'text-slate-300'" x-text="k.email || '—'"></td>
+                      <td class="px-3 py-2 text-right">
+                        <button @click="removeContact(k)" title="Remove contact"
+                                class="text-slate-300 hover:text-rose-600 transition-colors">✕</button>
+                      </td>
+                    </tr>
+                  </template>
+                  <tr x-show="!detail.contacts.length">
+                    <td colspan="5" class="px-3 py-8 text-center text-sm text-slate-400">No contacts yet</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="mt-3 grid grid-cols-4 gap-2">
+            <input x-model="contact.name" placeholder="Name"
+                   class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+            <input x-model="contact.role" placeholder="Role"
+                   class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+            <input x-model="contact.phone" placeholder="Phone"
+                   class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+            <input x-model="contact.email" placeholder="Email"
+                   class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
           </div>
           <button @click="addContact()"
-                  class="mt-2 bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium">+ Add contact</button>
+                  class="mt-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg
+                         px-3 py-1.5 text-xs font-medium shadow-sm transition-colors">+ Add contact</button>
         </div>
       </div>
 
-
       <!-- ============ RATES: what we charge THIS customer per operation ============ -->
-      <div x-show="tab === 'rates'" class="p-6">
-        <p class="text-sm text-slate-500 mb-4">
-          Negotiated prices for <b x-text="detail.name"></b>. When a drawing belongs to them,
-          the costing workspace prefills these instead of the standard rates from Settings.
-        </p>
-        <table class="w-full text-sm mb-4">
-          <thead>
-            <tr class="text-left text-xs text-slate-500 border-b">
-              <th class="py-2">Operation</th>
-              <th class="py-2 text-right">Standard ₹/hr</th>
-              <th class="py-2 text-right">Their ₹/hr</th>
-              <th class="py-2 text-right">Add'l ₹/hr</th>
-              <th class="py-2 text-right">Effective</th>
-              <th class="py-2">Note</th>
-              <th class="py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="r in detail.operation_rates || []" :key="r.operation">
-              <tr class="border-b last:border-0">
-                <td class="py-2 font-medium" x-text="r.operation"></td>
-                <td class="py-2 text-right text-slate-400" x-text="money(stdRate(r.operation))"></td>
-                <td class="py-2 text-right" x-text="money(r.rate_per_hour)"></td>
-                <td class="py-2 text-right" x-text="r.extra_rate ? money(r.extra_rate) : '—'"></td>
-                <td class="py-2 text-right font-semibold" x-text="money(effRate(r))"></td>
-                <td class="py-2 text-xs text-slate-500" x-text="r.note || ''"></td>
-                <td class="py-2 text-right whitespace-nowrap">
-                  <button @click="editRate(r)" class="text-brand-700 hover:underline text-xs mr-2">Edit</button>
-                  <button @click="removeRate(r)" class="text-slate-300 hover:text-rose-600 text-xs">✕</button>
-                </td>
-              </tr>
-            </template>
-            <tr x-show="!(detail.operation_rates || []).length">
-              <td colspan="7" class="py-6 text-center text-slate-400 text-sm">
-                No custom rates — standard rates from Settings apply to this customer.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div x-show="tab === 'rates'" class="space-y-4">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div class="flex items-baseline gap-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Rate card</div>
+            <div class="ml-auto text-[11px] text-slate-400">Costing prefills these instead of the Settings rates</div>
+          </div>
 
-        <div class="bg-slate-50 rounded-xl p-3">
-          <div class="text-sm font-semibold mb-2">Set a rate</div>
-          <div class="flex flex-wrap items-end gap-2">
-            <div>
-              <label class="block text-[11px] text-slate-500 mb-1">Operation</label>
+          <div class="mt-3 rounded-lg border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b-2 border-slate-200">
+                  <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    <th class="px-3 py-2.5">Operation</th>
+                    <th class="px-3 py-2.5 text-right">Standard ₹/hr</th>
+                    <th class="px-3 py-2.5 text-right">Their ₹/hr</th>
+                    <th class="px-3 py-2.5 text-right">Add'l ₹/hr</th>
+                    <th class="px-3 py-2.5 text-right">Effective</th>
+                    <th class="px-3 py-2.5">Note</th>
+                    <th class="px-3 py-2.5 w-24"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="r in detail.operation_rates || []" :key="r.operation">
+                    <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                      <td class="px-3 py-2.5 font-medium text-slate-800" x-text="r.operation"></td>
+                      <td class="px-3 py-2.5 text-right tabular-nums text-slate-400" x-text="money(stdRate(r.operation))"></td>
+                      <td class="px-3 py-2.5 text-right tabular-nums text-slate-700" x-text="money(r.rate_per_hour)"></td>
+                      <td class="px-3 py-2.5 text-right tabular-nums"
+                          :class="r.extra_rate ? 'text-slate-700' : 'text-slate-300'"
+                          x-text="r.extra_rate ? money(r.extra_rate) : '—'"></td>
+                      <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(effRate(r))"></td>
+                      <td class="px-3 py-2.5 text-xs"
+                          :class="r.note ? 'text-slate-500' : 'text-slate-300'" x-text="r.note || '—'"></td>
+                      <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                        <button @click="editRate(r)" class="text-brand-700 hover:underline text-xs font-medium mr-2">Edit</button>
+                        <button @click="removeRate(r)" title="Remove rate"
+                                class="text-slate-300 hover:text-rose-600 text-xs transition-colors">✕</button>
+                      </td>
+                    </tr>
+                  </template>
+                  <tr x-show="!(detail.operation_rates || []).length">
+                    <td colspan="7" class="px-3 py-10 text-center">
+                      <div class="text-2xl text-slate-300 leading-none mb-2">₹</div>
+                      <div class="text-sm text-slate-400">No custom rates — the Settings rates apply</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="mt-2 text-xs text-slate-400" x-text="cuRateLine"></div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Set a rate</div>
+          <div class="mt-3 flex flex-wrap items-end gap-3">
+            <div class="w-56">
+              <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Operation</label>
               <select :value="rateRow.operation" @change="pickOperation($event.target.value)"
-                      class="border rounded-lg px-2 py-1.5 text-sm bg-white w-48">
+                      class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
                 <option value="">Operation…</option>
                 <template x-for="o in ops" :key="o.id">
                   <option :value="o.name" x-text="o.name + ' (₹' + o.rate_per_hour + ')'"></option>
                 </template>
               </select>
             </div>
-            <div><label class="block text-[11px] text-slate-500 mb-1">Their ₹/hour</label>
+            <div class="w-28">
+              <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Their ₹/hr</label>
               <input type="number" min="0" x-model="rateRow.rate_per_hour"
-                     class="border rounded-lg px-2 py-1.5 text-sm w-28 bg-white text-right" /></div>
-            <div><label class="block text-[11px] text-slate-500 mb-1">Additional ₹/hour</label>
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full bg-white text-right tabular-nums
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+            </div>
+            <div class="w-28">
+              <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Add'l ₹/hr</label>
               <input type="number" min="0" step="5" x-model="rateRow.extra_rate" placeholder="0"
-                     class="border rounded-lg px-2 py-1.5 text-sm w-32 bg-white text-right" /></div>
-            <div class="flex-1 min-w-[160px]"><label class="block text-[11px] text-slate-500 mb-1">Note</label>
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full bg-white text-right tabular-nums
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+            </div>
+            <div class="flex-1 min-w-[180px]">
+              <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Note</label>
               <input x-model="rateRow.note" placeholder="e.g. agreed Apr 2026"
-                     class="border rounded-lg px-2 py-1.5 text-sm w-full bg-white" /></div>
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full bg-white
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+            </div>
             <button @click="saveRate()"
-                    class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Save</button>
+                    class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2
+                           text-sm transition-colors focus-visible:outline-none
+                           focus-visible:ring-2 focus-visible:ring-brand-600/40">Save rate</button>
           </div>
-          <p class="text-[11px] text-slate-400 mt-2">
-            Effective rate = their ₹/hour + additional ₹/hour. Saving an operation twice updates it.
-          </p>
+          <p class="text-[11px] text-slate-400 mt-2">Effective = their ₹/hour + additional; saving an operation again updates it.</p>
         </div>
       </div>
 
       <!-- ============ BUSINESS: totals, growth, orders, documents ============ -->
-      <div x-show="tab === 'business'" class="p-6">
+      <div x-show="tab === 'business'">
         <template x-if="biz">
-        <div>
-          <div class="grid grid-cols-4 gap-3 mb-5">
-            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Total business</div>
-              <div class="text-xl font-bold" x-text="money(biz.stats.total_business)"></div></div>
-            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Orders</div>
-              <div class="text-xl font-bold" x-text="biz.stats.order_count"></div></div>
-            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Average order</div>
-              <div class="text-xl font-bold" x-text="money(biz.stats.avg_order)"></div></div>
-            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Still open</div>
-              <div class="text-xl font-bold" x-text="money(biz.stats.open_value)"></div></div>
+        <div class="space-y-4">
+          <div class="grid grid-cols-4 gap-3">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Total business</div>
+              <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="money(biz.stats.total_business)"></div>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Orders</div>
+              <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="biz.stats.order_count"></div>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Average order</div>
+              <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="money(biz.stats.avg_order)"></div>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Still open</div>
+              <div class="text-2xl font-bold tabular-nums text-amber-600" x-text="money(biz.stats.open_value)"></div>
+            </div>
           </div>
 
-          <div class="mb-5">
-            <div class="font-semibold text-sm mb-2">Business by month
-              <span class="font-normal text-xs text-slate-400">· bar = that month, line above = running total</span></div>
-            <div x-show="biz.series.length" class="flex items-end gap-2 h-40 border-b border-slate-200 pb-1">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div class="flex items-baseline gap-3">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Business by month</div>
+              <div class="ml-auto text-[11px] text-slate-400">hover a bar for its orders and running total</div>
+            </div>
+            <div x-show="biz.series.length" class="mt-4 flex items-end gap-2 h-40 border-b border-slate-200 pb-1">
               <template x-for="s in biz.series" :key="s.month">
                 <div class="flex-1 flex flex-col items-center justify-end h-full group">
-                  <div class="text-[10px] text-slate-500 mb-1" x-text="money(s.amount)"></div>
-                  <div class="w-full bg-brand-600/80 group-hover:bg-brand-600 rounded-t transition-all"
+                  <div class="text-[10px] tabular-nums text-slate-400 group-hover:text-slate-700 mb-1 transition-colors"
+                       x-text="money(s.amount)"></div>
+                  <div class="w-full max-w-[88px] bg-brand-500 group-hover:bg-brand-700 rounded-t-md transition-colors"
                        :style="`height:${barPct(s.amount)}%`"
                        :title="`${s.orders} order(s) · running total ${money(s.cumulative)}`"></div>
                 </div>
               </template>
             </div>
-            <div x-show="biz.series.length" class="flex gap-2 mt-1">
+            <div x-show="biz.series.length" class="flex gap-2 mt-1.5">
               <template x-for="s in biz.series" :key="s.month">
                 <div class="flex-1 text-center text-[10px] text-slate-400" x-text="monthLabel(s.month)"></div>
               </template>
             </div>
-            <p x-show="!biz.series.length" class="text-xs text-slate-400">No orders yet.</p>
+            <div x-show="!biz.series.length" class="py-10 text-center text-sm text-slate-400">No orders yet</div>
           </div>
 
-          <div class="grid grid-cols-2 gap-6">
-            <div>
-              <div class="font-semibold text-sm mb-2">Orders, newest first</div>
-              <table class="w-full text-sm">
-                <thead><tr class="text-left text-xs text-slate-500 border-b">
-                  <th class="py-2">Order</th><th class="py-2">Date</th>
-                  <th class="py-2 text-right pr-3">Amount</th><th class="py-2 pl-1">Stage</th></tr></thead>
-                <tbody>
-                  <template x-for="o in biz.orders" :key="o.id">
-                    <tr class="border-b last:border-0">
-                      <td class="py-2 font-mono text-xs text-brand-700" x-text="o.order_no"></td>
-                      <td class="py-2 whitespace-nowrap" x-text="fmtDate(o.order_date)"></td>
-                      <td class="py-2 text-right font-medium" x-text="money(o.amount)"></td>
-                      <td class="py-2"><span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                            :class="stageClass(o.stage)" x-text="o.stage"></span></td>
-                    </tr>
-                  </template>
-                  <tr x-show="!biz.orders.length"><td colspan="4" class="py-6 text-center text-slate-400 text-sm">No orders yet.</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <div>
-              <div class="font-semibold text-sm mb-2">Quotations &amp; invoices</div>
-              <template x-for="d in biz.documents" :key="d.id">
-                <div class="flex items-center gap-2 text-sm py-1.5 border-b last:border-0">
-                  <span class="font-mono text-xs text-brand-700" x-text="d.doc_no"></span>
-                  <span class="text-xs text-slate-400 capitalize" x-text="d.kind"></span>
-                  <span class="text-xs text-slate-400" x-text="fmtDate(d.doc_date)"></span>
-                  <span class="ml-auto font-medium" x-text="money(d.total)"></span>
-                  <button @click="printDoc(d)" class="text-brand-700 hover:underline text-xs">Print</button>
+          <div class="grid grid-cols-2 gap-4 items-start">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Order history</div>
+              <div class="mt-3 rounded-lg border border-slate-200 overflow-hidden">
+                <div class="max-h-[46vh] overflow-y-auto overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 sticky top-0 z-10">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Order</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Date</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200 text-right">Amount</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Stage</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="o in biz.orders" :key="o.id">
+                        <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                          <td class="px-3 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="o.order_no"></td>
+                          <td class="px-3 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(o.order_date)"></td>
+                          <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(o.amount)"></td>
+                          <td class="px-3 py-2.5">
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+                                  :class="stageClass(o.stage)">
+                              <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="cuDot(o.stage)"></span>
+                              <span x-text="cuStageLabel(o.stage)"></span>
+                            </span>
+                          </td>
+                        </tr>
+                      </template>
+                      <tr x-show="!biz.orders.length">
+                        <td colspan="4" class="px-3 py-10 text-center text-sm text-slate-400">No orders yet</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-              </template>
-              <p x-show="!biz.documents.length" class="text-xs text-slate-400">
-                None yet — raise one from the Quotations &amp; Invoices tile.
-              </p>
+              </div>
+              <div class="mt-2 text-xs text-slate-400" x-text="cuOrderLine"></div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Quotations &amp; invoices</div>
+              <div class="mt-3 rounded-lg border border-slate-200 overflow-hidden">
+                <div class="max-h-[46vh] overflow-y-auto overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 sticky top-0 z-10">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Document</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Type</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Date</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200 text-right">Total</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200 w-20"></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="d in biz.documents" :key="d.id">
+                        <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                          <td class="px-3 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="d.doc_no"></td>
+                          <td class="px-3 py-2.5">
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium capitalize"
+                                  :class="cuKindClass(d.kind)">
+                              <span class="w-1.5 h-1.5 rounded-full" :class="cuKindDot(d.kind)"></span>
+                              <span x-text="d.kind"></span>
+                            </span>
+                          </td>
+                          <td class="px-3 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(d.doc_date)"></td>
+                          <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(d.total)"></td>
+                          <td class="px-3 py-2.5 text-right">
+                            <button @click="printDoc(d)" title="Open the printable copy"
+                                    class="inline-flex items-center gap-1 border border-slate-300 bg-white hover:bg-slate-50
+                                           text-slate-700 rounded-lg px-2 py-1 text-xs font-medium shadow-sm transition-colors">
+                              <span class="leading-none">⎙</span> Print
+                            </button>
+                          </td>
+                        </tr>
+                      </template>
+                      <tr x-show="!biz.documents.length">
+                        <td colspan="5" class="px-3 py-10 text-center text-sm text-slate-400">
+                          None yet — raise one from Quotations &amp; Invoices
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="mt-2 text-xs text-slate-400" x-text="cuDocLine"></div>
             </div>
           </div>
         </div>
         </template>
       </div>
-    </div>
+
       </div>
     </div>
   </div>
@@ -331,39 +506,75 @@
   <template x-if="form">
   <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-10">
-      <div class="px-6 py-4 border-b flex items-center">
-        <div class="text-lg font-bold" x-text="form.id ? 'Edit ' + form.name : 'New customer'"></div>
-        <button @click="form = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold"
+               x-text="form.id ? 'Edit customer' : 'Add customer'"></div>
+          <div class="text-lg font-bold text-slate-900" x-text="form.name || 'New customer'"></div>
+        </div>
+        <button @click="form = null" title="Close"
+                class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none transition-colors">✕</button>
       </div>
       <form @submit.prevent="saveCust()" class="p-6 space-y-3 text-sm">
-        <div><label class="block text-xs text-slate-500 mb-1">Name *</label>
-          <input x-model="form.name" class="border rounded-lg px-3 py-2 w-full" /></div>
-        <div x-show="!form.id"><label class="block text-xs text-slate-500 mb-1">
-            Customer code <span class="text-slate-400">— leave blank to use the initials</span></label>
+        <div>
+          <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Name *</label>
+          <input x-model="form.name"
+                 class="border border-slate-300 rounded-lg px-3 py-2 w-full bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+        </div>
+        <div x-show="!form.id">
+          <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">
+            Customer code <span class="normal-case tracking-normal font-normal text-slate-400">— blank uses the initials</span>
+          </label>
           <div class="flex items-center gap-2">
             <input x-model="form.abbr" placeholder="auto" maxlength="6"
-                   class="border rounded-lg px-3 py-2 w-28 font-mono uppercase" />
-            <span class="text-xs text-slate-500">will become
-              <b class="font-mono" x-text="codePreview || '—'"></b>
-              <span class="text-slate-400">(nn = next free number)</span></span>
-          </div></div>
-        <div><label class="block text-xs text-slate-500 mb-1">GSTIN</label>
-          <input x-model="form.gstin" class="border rounded-lg px-3 py-2 w-full font-mono" /></div>
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="block text-xs text-slate-500 mb-1">Billing address</label>
-            <textarea x-model="form.address_billing" rows="3" class="border rounded-lg px-3 py-2 w-full"></textarea></div>
-          <div><label class="block text-xs text-slate-500 mb-1">Shipping address</label>
-            <textarea x-model="form.address_shipping" rows="3" class="border rounded-lg px-3 py-2 w-full"></textarea></div>
+                   class="border border-slate-300 rounded-lg px-3 py-2 w-28 font-mono uppercase bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+            <span class="text-xs text-slate-500" title="nn = the next free number for this abbreviation">will become
+              <b class="font-mono text-slate-700" x-text="codePreview || '—'"></b></span>
+          </div>
         </div>
-        <div><label class="block text-xs text-slate-500 mb-1">Payment terms</label>
-          <input x-model="form.payment_terms" placeholder="e.g. 30 days" class="border rounded-lg px-3 py-2 w-full" /></div>
-        <div><label class="block text-xs text-slate-500 mb-1">Notes</label>
-          <textarea x-model="form.notes" rows="2" class="border rounded-lg px-3 py-2 w-full"></textarea></div>
-        <p x-show="formError" x-text="formError" class="text-rose-600 text-sm"></p>
+        <div>
+          <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">GSTIN</label>
+          <input x-model="form.gstin"
+                 class="border border-slate-300 rounded-lg px-3 py-2 w-full font-mono bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Billing address</label>
+            <textarea x-model="form.address_billing" rows="3"
+                      class="border border-slate-300 rounded-lg px-3 py-2 w-full bg-white
+                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"></textarea>
+          </div>
+          <div>
+            <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Shipping address</label>
+            <textarea x-model="form.address_shipping" rows="3"
+                      class="border border-slate-300 rounded-lg px-3 py-2 w-full bg-white
+                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"></textarea>
+          </div>
+        </div>
+        <div>
+          <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Payment terms</label>
+          <input x-model="form.payment_terms" placeholder="e.g. 30 days"
+                 class="border border-slate-300 rounded-lg px-3 py-2 w-full bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+        </div>
+        <div>
+          <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Notes</label>
+          <textarea x-model="form.notes" rows="2"
+                    class="border border-slate-300 rounded-lg px-3 py-2 w-full bg-white
+                           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"></textarea>
+        </div>
+        <p x-show="formError" x-text="formError"
+           class="rounded-lg bg-rose-50 ring-1 ring-inset ring-rose-600/20 px-3 py-2 text-sm text-rose-700"></p>
         <div class="flex gap-3 pt-1">
-          <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg">Save</button>
+          <button type="submit"
+                  class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg shadow-sm
+                         transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">Save customer</button>
           <button type="button" @click="form = null"
-                  class="flex-1 border border-slate-300 hover:bg-slate-50 text-slate-600 py-2.5 rounded-lg">Cancel</button>
+                  class="flex-1 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium
+                         py-2.5 rounded-lg shadow-sm transition-colors">Cancel</button>
         </div>
       </form>
     </div>

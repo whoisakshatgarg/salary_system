@@ -6,14 +6,16 @@
   <title>Orders — APEX THERMOCON</title>
   <script src="/vendor/tailwind.js"></script>
   <script>
-    tailwind.config = { theme: { extend: { colors: { brand: { 600: "#1d4ed8", 700: "#1e40af" } } } } };
+    tailwind.config = { theme: { extend: { colors: { brand: {
+      50: "#eff6ff", 100: "#dbeafe", 500: "#3b82f6",
+      600: "#1d4ed8", 700: "#1e40af", 800: "#1e3a8a" } } } } };
   </script>
   <script defer src="orders.js"></script>
   <script defer src="/vendor/alpine.js"></script>
   <style>
     [x-cloak] { display: none !important; }
     body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-    input, select, textarea { @apply outline-none; }
+    input, select, textarea { outline: none; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800" x-data="od()" x-init="boot()" x-cloak>
@@ -25,20 +27,20 @@
   <div x-show="booted && authed" class="min-h-screen flex flex-col">
     <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
       <a href="/" title="Back to all modules"
-         class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
+         class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
         <span class="text-base leading-none">⌂</span> Home
       </a>
       <div>
         <div class="text-white font-bold leading-tight">Order Tracking</div>
-        <div class="text-[11px] text-slate-400">APEX THERMOCON · enquiry → payment</div>
+        <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-semibold">Apex Thermocon</div>
       </div>
-      <nav class="flex gap-1 ml-4">
-        <button @click="tab = 'orders'" class="px-4 py-1.5 rounded-lg text-sm font-medium transition"
-                :class="tab === 'orders' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800'">Orders</button>
-        <button @click="tab = 'consignments'; loadCons()" class="px-4 py-1.5 rounded-lg text-sm font-medium transition"
-                :class="tab === 'consignments' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800'">Consignments</button>
-        <button @click="tab = 'shipments'" class="px-4 py-1.5 rounded-lg text-sm font-medium transition"
-                :class="tab === 'shipments' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800'">Shipments</button>
+      <nav class="inline-flex items-center gap-0.5 ml-4 bg-slate-800/80 rounded-xl p-1">
+        <button @click="tab = 'orders'" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                :class="tab === 'orders' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Orders</button>
+        <button @click="tab = 'consignments'; loadCons()" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                :class="tab === 'consignments' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Consignments</button>
+        <button @click="tab = 'shipments'" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                :class="tab === 'shipments' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Shipments</button>
       </nav>
       <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
         <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
@@ -49,76 +51,103 @@
 
       <!-- ============================= ORDERS ============================= -->
       <section x-show="tab === 'orders'">
-        <!-- stage chips -->
-        <div class="flex flex-wrap gap-2 mb-4">
+        <!-- stage filter — one segmented control, counts inline -->
+        <div class="inline-flex flex-wrap items-center gap-0.5 bg-white border border-slate-200 rounded-xl p-1 shadow-sm mb-4">
           <button @click="stageFilter = ''; load()"
-                  class="px-3 py-1.5 rounded-full text-xs font-medium border"
-                  :class="!stageFilter ? 'bg-slate-800 text-white border-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'">
-            All (<span x-text="data.rows.length"></span>)
+                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                  :class="!stageFilter ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'">
+            All <span class="text-[11px] opacity-70 tabular-nums" x-text="data.rows.length"></span>
           </button>
           <template x-for="s in data.stages" :key="s.key">
             <button @click="stageFilter = s.key; load()"
-                    class="px-3 py-1.5 rounded-full text-xs font-medium border"
-                    :class="stageFilter === s.key ? 'bg-slate-800 text-white border-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'">
+                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                    :class="stageFilter === s.key ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'">
               <span x-text="s.label"></span>
-              <span class="opacity-60" x-text="' ' + (data.stage_counts[s.key] || 0)"></span>
+              <span class="text-[11px] opacity-70 tabular-nums" x-text="data.stage_counts[s.key] || 0"></span>
             </button>
           </template>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-end gap-3">
-          <div class="flex-1 min-w-[240px]">
-            <label class="block text-xs font-medium text-slate-500 mb-1">Search</label>
-            <input x-model="q" @input.debounce.400ms="load()"
-                   placeholder="Order no / customer PO / customer"
-                   class="w-full border rounded-lg px-3 py-2 text-sm" />
-          </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-4 flex flex-wrap items-center gap-3">
+          <label class="sr-only" for="ord-q">Search orders</label>
+          <input id="ord-q" x-model="q" @input.debounce.400ms="load()"
+                 placeholder="Order no / customer PO / customer"
+                 class="flex-1 min-w-[240px] border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+          <span class="text-xs text-slate-400 tabular-nums ml-auto">
+            <span x-text="data.rows.length"></span> shown</span>
           <button @click="newOrder()"
-                  class="ml-auto bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                  class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm
+                         transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
             + New order
           </button>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm overflow-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-left text-xs text-slate-500 border-b bg-slate-50">
-                <th class="px-4 py-3">Order no.</th>
-                <th class="px-3 py-3">Date</th>
-                <th class="px-3 py-3">Customer</th>
-                <th class="px-3 py-3">Customer PO</th>
-                <th class="px-3 py-3 text-right">Items</th>
-                <th class="px-3 py-3 text-right">Amount</th>
-                <th class="px-3 py-3">Deadline</th>
-                <th class="px-3 py-3">Stage</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="o in data.rows" :key="o.id">
-                <tr @click="open(o.id)" class="border-b last:border-0 hover:bg-brand-600/5 cursor-pointer">
-                  <td class="px-4 py-2.5 font-semibold text-brand-700 font-mono text-xs" x-text="o.order_no"></td>
-                  <td class="px-3 py-2.5 whitespace-nowrap" x-text="fmtDate(o.order_date)"></td>
-                  <td class="px-3 py-2.5" x-text="o.customer_name"></td>
-                  <td class="px-3 py-2.5" x-text="o.customer_po || '—'"></td>
-                  <td class="px-3 py-2.5 text-right" x-text="o.items"></td>
-                  <td class="px-3 py-2.5 text-right whitespace-nowrap" x-text="money(o.amount)"></td>
-                  <td class="px-3 py-2.5 whitespace-nowrap">
-                    <span :class="dueClass(o.due_date)" class="px-2 py-0.5 rounded"
-                          x-text="fmtDate(o.due_date)"></span>
-                  </td>
-                  <td class="px-3 py-2.5">
-                    <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                          :class="stageClass(o.stage)" x-text="stageLabel(o.stage)"></span>
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-b-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">Order no.</th>
+                  <th class="px-3 py-2.5">Date</th>
+                  <th class="px-3 py-2.5">Customer</th>
+                  <th class="px-3 py-2.5">Customer PO</th>
+                  <th class="px-3 py-2.5 text-right">Items</th>
+                  <th class="px-3 py-2.5 text-right">Amount</th>
+                  <th class="px-3 py-2.5">Deadline</th>
+                  <th class="px-3 py-2.5">Stage</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="o in data.rows" :key="o.id">
+                  <tr @click="open(o.id)"
+                      class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
+                    <td class="px-4 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="o.order_no"></td>
+                    <td class="px-3 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(o.order_date)"></td>
+                    <td class="px-3 py-2.5 font-medium text-slate-800" x-text="o.customer_name"></td>
+                    <td class="px-3 py-2.5 font-mono text-xs"
+                        :class="o.customer_po ? 'text-slate-600' : 'text-slate-300'"
+                        x-text="o.customer_po || '—'"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums"
+                        :class="o.items ? 'text-slate-700' : 'text-slate-300'" x-text="o.items"></td>
+                    <td class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums font-semibold"
+                        :class="Number(o.amount) ? 'text-slate-900' : 'text-slate-300'"
+                        x-text="money(o.amount)"></td>
+                    <td class="px-3 py-2.5 whitespace-nowrap">
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                            :class="dueClass(o.due_date)">
+                        <template x-if="odDueDot(o.due_date)">
+                          <span class="w-1.5 h-1.5 rounded-full" :class="odDueDot(o.due_date)"></span>
+                        </template>
+                        <span x-text="fmtDate(o.due_date)"></span>
+                      </span>
+                    </td>
+                    <td class="px-3 py-2.5">
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+                            :class="stageClass(o.stage)">
+                        <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="odStageDot(o.stage)"></span>
+                        <span x-text="stageLabel(o.stage)"></span>
+                      </span>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="!data.rows.length">
+                  <td colspan="8" class="px-4 py-12 text-center">
+                    <div class="text-3xl opacity-25 leading-none mb-2">🗂</div>
+                    <div class="text-sm text-slate-400 mb-3">No orders match.</div>
+                    <button @click="newOrder()"
+                            class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm transition-colors">
+                      + New order
+                    </button>
                   </td>
                 </tr>
-              </template>
-              <tr x-show="!data.rows.length">
-                <td colspan="8" class="px-4 py-10 text-center text-slate-400">
-                  No orders match — create the first with “+ New order”.
-                </td>
-              </tr>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-400 tabular-nums">
+            <span x-text="data.rows.length"></span> orders ·
+            <span x-text="money(data.rows.reduce((s, o) => s + (Number(o.amount) || 0), 0))"></span> booked
+          </div>
         </div>
       </section>
 
@@ -127,32 +156,34 @@
            Long orders ship in instalments over months — this is the view that
            answers "what do we still owe them?". -->
       <section x-show="tab === 'shipments'">
-        <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-end gap-3">
-          <div class="flex-1 min-w-[240px]">
-            <label class="block text-xs font-medium text-slate-500 mb-1">Search</label>
-            <input x-model="q" @input.debounce.400ms="load()"
-                   placeholder="Order no / customer / their PO"
-                   class="w-full border rounded-lg px-3 py-2 text-sm" />
-          </div>
-          <label class="flex items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" x-model="openOnly" class="w-4 h-4" />
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-4 flex flex-wrap items-center gap-4">
+          <label class="sr-only" for="ship-q">Search orders</label>
+          <input id="ship-q" x-model="q" @input.debounce.400ms="load()"
+                 placeholder="Order no / customer / their PO"
+                 class="flex-1 min-w-[240px] border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+          <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+            <input type="checkbox" x-model="openOnly" class="w-4 h-4 accent-brand-600" />
             Only orders with something still to send
           </label>
+          <span class="text-xs text-slate-400 tabular-nums ml-auto">
+            <span x-text="shipmentRows().length"></span> shown</span>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm overflow-auto">
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
           <table class="w-full text-sm">
-            <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
-              <tr>
-                <th class="text-left px-4 py-3">Order no.</th>
-                <th class="text-left px-3 py-3">Customer</th>
-                <th class="text-left px-3 py-3">Their PO</th>
-                <th class="text-right px-3 py-3">Ordered</th>
-                <th class="text-right px-3 py-3">Sent</th>
-                <th class="text-right px-3 py-3">Remaining</th>
-                <th class="px-3 py-3 w-56">Deliveries</th>
-                <th class="text-left px-3 py-3">Deadline</th>
-                <th class="text-left px-3 py-3">Stage</th>
+            <thead class="bg-slate-50 border-b-2 border-slate-200">
+              <tr class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <th class="text-left px-4 py-2.5">Order no.</th>
+                <th class="text-left px-3 py-2.5">Customer</th>
+                <th class="text-left px-3 py-2.5">Their PO</th>
+                <th class="text-right px-2.5 py-2.5">Ordered</th>
+                <th class="text-right px-2.5 py-2.5">Sent</th>
+                <th class="text-right px-2.5 py-2.5">Remaining</th>
+                <th class="text-left px-3 py-2.5 w-56">Deliveries</th>
+                <th class="text-left px-3 py-2.5">Deadline</th>
+                <th class="text-left px-3 py-2.5">Stage</th>
               </tr>
             </thead>
 
@@ -164,31 +195,36 @@
                  not started. The chevron expands the row into the same drops
                  written out with their dates.
                  A tbody per order: two sibling <tr>s cannot share one x-for. -->
-            <template x-for="o in shipmentRows()" :key="o.id">
-              <tbody class="border-t">
-                <tr @click="open(o.id)" class="hover:bg-brand-600/5 cursor-pointer">
-                  <td class="px-4 py-2.5 font-semibold text-brand-700 font-mono text-xs whitespace-nowrap">
+            <template x-for="(o, oi) in shipmentRows()" :key="o.id">
+              <tbody class="border-t border-slate-100">
+                <tr @click="open(o.id)" class="hover:bg-brand-50/60 transition-colors cursor-pointer"
+                    :class="oi % 2 ? 'bg-slate-50/60' : ''">
+                  <td class="px-4 py-2.5 font-mono text-xs font-semibold text-brand-700 whitespace-nowrap">
                     <button @click.stop="toggleRow(o.id)"
-                            class="text-slate-300 hover:text-slate-600 mr-1 w-4 inline-block text-center"
-                            :class="expanded[o.id] ? 'text-slate-600' : ''"
+                            class="mr-1 w-4 inline-block text-center transition-colors"
+                            :class="expanded[o.id] ? 'text-slate-600' : 'text-slate-300 hover:text-slate-600'"
                             :title="expanded[o.id] ? 'Hide deliveries' : 'Show each delivery'"
                             x-text="expanded[o.id] ? '▾' : '▸'"></button>
                     <span x-text="o.order_no"></span>
                   </td>
-                  <td class="px-3 py-2.5 whitespace-nowrap">
-                    <span class="font-mono text-slate-400 text-xs mr-1" x-text="o.customer_code"></span>
-                    <span x-text="o.customer_name"></span>
+                  <td class="px-3 py-2.5">
+                    <div class="font-mono text-[11px] leading-tight text-slate-400" x-text="o.customer_code"></div>
+                    <div class="font-medium text-slate-800 whitespace-nowrap leading-tight" x-text="o.customer_name"></div>
                   </td>
-                  <td class="px-3 py-2.5 text-slate-500 whitespace-nowrap" x-text="o.customer_po || '—'"></td>
-                  <td class="px-3 py-2.5 text-right tabular-nums" x-text="o.qty_total"></td>
-                  <td class="px-3 py-2.5 text-right text-emerald-700 font-medium tabular-nums" x-text="o.qty_shipped"></td>
-                  <td class="px-3 py-2.5 text-right font-bold tabular-nums"
+                  <td class="px-3 py-2.5 font-mono text-xs whitespace-nowrap"
+                      :class="o.customer_po ? 'text-slate-600' : 'text-slate-300'"
+                      x-text="o.customer_po || '—'"></td>
+                  <td class="px-2.5 py-2.5 text-right tabular-nums text-slate-700" x-text="o.qty_total"></td>
+                  <td class="px-2.5 py-2.5 text-right tabular-nums font-medium"
+                      :class="o.qty_shipped > 0 ? 'text-emerald-700' : 'text-slate-300'"
+                      x-text="o.qty_shipped"></td>
+                  <td class="px-2.5 py-2.5 text-right font-bold tabular-nums"
                       :class="o.qty_pending > 0 ? 'text-amber-700' : 'text-slate-300'"
                       x-text="o.qty_pending"></td>
                   <td class="px-3 py-2.5">
                     <div class="flex items-center gap-0.5">
                       <template x-for="(d, i) in o.drops" :key="i">
-                        <div class="h-2 rounded-full bg-slate-100 overflow-hidden shrink-0"
+                        <div class="h-2 rounded-full bg-slate-200 overflow-hidden shrink-0"
                              :style="'width:calc(' + segWidth(o, d) + '% - 2px)'"
                              :title="d.label + ' — ' + d.delivered + ' of ' + d.qty
                                      + (d.due_date ? ', by ' + fmtDate(d.due_date) : '')">
@@ -197,36 +233,44 @@
                         </div>
                       </template>
                     </div>
-                    <div class="text-[11px] text-slate-400 mt-0.5 whitespace-nowrap"
+                    <div class="text-[11px] text-slate-400 mt-1 whitespace-nowrap tabular-nums"
                          x-text="o.pct_shipped + '%' + dropNote(o)"></div>
                   </td>
                   <td class="px-3 py-2.5 whitespace-nowrap">
-                    <span :class="dueClass(o.due_date)" class="px-2 py-0.5 rounded"
-                          x-text="fmtDate(o.due_date)"></span>
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                          :class="dueClass(o.due_date)">
+                      <template x-if="odDueDot(o.due_date)">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="odDueDot(o.due_date)"></span>
+                      </template>
+                      <span x-text="fmtDate(o.due_date)"></span>
+                    </span>
                   </td>
                   <td class="px-3 py-2.5">
-                    <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                          :class="stageClass(o.stage)" x-text="stageLabel(o.stage)"></span>
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+                          :class="stageClass(o.stage)">
+                      <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="odStageDot(o.stage)"></span>
+                      <span x-text="stageLabel(o.stage)"></span>
+                    </span>
                   </td>
                 </tr>
-                <tr x-show="expanded[o.id]" class="bg-slate-50/70">
+                <tr x-show="expanded[o.id]" class="bg-slate-50">
                   <td colspan="9" class="px-4 pb-3 pt-1">
                     <template x-for="(d, i) in o.drops" :key="i">
                       <div class="flex items-center gap-3 py-1.5">
                         <div class="w-64 shrink-0 text-xs">
-                          <span class="font-medium" x-text="d.label"></span>
+                          <span class="font-medium text-slate-700" x-text="d.label"></span>
                           <span class="text-slate-400" x-text="' · ' + d.part"></span>
                           <div class="text-[11px] text-slate-400"
                                x-text="(d.due_date ? 'by ' + fmtDate(d.due_date) : 'no date promised')
                                        + (d.note ? ' · ' + d.note : '')"></div>
                         </div>
-                        <div class="flex-1 h-2 rounded-full bg-slate-200/70 overflow-hidden">
+                        <div class="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
                           <div class="h-full rounded-full" :class="segFill(d)"
                                :style="'width:' + Math.min(d.pct, 100) + '%'"></div>
                         </div>
                         <div class="w-32 shrink-0 text-right text-xs tabular-nums">
                           <span class="font-semibold"
-                                :class="d.done ? 'text-emerald-700' : ''" x-text="d.delivered"></span>
+                                :class="d.done ? 'text-emerald-700' : 'text-slate-900'" x-text="d.delivered"></span>
                           <span class="text-slate-400" x-text="' / ' + d.qty"></span>
                           <span class="ml-1 text-[11px]"
                                 :class="d.remaining > 0 ? 'text-amber-700' : 'text-slate-300'"
@@ -241,68 +285,101 @@
 
             <tbody>
               <tr x-show="!shipmentRows().length">
-                <td colspan="9" class="px-4 py-10 text-center text-slate-400">
-                  Nothing outstanding — every order has been sent in full.
+                <td colspan="9" class="px-4 py-12 text-center">
+                  <div class="text-3xl opacity-25 leading-none mb-2">🚚</div>
+                  <div class="text-sm text-slate-400">Nothing outstanding — every order has been sent in full.</div>
                 </td>
               </tr>
             </tbody>
           </table>
-          <div class="px-4 py-3 bg-slate-50 border-t flex items-center text-sm">
-            <span class="text-slate-500">Still to send, across these orders</span>
-            <span class="ml-auto text-lg font-bold" x-text="totalOutstanding()"></span>
+          </div>
+          <div class="px-4 py-2.5 bg-slate-50 border-t-2 border-slate-200 flex items-center">
+            <span class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Still to send, across these orders</span>
+            <span class="ml-auto text-lg font-bold tabular-nums"
+                  :class="totalOutstanding() > 0 ? 'text-amber-700' : 'text-slate-300'"
+                  x-text="totalOutstanding()"></span>
           </div>
         </div>
       </section>
 
       <!-- ============================= CONSIGNMENTS ============================= -->
       <section x-show="tab === 'consignments'">
-        <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-end gap-3">
-          <div class="flex-1 min-w-[240px]">
-            <label class="block text-xs font-medium text-slate-500 mb-1">Search</label>
-            <input x-model="cons.q" @input.debounce.400ms="loadCons()"
-                   placeholder="LR no / invoice / transporter / order no"
-                   class="w-full border rounded-lg px-3 py-2 text-sm" />
-          </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-4 flex flex-wrap items-center gap-3">
+          <label class="sr-only" for="cons-q">Search consignments</label>
+          <input id="cons-q" x-model="cons.q" @input.debounce.400ms="loadCons()"
+                 placeholder="LR no / invoice / transporter / order no"
+                 class="flex-1 min-w-[240px] border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+          <span class="text-xs text-slate-400 tabular-nums ml-auto">
+            <span x-text="cons.rows.length"></span> shown</span>
           <button @click="newCons()"
-                  class="ml-auto bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                  class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm
+                         transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
             + New consignment
           </button>
         </div>
-        <div class="bg-white rounded-xl shadow-sm overflow-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-left text-xs text-slate-500 border-b bg-slate-50">
-                <th class="px-4 py-3">Date</th>
-                <th class="px-3 py-3">Orders</th>
-                <th class="px-3 py-3">Transporter</th>
-                <th class="px-3 py-3">LR no.</th>
-                <th class="px-3 py-3">Invoice</th>
-                <th class="px-3 py-3 text-right">Lines</th>
-                <th class="px-3 py-3">Delivered</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="cn in cons.rows" :key="cn.id">
-                <tr @click="openCons(cn.id)" class="border-b last:border-0 hover:bg-brand-600/5 cursor-pointer">
-                  <td class="px-4 py-2.5 whitespace-nowrap" x-text="fmtDate(cn.consign_date)"></td>
-                  <td class="px-3 py-2.5 font-mono text-xs" x-text="cn.order_nos"></td>
-                  <td class="px-3 py-2.5" x-text="cn.transporter || '—'"></td>
-                  <td class="px-3 py-2.5" x-text="cn.lr_no || '—'"></td>
-                  <td class="px-3 py-2.5" x-text="cn.invoice_no || '—'"></td>
-                  <td class="px-3 py-2.5 text-right" x-text="cn.lines"></td>
-                  <td class="px-3 py-2.5">
-                    <button @click.stop="toggleDelivered(cn)"
-                            class="px-2 py-0.5 rounded-full text-xs font-medium"
-                            :class="cn.delivered ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'"
-                            x-text="cn.delivered ? 'Delivered ✓' : 'In transit'"></button>
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-b-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">Date</th>
+                  <th class="px-3 py-2.5">Orders</th>
+                  <th class="px-3 py-2.5">Transporter</th>
+                  <th class="px-3 py-2.5">LR no.</th>
+                  <th class="px-3 py-2.5">Invoice</th>
+                  <th class="px-3 py-2.5 text-right">Lines</th>
+                  <th class="px-3 py-2.5">Delivered</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="cn in cons.rows" :key="cn.id">
+                  <tr @click="openCons(cn.id)"
+                      class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
+                    <td class="px-4 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(cn.consign_date)"></td>
+                    <td class="px-3 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="cn.order_nos"></td>
+                    <td class="px-3 py-2.5"
+                        :class="cn.transporter ? 'text-slate-800' : 'text-slate-300'"
+                        x-text="cn.transporter || '—'"></td>
+                    <td class="px-3 py-2.5 font-mono text-xs"
+                        :class="cn.lr_no ? 'text-slate-600' : 'text-slate-300'"
+                        x-text="cn.lr_no || '—'"></td>
+                    <td class="px-3 py-2.5 font-mono text-xs"
+                        :class="cn.invoice_no ? 'text-slate-600' : 'text-slate-300'"
+                        x-text="cn.invoice_no || '—'"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums"
+                        :class="cn.lines ? 'text-slate-700' : 'text-slate-300'" x-text="cn.lines"></td>
+                    <td class="px-3 py-2.5">
+                      <button @click.stop="toggleDelivered(cn)"
+                              :title="cn.delivered ? 'Mark as still in transit' : 'Mark as delivered'"
+                              class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium transition-colors"
+                              :class="cn.delivered
+                                      ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 hover:bg-emerald-100'
+                                      : 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 hover:bg-amber-100'">
+                        <span class="w-1.5 h-1.5 rounded-full"
+                              :class="cn.delivered ? 'bg-emerald-500' : 'bg-amber-500'"></span>
+                        <span x-text="cn.delivered ? 'Delivered' : 'In transit'"></span>
+                      </button>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="!cons.rows.length">
+                  <td colspan="7" class="px-4 py-12 text-center">
+                    <div class="text-3xl opacity-25 leading-none mb-2">🚚</div>
+                    <div class="text-sm text-slate-400 mb-3">No consignments yet.</div>
+                    <button @click="newCons()"
+                            class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm transition-colors">
+                      + New consignment
+                    </button>
                   </td>
                 </tr>
-              </template>
-              <tr x-show="!cons.rows.length">
-                <td colspan="7" class="px-4 py-10 text-center text-slate-400">No consignments yet.</td>
-              </tr>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-400 tabular-nums">
+            <span x-text="cons.rows.length"></span> consignments ·
+            <span x-text="cons.rows.filter(c => !c.delivered).length"></span> still in transit
+          </div>
         </div>
       </section>
     </main>
@@ -315,67 +392,84 @@
   <template x-if="plan">
   <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto"
        @click.self="plan = null">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8">
-      <div class="px-6 py-4 border-b flex items-center">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl my-8">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center">
         <div>
-          <div class="text-lg font-bold">Delivery plan</div>
-          <div class="text-xs text-slate-500" x-text="plan.label"></div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Delivery plan</div>
+          <div class="text-lg font-bold text-slate-900" x-text="plan.label"></div>
         </div>
-        <button @click="plan = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+        <button @click="plan = null" title="Close"
+                class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none transition-colors">✕</button>
       </div>
       <div class="p-6">
-        <div class="flex gap-6 text-sm mb-4">
-          <div><div class="text-xs text-slate-500">Ordered</div>
-               <div class="text-lg font-bold" x-text="plan.qty"></div></div>
-          <div><div class="text-xs text-slate-500">Planned</div>
-               <div class="text-lg font-bold text-brand-700" x-text="planTotal()"></div></div>
-          <div><div class="text-xs text-slate-500">Not planned yet</div>
-               <div class="text-lg font-bold"
-                    :class="planLeft() > 0 ? 'text-amber-700' : 'text-slate-300'"
-                    x-text="planLeft()"></div></div>
-          <div class="ml-auto text-xs text-slate-500 self-end" x-show="plan.due_date">
-            Order deadline <b x-text="fmtDate(plan.due_date)"></b>
+        <div class="grid grid-cols-3 gap-3 mb-5">
+          <div class="rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Ordered</div>
+            <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="plan.qty"></div>
+          </div>
+          <div class="rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Planned</div>
+            <div class="text-2xl font-bold tabular-nums text-brand-700" x-text="planTotal()"></div>
+          </div>
+          <div class="rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Not planned yet</div>
+            <div class="text-2xl font-bold tabular-nums"
+                 :class="planLeft() > 0 ? 'text-amber-600' : 'text-slate-300'"
+                 x-text="planLeft()"></div>
+            <div class="text-xs text-slate-400" x-show="plan.due_date">
+              order deadline <b class="font-semibold text-slate-500" x-text="fmtDate(plan.due_date)"></b>
+            </div>
           </div>
         </div>
 
-        <table class="w-full text-sm">
-          <thead><tr class="text-left text-xs text-slate-500 border-b">
-            <th class="py-2 pr-2">Deliver by</th>
-            <th class="py-2 pr-2 text-right">Quantity</th>
-            <th class="py-2 pr-2">Note</th>
-            <th class="py-2 w-8"></th>
-          </tr></thead>
-          <tbody>
-            <template x-for="(l, i) in plan.lines" :key="i">
-              <tr class="border-b last:border-0">
-                <td class="py-2 pr-2">
-                  <input type="date" x-model="l.due_date" class="border rounded-lg px-2 py-1.5 w-full" /></td>
-                <td class="py-2 pr-2">
-                  <input type="number" step="0.001" min="0" x-model="l.qty"
-                         class="border rounded-lg px-2 py-1.5 w-28 text-right" /></td>
-                <td class="py-2 pr-2">
-                  <input x-model="l.note" placeholder="e.g. first drop"
-                         class="border rounded-lg px-2 py-1.5 w-full" /></td>
-                <td class="py-2 text-right">
-                  <button @click="plan.lines.splice(i,1)" class="text-slate-300 hover:text-rose-600 px-1">✕</button></td>
+        <div class="rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-b-2 border-slate-200">
+              <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <th class="px-4 py-2.5">Deliver by</th>
+                <th class="px-3 py-2.5 text-right">Quantity</th>
+                <th class="px-3 py-2.5">Note</th>
+                <th class="px-3 py-2.5 w-10"></th>
               </tr>
-            </template>
-            <tr x-show="!plan.lines.length">
-              <td colspan="4" class="py-6 text-center text-slate-400 text-sm">
-                No drops planned — the whole quantity is due by the order deadline.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <template x-for="(l, i) in plan.lines" :key="i">
+                <tr class="even:bg-slate-50/60">
+                  <td class="px-4 py-2">
+                    <input type="date" x-model="l.due_date"
+                           class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white w-full
+                                  focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></td>
+                  <td class="px-3 py-2">
+                    <input type="number" step="0.001" min="0" x-model="l.qty"
+                           class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white w-28 text-right tabular-nums
+                                  focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></td>
+                  <td class="px-3 py-2">
+                    <input x-model="l.note" placeholder="e.g. first drop"
+                           class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white w-full
+                                  focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></td>
+                  <td class="px-3 py-2 text-right">
+                    <button @click="plan.lines.splice(i,1)" title="Remove this delivery"
+                            class="text-slate-300 hover:text-rose-600 px-1 transition-colors">✕</button></td>
+                </tr>
+              </template>
+              <tr x-show="!plan.lines.length">
+                <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-400">
+                  No drops planned — the whole quantity is due by the order deadline.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-        <div class="flex items-center gap-3 mt-4">
-          <button @click="addPlanLine()" class="text-sm text-brand-700 hover:underline">+ Add a delivery</button>
+        <div class="flex items-center gap-4 mt-4">
+          <button @click="addPlanLine()" class="text-sm font-medium text-brand-700 hover:underline">+ Add a delivery</button>
           <button @click="planRest()" x-show="planLeft() > 0"
-                  class="text-sm text-brand-700 hover:underline"
+                  class="text-sm font-medium text-brand-700 hover:underline"
                   x-text="'+ Remaining (' + planLeft() + ') by the deadline'"></button>
           <span class="text-rose-600 text-sm ml-auto" x-text="planError"></span>
           <button @click="savePlan()"
-                  class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg text-sm font-medium">Save plan</button>
+                  class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm
+                         transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">Save plan</button>
         </div>
       </div>
     </div>
@@ -390,50 +484,57 @@
   <div class="fixed inset-0 z-40 bg-slate-100 flex flex-col">
     <div class="bg-slate-900 text-slate-300 flex items-center gap-3 px-6 py-3 shrink-0">
       <button @click="closeDetail()" title="Back to all orders"
-              class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
+              class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
         <span class="text-base leading-none">←</span> Back
       </button>
         <div>
-          <div class="text-xl font-bold font-mono text-white" x-text="detail.order_no"></div>
+          <div class="text-xl font-bold font-mono tracking-tight text-white" x-text="detail.order_no"></div>
           <div class="text-xs text-slate-400"
                x-text="[detail.customer_name, detail.customer_po && ('PO ' + detail.customer_po),
                         fmtDate(detail.order_date)].filter(Boolean).join(' · ')"></div>
         </div>
-        <span class="px-2.5 py-1 rounded-full text-xs font-medium"
-              :class="stageClass(detail.stage)" x-text="stageLabel(detail.stage)"></span>
-        <span class="px-2.5 py-1 rounded-full text-xs font-medium ml-1"
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+              :class="stageClass(detail.stage)">
+          <span class="w-1.5 h-1.5 rounded-full" :class="odStageDot(detail.stage)"></span>
+          <span x-text="stageLabel(detail.stage)"></span>
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
               x-show="detail.due_date"
-              :class="dueChipClass(detail.due_date)"
-              x-text="dueLabel(detail.due_date)"></span>
+              :class="dueChipClass(detail.due_date)">
+          <span class="w-1.5 h-1.5 rounded-full" :class="odDueDot(detail.due_date) || 'bg-slate-400'"></span>
+          <span x-text="dueLabel(detail.due_date)"></span>
+        </span>
         <div class="ml-auto flex gap-2">
-          <button @click="editOrder()" class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm">Edit</button>
-          <button @click="removeOrder()" class="border border-rose-400/60 text-rose-300 hover:bg-rose-900/40 px-3 py-1.5 rounded-lg text-sm">Delete</button>
+          <button @click="editOrder()"
+                  class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">Edit order</button>
+          <button @click="removeOrder()"
+                  class="border border-rose-400/60 text-rose-300 hover:bg-rose-900/40 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">Delete</button>
         </div>
     </div>
     <div class="flex-1 overflow-auto">
-      <div class="max-w-6xl mx-auto p-6">
-        <div class="bg-white rounded-2xl shadow-sm">
+      <div class="max-w-6xl mx-auto p-6 space-y-4">
 
       <!-- ===================== WHERE THIS ORDER IS =====================
            The seven stages drawn as a chain: a filled node for every stage the
            order has passed, a ringed node for where it is now, hollow ahead.
            The connector between two nodes is coloured only when BOTH are done,
            so the line itself shows how far it has travelled. -->
-      <div class="px-6 pt-5 pb-1">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-6 pt-4 pb-5">
+        <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Stage</div>
         <div class="flex items-start">
           <template x-for="(s, i) in detail.stages" :key="s.key">
             <div class="flex items-start flex-1 last:flex-none">
               <button @click="setStage(s.key)" :title="'Move to ' + s.label"
                       class="flex flex-col items-center gap-1.5 group shrink-0 w-[4.5rem]">
                 <span class="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold
-                             border-2 transition"
+                             border-2 transition-colors"
                       :class="stageIndex(s.key) < stageIndex(detail.stage)
                               ? 'bg-emerald-500 border-emerald-500 text-white'
                               : (s.key === detail.stage
                                  ? 'bg-brand-600 border-brand-600 text-white ring-4 ring-brand-600/20'
-                                 : 'bg-white border-slate-300 text-slate-400 group-hover:border-brand-400')"
+                                 : 'bg-white border-slate-300 text-slate-400 group-hover:border-brand-500')"
                       x-text="stageIndex(s.key) < stageIndex(detail.stage) ? '✓' : (i + 1)"></span>
-                <span class="text-[10px] leading-tight text-center transition"
+                <span class="text-[10px] leading-tight text-center transition-colors"
                       :class="s.key === detail.stage ? 'text-brand-700 font-semibold'
                               : (stageIndex(s.key) < stageIndex(detail.stage)
                                  ? 'text-emerald-700' : 'text-slate-400 group-hover:text-slate-600')"
@@ -441,7 +542,7 @@
               </button>
               <!-- the link between this node and the next -->
               <span x-show="i < detail.stages.length - 1"
-                    class="h-0.5 flex-1 mt-3.5 rounded-full transition"
+                    class="h-0.5 flex-1 mt-3.5 rounded-full transition-colors"
                     :class="stageIndex(s.key) < stageIndex(detail.stage)
                             ? 'bg-emerald-400' : 'bg-slate-200'"></span>
             </div>
@@ -450,104 +551,110 @@
       </div>
 
       <!-- the four numbers you actually want at a glance -->
-      <div class="px-6 pt-4 grid grid-cols-4 gap-3">
-        <div class="bg-slate-50 rounded-xl p-3">
-          <div class="text-[11px] text-slate-500">Order value</div>
-          <div class="text-lg font-bold" x-text="money(detail.amount)"></div>
+      <div class="grid grid-cols-4 gap-3">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Order value</div>
+          <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="money(detail.amount)"></div>
         </div>
-        <div class="bg-slate-50 rounded-xl p-3">
-          <div class="text-[11px] text-slate-500">Ordered</div>
-          <div class="text-lg font-bold" x-text="detail.qty_total"></div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Ordered</div>
+          <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="detail.qty_total"></div>
         </div>
-        <div class="bg-slate-50 rounded-xl p-3">
-          <div class="text-[11px] text-slate-500">Sent</div>
-          <div class="text-lg font-bold text-emerald-700" x-text="detail.qty_shipped"></div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Sent</div>
+          <div class="text-2xl font-bold tabular-nums"
+               :class="detail.qty_shipped > 0 ? 'text-emerald-600' : 'text-slate-300'"
+               x-text="detail.qty_shipped"></div>
         </div>
-        <div class="bg-slate-50 rounded-xl p-3">
-          <div class="text-[11px] text-slate-500">Still to send</div>
-          <div class="text-lg font-bold"
-               :class="detail.qty_pending > 0 ? 'text-amber-700' : 'text-slate-300'"
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Still to send</div>
+          <div class="text-2xl font-bold tabular-nums"
+               :class="detail.qty_pending > 0 ? 'text-amber-600' : 'text-slate-300'"
                x-text="detail.qty_pending"></div>
         </div>
       </div>
 
       <!-- ONE thing at a time: the record was a two-column wall of five
            unrelated blocks. Segments keep each answer on its own screen. -->
-      <div class="px-6 pt-5">
-        <div class="flex gap-1 border-b">
-          <template x-for="seg in orderSegs" :key="seg.k">
-            <button @click="oseg = seg.k"
-                    class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition"
-                    :class="oseg === seg.k
-                            ? 'border-brand-600 text-brand-700'
-                            : 'border-transparent text-slate-500 hover:text-slate-700'">
-              <span x-text="seg.label"></span>
-              <span x-show="segCount(seg.k)" class="ml-1 text-xs opacity-60"
-                    x-text="segCount(seg.k)"></span>
-            </button>
-          </template>
-        </div>
+      <div class="inline-flex items-center gap-0.5 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+        <template x-for="seg in orderSegs" :key="seg.k">
+          <button @click="oseg = seg.k"
+                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                  :class="oseg === seg.k
+                          ? 'bg-slate-900 text-white shadow-sm'
+                          : 'text-slate-500 hover:text-slate-800'">
+            <span x-text="seg.label"></span>
+            <span x-show="segCount(seg.k)" class="text-[11px] opacity-70 tabular-nums"
+                  x-text="segCount(seg.k)"></span>
+          </button>
+        </template>
       </div>
 
-      <div class="p-6 grid grid-cols-1 gap-6">
-        <div class="space-y-5" x-show="oseg === 'items'">
-          <div>
-            <div class="font-semibold text-sm mb-2">Items
-              <span class="font-normal text-slate-400" x-text="'· total ' + money(detail.amount)"></span></div>
+      <div class="grid grid-cols-1 gap-6">
+        <div class="space-y-4" x-show="oseg === 'items'">
+          <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
             <table class="w-full text-sm">
-              <thead>
-                <tr class="text-left text-xs text-slate-500 border-b">
-                  <th class="py-2 pr-2">Part</th>
-                  <th class="py-2 pr-2 text-right">Qty</th>
-                  <th class="py-2 pr-2 text-right">Shipped</th>
-                  <th class="py-2 pr-2 text-right">Still due</th>
-                  <th class="py-2 pr-2 text-right">Rate</th>
-                  <th class="py-2 pr-2 text-right">Amount</th>
-                  <th class="py-2 text-right">Plan</th>
+              <thead class="bg-slate-50 border-b-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">Part</th>
+                  <th class="px-3 py-2.5 text-right">Qty</th>
+                  <th class="px-3 py-2.5 text-right">Shipped</th>
+                  <th class="px-3 py-2.5 text-right">Still due</th>
+                  <th class="px-3 py-2.5 text-right">Rate</th>
+                  <th class="px-3 py-2.5 text-right">Amount</th>
+                  <th class="px-3 py-2.5 text-right">Plan</th>
                 </tr>
               </thead>
               <!-- A tbody per item so the item's row and its delivery bars can
                    sit together: sibling <tr>s cannot share one x-for. -->
               <template x-for="it in detail.items" :key="it.id">
-                <tbody class="border-b last:border-0">
+                <tbody class="border-b border-slate-100 last:border-0">
                   <tr>
-                    <td class="py-2 pr-2">
-                      <div class="font-medium" x-text="it.drawing_no ? (it.drawing_no + ' rev ' + it.revision) : it.description"></div>
+                    <td class="px-4 py-2.5">
+                      <div class="font-medium text-slate-800" x-text="it.drawing_no ? (it.drawing_no + ' rev ' + it.revision) : it.description"></div>
                       <div x-show="it.drawing_no && it.description" class="text-xs text-slate-400" x-text="it.description"></div>
                     </td>
-                    <td class="py-2 pr-2 text-right whitespace-nowrap tabular-nums" x-text="it.qty + ' ' + it.unit"></td>
-                    <td class="py-2 pr-2 text-right tabular-nums"
-                        :class="it.shipped >= it.qty ? 'text-emerald-600 font-medium' : 'text-slate-500'"
+                    <td class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums text-slate-700">
+                      <span class="font-semibold text-slate-900" x-text="it.qty"></span>
+                      <span class="text-slate-400" x-text="it.unit"></span>
+                    </td>
+                    <td class="px-3 py-2.5 text-right tabular-nums font-medium"
+                        :class="it.shipped >= it.qty ? 'text-emerald-600' : (it.shipped ? 'text-slate-600' : 'text-slate-300')"
                         x-text="it.shipped"></td>
-                    <td class="py-2 pr-2 text-right font-medium tabular-nums"
+                    <td class="px-3 py-2.5 text-right font-semibold tabular-nums"
                         :class="it.pending > 0 ? 'text-amber-700' : 'text-slate-300'"
                         x-text="it.pending"></td>
-                    <td class="py-2 pr-2 text-right tabular-nums" x-text="money(it.rate)"></td>
-                    <td class="py-2 pr-2 text-right font-medium tabular-nums" x-text="money(it.amount)"></td>
-                    <td class="py-2 text-right">
+                    <td class="px-3 py-2.5 text-right tabular-nums text-slate-600" x-text="money(it.rate)"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(it.amount)"></td>
+                    <td class="px-3 py-2.5 text-right">
                       <button @click="openPlan(it)"
-                              class="px-2 py-1 rounded-lg text-xs font-medium border"
-                              :class="it.schedule.length ? 'border-brand-600 text-brand-700 bg-brand-50' : 'border-slate-300 text-slate-500 hover:bg-slate-50'"
-                              x-text="it.schedule.length ? ('Edit ' + it.schedule.length + ' drop(s)') : 'Plan deliveries'"></button>
+                              class="rounded-lg px-2.5 py-1 text-xs font-medium border shadow-sm transition-colors"
+                              :class="it.schedule.length
+                                      ? 'border-brand-600/30 bg-brand-50 text-brand-700 hover:bg-brand-100'
+                                      : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'"
+                              x-text="it.schedule.length
+                                      ? ('Edit ' + it.schedule.length + (it.schedule.length > 1 ? ' drops' : ' drop'))
+                                      : 'Plan deliveries'"></button>
                     </td>
                   </tr>
                   <!-- the plan itself: one bar per delivery this item is split
                        into, so the split is visible where it is edited -->
                   <tr>
-                    <td colspan="7" class="pb-3">
+                    <td colspan="7" class="px-4 pb-3">
                       <template x-for="r in shipRows(it)" :key="r.key">
                         <div class="flex items-center gap-3 py-1">
                           <div class="w-56 shrink-0 text-xs">
-                            <span class="font-medium" x-text="r.label"></span>
+                            <span class="font-medium text-slate-700" x-text="r.label"></span>
                             <div class="text-[11px] text-slate-400" x-text="r.subtitle"></div>
                           </div>
-                          <div class="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                          <div class="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
                             <div class="h-full rounded-full transition-all"
                                  :class="segFill(r.drop)"
                                  :style="'width:' + Math.min(r.pct, 100) + '%'"></div>
                           </div>
                           <div class="w-36 shrink-0 text-right text-xs tabular-nums">
-                            <span class="font-semibold" :class="r.done ? 'text-emerald-700' : ''"
+                            <span class="font-semibold" :class="r.done ? 'text-emerald-700' : 'text-slate-900'"
                                   x-text="r.delivered"></span>
                             <span class="text-slate-400" x-text="' / ' + r.qty"></span>
                             <span class="ml-1 text-[11px]"
@@ -560,131 +667,185 @@
                   </tr>
                 </tbody>
               </template>
+              <tfoot>
+                <tr class="bg-slate-50 border-t-2 border-slate-200 font-semibold">
+                  <td class="px-4 py-2.5 text-[11px] uppercase tracking-wider text-slate-500">Total</td>
+                  <td class="px-3 py-2.5 text-right tabular-nums text-slate-900" x-text="detail.qty_total"></td>
+                  <td class="px-3 py-2.5 text-right tabular-nums"
+                      :class="detail.qty_shipped > 0 ? 'text-emerald-700' : 'text-slate-300'"
+                      x-text="detail.qty_shipped"></td>
+                  <td class="px-3 py-2.5 text-right tabular-nums"
+                      :class="detail.qty_pending > 0 ? 'text-amber-700' : 'text-slate-300'"
+                      x-text="detail.qty_pending"></td>
+                  <td></td>
+                  <td class="px-3 py-2.5 text-right tabular-nums text-slate-900" x-text="money(detail.amount)"></td>
+                  <td></td>
+                </tr>
+              </tfoot>
             </table>
+            </div>
           </div>
         </div>
 
         <!-- MATERIAL: what the order commits, and what left the rack -->
-        <div class="space-y-5" x-show="oseg === 'material'">
-          <div>
+        <div class="space-y-4" x-show="oseg === 'material'">
             <!-- ============ BILL OF MATERIALS FOR THIS ORDER ============
                  The order has no BOM of its own — its PARTS do. This rolls each
                  item's costing up by heat: what the order commits us to, what
                  has actually been issued, and what is still to come off the
                  rack. -->
-            <div class="flex items-baseline gap-3 mb-3">
-              <div class="font-semibold text-sm">Bill of materials</div>
-              <span class="text-[11px] text-slate-400">what this order commits</span>
-              <span class="ml-auto text-sm font-bold" x-show="bom"
-                    x-text="money(bom?.total_cost ?? 0)"></span>
-            </div>
-            <template x-if="bom && bom.summary.length">
-              <div class="overflow-auto mb-2">
-                <table class="w-full text-sm">
-                  <thead class="text-slate-400 text-[10px] uppercase tracking-wide border-b">
-                    <tr>
-                      <th class="text-left pb-2">Material</th>
-                      <th class="text-right pb-2 pr-4">Needs</th>
-                      <th class="text-right pb-2 pr-4">Issued</th>
-                      <th class="text-right pb-2 pr-4">To issue</th>
-                      <th class="text-right pb-2">Value</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-100">
-                    <template x-for="m in bom.summary" :key="m.heat_number + m.unit">
-                      <tr>
-                        <td class="py-2.5">
-                          <div class="font-mono text-xs font-semibold text-brand-700"
-                               x-text="m.heat_number"></div>
-                          <div class="text-[11px] text-slate-400" x-text="m.material_label"></div>
-                        </td>
-                        <td class="py-2.5 text-right pr-4 whitespace-nowrap tabular-nums">
-                          <span class="font-medium" x-text="m.required"></span>
-                          <span class="text-slate-400 text-xs" x-text="m.unit"></span>
-                        </td>
-                        <td class="py-2.5 text-right pr-4 tabular-nums"
-                            :class="m.issued ? 'text-emerald-700' : 'text-slate-300'"
-                            x-text="m.issued"></td>
-                        <td class="py-2.5 text-right pr-4 tabular-nums font-semibold"
-                            :class="m.outstanding > 0 ? 'text-amber-700' : 'text-slate-300'"
-                            x-text="m.outstanding"></td>
-                        <td class="py-2.5 text-right tabular-nums" x-text="money(m.cost)"></td>
+            <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+              <div class="flex items-center gap-3 px-4 pt-3 pb-2">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold"
+                     title="From each part's latest costing × the quantity ordered">Bill of materials</div>
+                <button @click="issueReq()" :disabled="reqBusy" x-show="bom && bom.summary.length"
+                        title="Numbered and frozen — hand it to the store keeper"
+                        class="ml-auto border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm
+                               disabled:opacity-50 transition-colors"
+                        x-text="reqBusy ? 'Issuing…' : '📄 Issue requisition'"></button>
+              </div>
+              <template x-if="bom && bom.summary.length">
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-y-2 border-slate-200">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-4 py-2.5">Material</th>
+                        <th class="px-3 py-2.5 text-right">Needs</th>
+                        <th class="px-3 py-2.5 text-right">Issued</th>
+                        <th class="px-3 py-2.5 text-right">To issue</th>
+                        <th class="px-3 py-2.5 text-right">Value</th>
                       </tr>
-                    </template>
-                  </tbody>
-                </table>
-                <p class="text-[11px] text-slate-400 mt-2">
-                  From each part's latest costing × the quantity ordered.
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="m in bom.summary" :key="m.heat_number + m.unit">
+                        <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                          <td class="px-4 py-2.5">
+                            <div class="font-mono text-xs font-semibold text-brand-700"
+                                 x-text="m.heat_number"></div>
+                            <div class="text-[11px] text-slate-400" x-text="m.material_label"></div>
+                          </td>
+                          <td class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums">
+                            <span class="font-semibold text-slate-900" x-text="m.required"></span>
+                            <span class="text-slate-400 text-xs" x-text="m.unit"></span>
+                          </td>
+                          <td class="px-3 py-2.5 text-right tabular-nums font-medium"
+                              :class="m.issued ? 'text-emerald-700' : 'text-slate-300'"
+                              x-text="m.issued"></td>
+                          <td class="px-3 py-2.5 text-right tabular-nums font-semibold"
+                              :class="m.outstanding > 0 ? 'text-amber-700' : 'text-slate-300'"
+                              x-text="m.outstanding"></td>
+                          <td class="px-3 py-2.5 text-right tabular-nums text-slate-700" x-text="money(m.cost)"></td>
+                        </tr>
+                      </template>
+                    </tbody>
+                    <tfoot>
+                      <tr class="bg-slate-50 border-t-2 border-slate-200 font-semibold">
+                        <td class="px-4 py-2.5 text-[11px] uppercase tracking-wider text-slate-500">Committed</td>
+                        <td colspan="3"></td>
+                        <td class="px-3 py-2.5 text-right tabular-nums text-slate-900"
+                            x-text="money(bom?.total_cost ?? 0)"></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </template>
+              <template x-if="bom && !bom.summary.length">
+                <p class="px-4 pb-4 text-xs text-slate-400">
+                  No part on this order prices its material from stock yet — add a bill
+                  of materials to a drawing's costing in Parts &amp; Pricing.
                 </p>
-              </div>
-            </template>
-            <template x-if="bom && !bom.summary.length">
-              <p class="text-xs text-slate-400 mb-2">
-                No part on this order prices its material from stock yet — add a bill
-                of materials to a drawing's costing in Parts &amp; Pricing.
-              </p>
-            </template>
-            <template x-if="bom && (bom.items_without_bom || bom.unexpected_issues.length)">
-              <div class="mb-4 mt-2 rounded-lg bg-slate-50 px-3 py-2 space-y-0.5">
-                <template x-for="it in bom.items.filter(i => i.reason)" :key="it.item_id">
-                  <div class="text-[11px] text-slate-500">
-                    <span class="font-medium text-slate-600" x-text="it.label"></span>
-                    <span x-text="' — ' + it.reason"></span>
-                  </div>
-                </template>
-                <template x-for="u in bom.unexpected_issues" :key="u.heat_number">
-                  <div class="text-[11px] text-amber-700">
-                    <span class="font-mono" x-text="u.heat_number"></span>
-                    was issued here but no part calls for it
-                  </div>
-                </template>
-              </div>
-            </template>
+              </template>
+              <template x-if="bom && (bom.items_without_bom || bom.unexpected_issues.length)">
+                <div class="border-t border-slate-200 bg-slate-50 px-4 py-2.5 space-y-0.5">
+                  <template x-for="it in bom.items.filter(i => i.reason)" :key="it.item_id">
+                    <div class="text-[11px] text-slate-500">
+                      <span class="font-medium text-slate-600" x-text="it.label"></span>
+                      <span x-text="' — ' + it.reason"></span>
+                    </div>
+                  </template>
+                  <template x-for="u in bom.unexpected_issues" :key="u.heat_number">
+                    <div class="text-[11px] text-amber-700">
+                      <span class="font-mono" x-text="u.heat_number"></span>
+                      was issued here but no part calls for it
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
 
             <!-- issue it as a numbered, frozen document -->
-            <div class="flex items-center gap-2 mb-4" x-show="bom && bom.summary.length">
-              <button @click="issueReq()" :disabled="reqBusy"
-                      class="bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
-                      x-text="reqBusy ? 'Issuing…' : '📄 Issue requisition'"></button>
-              <span class="text-[11px] text-slate-400">
-                Numbered and frozen — hand it to the store keeper.
-              </span>
-            </div>
-
             <template x-if="reqs.length">
-              <div class="mb-4">
-                <div class="font-semibold text-sm mb-1.5">Requisitions issued</div>
-                <template x-for="r in reqs" :key="r.id">
-                  <div class="flex items-center gap-2 text-sm py-1.5 border-b last:border-0">
-                    <span class="font-mono text-xs font-semibold text-brand-700" x-text="r.doc_no"></span>
-                    <span class="text-xs text-slate-500" x-text="fmtDate(r.issued_on)"></span>
-                    <span class="text-xs text-slate-400" x-text="r.lines + ' line(s)'"></span>
-                    <span class="text-xs text-slate-400" x-show="r.issued_by" x-text="'by ' + r.issued_by"></span>
-                    <span class="ml-auto text-xs" x-text="money(r.total_cost)"></span>
-                    <a :href="'/api/orders/requisitions/' + r.id + '/print'" target="_blank"
-                       class="text-brand-700 hover:underline text-xs">Print</a>
-                  </div>
-                </template>
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div class="px-4 pt-3 pb-2 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Requisitions issued</div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-y-2 border-slate-200">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-4 py-2.5">Document</th>
+                        <th class="px-3 py-2.5">Issued</th>
+                        <th class="px-3 py-2.5 text-right">Lines</th>
+                        <th class="px-3 py-2.5">By</th>
+                        <th class="px-3 py-2.5 text-right">Value</th>
+                        <th class="px-3 py-2.5 text-right"></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="r in reqs" :key="r.id">
+                        <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                          <td class="px-4 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="r.doc_no"></td>
+                          <td class="px-3 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(r.issued_on)"></td>
+                          <td class="px-3 py-2.5 text-right tabular-nums"
+                              :class="r.lines ? 'text-slate-700' : 'text-slate-300'" x-text="r.lines"></td>
+                          <td class="px-3 py-2.5" :class="r.issued_by ? 'text-slate-600' : 'text-slate-300'"
+                              x-text="r.issued_by || '—'"></td>
+                          <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(r.total_cost)"></td>
+                          <td class="px-3 py-2.5 text-right">
+                            <a :href="'/api/orders/requisitions/' + r.id + '/print'" target="_blank"
+                               class="text-brand-700 hover:underline text-xs font-medium">Print</a>
+                          </td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </template>
 
-            <div class="font-semibold text-sm mb-2">Material actually issued (usage log)</div>
-            <template x-for="(h, i) in detail.heats" :key="i">
-              <div class="flex items-center gap-2 text-sm py-1 border-b last:border-0">
-                <span class="font-mono text-xs font-semibold text-brand-700" x-text="h.heat_number"></span>
-                <span class="text-xs text-slate-500" x-text="[h.material_class, h.grade].filter(Boolean).join(' ')"></span>
-                <span class="ml-auto text-xs" x-text="h.rods + ' rods · ' + fmtDate(h.mv_date)"></span>
-              </div>
-            </template>
-            <p x-show="!detail.heats.length" class="text-xs text-slate-400">
-              No heats issued against this order number yet (Inventory → issue with Order ID
-              <span class="font-mono" x-text="detail.order_no"></span>).
-            </p>
-          </div>
+            <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+              <div class="px-4 pt-3 pb-2 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Material actually issued</div>
+              <template x-if="detail.heats.length">
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-y-2 border-slate-200">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-4 py-2.5">Heat no.</th>
+                        <th class="px-3 py-2.5">Material</th>
+                        <th class="px-3 py-2.5 text-right">Rods</th>
+                        <th class="px-3 py-2.5 text-right">Issued on</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="(h, i) in detail.heats" :key="i">
+                        <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                          <td class="px-4 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="h.heat_number"></td>
+                          <td class="px-3 py-2.5 text-slate-600" x-text="[h.material_class, h.grade].filter(Boolean).join(' ')"></td>
+                          <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="h.rods"></td>
+                          <td class="px-3 py-2.5 text-right whitespace-nowrap text-slate-500" x-text="fmtDate(h.mv_date)"></td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+              </template>
+              <p x-show="!detail.heats.length" class="px-4 pb-4 text-xs text-slate-400">
+                No heats issued against this order number yet (Inventory → issue with Order ID
+                <span class="font-mono" x-text="detail.order_no"></span>).
+              </p>
+            </div>
         </div>
 
         <!-- SHIPMENTS + HISTORY -->
-        <div class="space-y-5" x-show="oseg === 'shipments'">
+        <div class="space-y-4" x-show="oseg === 'shipments'">
 
           <!-- ================= THE DELIVERIES THIS ORDER IS SPLIT INTO ==========
                One card per planned drop, each with its own progress and its own
@@ -692,25 +853,25 @@
                date order, so over-shipping one closes it and rolls the surplus
                into the next — the later drops need less without anyone editing
                the plan. An item with no plan appears as a single card. -->
-          <div>
-            <div class="flex items-center mb-2">
-              <div class="font-semibold text-sm">Deliveries</div>
-              <span class="ml-auto text-xs text-slate-400"
+          <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+            <div class="flex items-center mb-3">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Deliveries</div>
+              <span class="ml-auto text-xs text-slate-400 tabular-nums"
                     x-text="detail.qty_shipped + ' of ' + detail.qty_total + ' sent'"></span>
             </div>
 
             <div class="space-y-2">
               <template x-for="r in shipRows()" :key="r.key">
-                <div class="border rounded-xl p-3"
+                <div class="border rounded-xl p-3 transition-shadow"
                      :class="r.done ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200'">
                   <div class="flex items-center gap-3">
                     <div class="min-w-0">
-                      <div class="text-sm font-medium truncate" x-text="r.title"></div>
-                      <div class="text-[11px] text-slate-500" x-text="r.subtitle"></div>
+                      <div class="text-sm font-semibold text-slate-800 truncate" x-text="r.title"></div>
+                      <div class="text-[11px] text-slate-400" x-text="r.subtitle"></div>
                     </div>
-                    <div class="ml-auto text-right shrink-0">
+                    <div class="ml-auto text-right shrink-0 tabular-nums">
                       <div class="text-sm">
-                        <span class="font-bold" :class="r.done ? 'text-emerald-700' : ''"
+                        <span class="font-bold" :class="r.done ? 'text-emerald-700' : 'text-slate-900'"
                               x-text="r.delivered"></span>
                         <span class="text-slate-400" x-text="' / ' + r.qty"></span>
                       </div>
@@ -719,11 +880,12 @@
                            x-text="r.remaining > 0 ? (r.remaining + ' to go') : 'complete'"></div>
                     </div>
                     <button x-show="r.remaining > 0" @click="shipDrop(r)"
-                            class="shrink-0 bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium">
+                            class="shrink-0 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-3 py-1.5 text-xs
+                                   transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
                       🚚 Ship this
                     </button>
                   </div>
-                  <div class="h-1.5 rounded-full bg-slate-100 overflow-hidden mt-2.5">
+                  <div class="h-1.5 rounded-full bg-slate-200 overflow-hidden mt-2.5">
                     <div class="h-full rounded-full transition-all" :class="segFill(r.drop)"
                          :style="'width:' + Math.min(r.pct, 100) + '%'"></div>
                   </div>
@@ -735,55 +897,82 @@
               Nothing on this order yet.
             </p>
             <template x-if="overDelivered()">
-              <p class="text-[11px] text-amber-700 mt-2">
+              <p class="text-[11px] text-amber-700 mt-2.5">
                 <b x-text="overDelivered()"></b> sent beyond the whole ordered
                 quantity — worth checking against the customer's PO.
               </p>
             </template>
             <div class="mt-3">
-              <button @click="newCons(detail)"
-                      class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-medium">
+              <button @click="newCons(detail)" title="A mixed truck, or a part with no plan"
+                      class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-colors">
                 🚚 Ship something else
               </button>
-              <span class="text-[11px] text-slate-400 ml-2">
-                a mixed truck, or a part with no plan
-              </span>
             </div>
           </div>
 
-          <div>
-            <div class="font-semibold text-sm mb-2">Consignments</div>
-            <template x-for="cn in detail.consignments" :key="cn.id">
-              <div class="flex items-center gap-2 text-sm py-1.5 border-b last:border-0">
-                <span x-text="fmtDate(cn.consign_date)"></span>
-                <span class="text-xs text-slate-500" x-text="[cn.transporter, cn.lr_no && ('LR ' + cn.lr_no)].filter(Boolean).join(' · ')"></span>
-                <button @click="toggleDelivered(cn)"
-                        class="ml-auto px-2 py-0.5 rounded-full text-xs font-medium"
-                        :class="cn.delivered ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'"
-                        x-text="cn.delivered ? 'Delivered ✓' : 'In transit'"></button>
+          <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="px-4 pt-3 pb-2 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Consignments</div>
+            <template x-if="detail.consignments.length">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="bg-slate-50 border-y-2 border-slate-200">
+                    <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                      <th class="px-4 py-2.5">Date</th>
+                      <th class="px-3 py-2.5">Transporter · LR</th>
+                      <th class="px-3 py-2.5 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    <template x-for="cn in detail.consignments" :key="cn.id">
+                      <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                        <td class="px-4 py-2.5 whitespace-nowrap text-slate-700" x-text="fmtDate(cn.consign_date)"></td>
+                        <td class="px-3 py-2.5 text-slate-500"
+                            x-text="[cn.transporter, cn.lr_no && ('LR ' + cn.lr_no)].filter(Boolean).join(' · ') || '—'"></td>
+                        <td class="px-3 py-2.5 text-right">
+                          <button @click="toggleDelivered(cn)"
+                                  :title="cn.delivered ? 'Mark as still in transit' : 'Mark as delivered'"
+                                  class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium transition-colors"
+                                  :class="cn.delivered
+                                          ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 hover:bg-emerald-100'
+                                          : 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 hover:bg-amber-100'">
+                            <span class="w-1.5 h-1.5 rounded-full"
+                                  :class="cn.delivered ? 'bg-emerald-500' : 'bg-amber-500'"></span>
+                            <span x-text="cn.delivered ? 'Delivered' : 'In transit'"></span>
+                          </button>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
               </div>
             </template>
-            <p x-show="!detail.consignments.length" class="text-xs text-slate-400">
+            <p x-show="!detail.consignments.length" class="px-4 pb-4 text-xs text-slate-400">
               Nothing shipped yet — use a Ship button above.
             </p>
           </div>
 
-          <div>
-            <div class="font-semibold text-sm mb-2">Stage history</div>
+          <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Stage history</div>
             <template x-for="l in detail.stage_log" :key="l.id">
-              <div class="flex items-start gap-2 text-sm py-1">
-                <span class="px-2 py-0.5 rounded-full text-xs font-medium shrink-0"
-                      :class="stageClass(l.stage)" x-text="stageLabel(l.stage)"></span>
-                <span class="text-xs text-slate-400 shrink-0 pt-0.5" x-text="l.at.slice(0, 16).replace('T', ' ')"></span>
-                <span class="text-xs text-slate-500 pt-0.5" x-text="l.note"></span>
+              <div class="flex items-start gap-2.5 text-sm py-1">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium shrink-0 whitespace-nowrap"
+                      :class="stageClass(l.stage)">
+                  <span class="w-1.5 h-1.5 rounded-full" :class="odStageDot(l.stage)"></span>
+                  <span x-text="stageLabel(l.stage)"></span>
+                </span>
+                <span class="text-xs text-slate-400 shrink-0 pt-1 font-mono" x-text="l.at.slice(0, 16).replace('T', ' ')"></span>
+                <span class="text-xs text-slate-500 pt-1" x-text="l.note"></span>
               </div>
             </template>
           </div>
 
-          <div x-show="detail.notes" class="text-sm bg-amber-50 rounded-lg p-3 text-amber-900" x-text="detail.notes"></div>
+          <div x-show="detail.notes"
+               class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-amber-700/70 font-semibold mb-0.5">Notes</div>
+            <div class="text-sm text-amber-900" x-text="detail.notes"></div>
+          </div>
         </div>
       </div>
-    </div>
       </div>
     </div>
   </div>
@@ -795,149 +984,186 @@
   <div :class="addPage ? 'fixed inset-0 z-[60] bg-slate-100 overflow-auto'
                        : 'fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto'">
     <div :class="addPage ? 'bg-white min-h-full w-full max-w-6xl mx-auto shadow-sm'
-                         : 'bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-6'">
-      <div class="px-6 py-4 border-b flex items-center gap-3"
-           :class="addPage ? 'bg-slate-900 text-white sticky top-0 z-10' : ''">
+                         : 'bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl my-6'">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center gap-3"
+           :class="addPage ? 'bg-slate-900 text-white sticky top-0 z-10 border-slate-900' : ''">
         <button x-show="addPage" @click="closeForm()"
-                class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
+                class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
           <span class="text-base leading-none">←</span> Back
         </button>
         <div class="text-lg font-bold" x-text="form.id ? 'Edit order' : 'New order'"></div>
-        <button x-show="!addPage" @click="closeForm()" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+        <button x-show="!addPage" @click="closeForm()" title="Close"
+                class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none transition-colors">✕</button>
       </div>
-      <form @submit.prevent="saveOrder()" class="p-6 space-y-4 text-sm">
-        <div class="grid grid-cols-3 gap-3">
-          <div><label class="block text-xs text-slate-500 mb-1">Customer *</label>
-            <select x-model="form.customer_id" x-effect="form.customer_id && $nextTick(() => $el.value = form.customer_id)"
-                    class="border rounded-lg px-3 py-2 w-full">
-              <option value="">—</option>
-              <template x-for="c in lists.customers" :key="c.id">
-                <option :value="c.id" x-text="c.name"></option>
-              </template>
-            </select></div>
-          <div><label class="block text-xs text-slate-500 mb-1">Customer PO no.</label>
-            <input x-model="form.customer_po" class="border rounded-lg px-3 py-2 w-full" /></div>
-          <div x-show="!form.id"><label class="block text-xs text-slate-500 mb-1">Starting stage</label>
-            <select x-model="form.stage" class="border rounded-lg px-3 py-2 w-full">
-              <template x-for="s in data.stages" :key="s.key">
-                <option :value="s.key" x-text="s.label"></option>
-              </template>
-            </select></div>
-          <div><label class="block text-xs text-slate-500 mb-1">Order date</label>
-            <input type="date" x-model="form.order_date" class="border rounded-lg px-3 py-2 w-full" /></div>
-          <div><label class="block text-xs text-slate-500 mb-1">Due date</label>
-            <input type="date" x-model="form.due_date" class="border rounded-lg px-3 py-2 w-full" /></div>
+      <form @submit.prevent="saveOrder()" class="p-6 space-y-6 text-sm">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Order</div>
+          <div class="grid grid-cols-3 gap-3">
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Customer *</label>
+              <select x-model="form.customer_id" x-effect="form.customer_id && $nextTick(() => $el.value = form.customer_id)"
+                      class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+                <option value="">—</option>
+                <template x-for="c in lists.customers" :key="c.id">
+                  <option :value="c.id" x-text="c.name"></option>
+                </template>
+              </select></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Customer PO no.</label>
+              <input x-model="form.customer_po"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+            <div x-show="!form.id"><label class="block text-xs font-medium text-slate-500 mb-1">Starting stage</label>
+              <select x-model="form.stage"
+                      class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+                <template x-for="s in data.stages" :key="s.key">
+                  <option :value="s.key" x-text="s.label"></option>
+                </template>
+              </select></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Order date</label>
+              <input type="date" x-model="form.order_date"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Due date</label>
+              <input type="date" x-model="form.due_date"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+          </div>
         </div>
 
         <div>
-          <div class="flex items-center mb-2">
-            <div class="font-semibold">Items</div>
-            <div class="ml-auto text-slate-500" x-text="'Total ' + money(formTotal)"></div>
+          <div class="flex items-baseline mb-2">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Items</div>
+            <div class="ml-auto text-slate-500 tabular-nums" x-text="'Total ' + money(formTotal)"></div>
           </div>
           <template x-for="(it, i) in form.items" :key="i">
             <div class="grid grid-cols-12 gap-2 mb-2 items-center">
               <select x-model="it.drawing_id" x-effect="it.drawing_id && $nextTick(() => $el.value = it.drawing_id)" @change="drawingPicked(it)"
-                      class="col-span-3 border rounded-lg px-2 py-1.5">
+                      title="Picking a drawing fills the unit and its latest recorded rate"
+                      class="col-span-3 border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white
+                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
                 <option value="">(no drawing)</option>
                 <template x-for="d in lists.drawings" :key="d.id">
                   <option :value="d.id" x-text="d.drawing_no + ' rev ' + d.revision"></option>
                 </template>
               </select>
               <input x-model="it.description" placeholder="Description"
-                     class="col-span-4 border rounded-lg px-2 py-1.5" />
+                     class="col-span-4 border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
               <input type="number" min="0" step="0.01" x-model="it.qty" placeholder="Qty"
-                     class="col-span-1 border rounded-lg px-2 py-1.5" />
+                     class="col-span-1 border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white text-right tabular-nums
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
               <input x-model="it.unit" list="unitlist" placeholder="Unit"
-                     class="col-span-1 border rounded-lg px-2 py-1.5" />
+                     class="col-span-1 border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
               <input type="number" min="0" step="0.01" x-model="it.rate" placeholder="₹ rate"
-                     class="col-span-2 border rounded-lg px-2 py-1.5" />
-              <button type="button" @click="removeItem(i)"
-                      class="col-span-1 text-slate-300 hover:text-rose-600">✕</button>
+                     class="col-span-2 border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white text-right tabular-nums
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+              <button type="button" @click="removeItem(i)" title="Remove this item"
+                      class="col-span-1 text-slate-300 hover:text-rose-600 transition-colors">✕</button>
             </div>
           </template>
           <datalist id="unitlist">
             <template x-for="u in lists.units" :key="u"><option :value="u"></option></template>
           </datalist>
-          <button type="button" @click="addItem()" class="text-xs text-brand-700 hover:underline">+ Add item</button>
-          <p class="text-[11px] text-slate-400 mt-1">Picking a drawing fills the unit and its latest recorded rate.</p>
+          <button type="button" @click="addItem()"
+                  class="text-xs font-medium text-brand-700 hover:underline">+ Add item</button>
         </div>
 
-        <div><label class="block text-xs text-slate-500 mb-1">Notes</label>
-          <textarea x-model="form.notes" rows="2" class="border rounded-lg px-3 py-2 w-full"></textarea></div>
+        <div><label class="block text-xs font-medium text-slate-500 mb-1">Notes</label>
+          <textarea x-model="form.notes" rows="2"
+                    class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"></textarea></div>
         <!-- ============ OPTIONAL: material availability ============
              Off by default and entirely advisory. Ticking it does not change
              the order, block the Save button, or reserve any stock — it
              answers "could we actually make this?" before you commit. -->
-        <div class="border rounded-xl" :class="checkOn ? 'border-brand-600' : 'border-slate-200'">
-          <label class="flex items-center gap-3 px-4 py-3 cursor-pointer">
-            <input type="checkbox" :checked="checkOn" @change="toggleCheck()" class="w-4 h-4" />
+        <div class="border rounded-xl shadow-sm transition-colors" :class="checkOn ? 'border-brand-600' : 'border-slate-200'">
+          <label class="flex items-center gap-3 px-4 py-3 cursor-pointer"
+                 title="Advisory only — nothing is reserved and the order is not changed">
+            <input type="checkbox" :checked="checkOn" @change="toggleCheck()" class="w-4 h-4 accent-brand-600" />
             <span class="font-medium">Check material availability</span>
-            <span class="text-xs text-slate-400">optional · nothing is reserved</span>
+            <span class="text-xs text-slate-400">nothing is reserved</span>
             <template x-if="chkResult">
-              <span class="ml-auto px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                    :class="availClass(chkResult?.status)"
-                    x-text="availLabel(chkResult?.status) + ' · ' + chkResult?.total_feasible + ' makeable'"></span>
+              <span class="ml-auto inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                    :class="availClass(chkResult?.status)">
+                <span class="w-1.5 h-1.5 rounded-full" :class="odAvailDot(chkResult?.status)"></span>
+                <span x-text="availLabel(chkResult?.status) + ' · ' + chkResult?.total_feasible + ' makeable'"></span>
+              </span>
             </template>
           </label>
 
-          <div x-show="checkOn" x-cloak class="px-4 pb-4 border-t pt-4">
-            <div class="flex gap-1 mb-3">
+          <div x-show="checkOn" x-cloak class="px-4 pb-4 border-t border-slate-200 pt-4">
+            <div class="inline-flex items-center gap-0.5 bg-white border border-slate-200 rounded-xl p-1 shadow-sm mb-3">
               <button type="button" @click="chk.method='dimension'; chkResult=null"
-                      class="px-3 py-1 rounded-lg text-xs font-medium border"
-                      :class="chk.method==='dimension' ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-300 text-slate-600'">
+                      class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                      :class="chk.method==='dimension' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'">
                 By dimension</button>
               <button type="button" @click="chk.method='quantity'; chkResult=null"
-                      class="px-3 py-1 rounded-lg text-xs font-medium border"
-                      :class="chk.method==='quantity' ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-300 text-slate-600'">
+                      class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                      :class="chk.method==='quantity' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'">
                 By quantity</button>
             </div>
 
             <div class="grid grid-cols-3 gap-3">
-              <div><label class="block text-xs text-slate-500 mb-1">Material</label>
-                <select x-model="chk.material_class" class="border rounded-lg px-2 py-1.5 w-full">
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Material</label>
+                <select x-model="chk.material_class"
+                        class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                               focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
                   <option value="">Any</option>
                   <template x-for="o in chkRefs.material_class" :key="o"><option :value="o" x-text="o"></option></template>
                 </select></div>
-              <div><label class="block text-xs text-slate-500 mb-1">Grade</label>
-                <select x-model="chk.grade" class="border rounded-lg px-2 py-1.5 w-full">
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Grade</label>
+                <select x-model="chk.grade"
+                        class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                               focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
                   <option value="">Any</option>
                   <template x-for="o in chkRefs.grade" :key="o"><option :value="o" x-text="o"></option></template>
                 </select></div>
-              <div><label class="block text-xs text-slate-500 mb-1">Parts required</label>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Parts required</label>
                 <input x-model="chk.required_qty" type="number" min="0" step="1"
-                       class="border rounded-lg px-2 py-1.5 w-full" /></div>
+                       class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full tabular-nums
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
             </div>
 
             <div class="grid grid-cols-3 gap-3 mt-3" x-show="chk.method==='dimension'">
-              <div><label class="block text-xs text-slate-500 mb-1">Part length *</label>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Part length *</label>
                 <input x-model="chk.part_length" type="number" min="0" step="0.01"
-                       class="border rounded-lg px-2 py-1.5 w-full" /></div>
-              <div><label class="block text-xs text-slate-500 mb-1">Part diameter</label>
+                       class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full tabular-nums
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Part diameter</label>
                 <input x-model="chk.part_diameter" type="number" min="0" step="0.01"
-                       class="border rounded-lg px-2 py-1.5 w-full" /></div>
-              <div><label class="block text-xs text-slate-500 mb-1">Tolerance / margin</label>
+                       class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full tabular-nums
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Tolerance / margin</label>
                 <input x-model="chk.margin" type="number" min="0" step="0.01"
-                       class="border rounded-lg px-2 py-1.5 w-full" /></div>
+                       class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full tabular-nums
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
             </div>
 
             <button type="button" @click="runCheck()" :disabled="chkBusy"
-                    class="mt-3 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                    class="mt-3 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm
+                           disabled:opacity-50 transition-colors"
                     x-text="chkBusy ? 'Checking…' : 'Check stock'"></button>
 
             <template x-if="chkResult">
               <div class="mt-4">
                 <div class="flex items-center gap-5 flex-wrap text-sm mb-2">
-                  <span class="px-2.5 py-1 rounded-full text-xs font-semibold"
-                        :class="availClass(chkResult?.status)" x-text="availLabel(chkResult?.status)"></span>
-                  <span class="text-slate-500">Need <b class="text-slate-800" x-text="chkResult?.requirement.required_qty"></b></span>
-                  <span class="text-slate-500">Can make <b class="text-emerald-700" x-text="chkResult?.total_feasible"></b></span>
+                  <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                        :class="availClass(chkResult?.status)">
+                    <span class="w-1.5 h-1.5 rounded-full" :class="odAvailDot(chkResult?.status)"></span>
+                    <span x-text="availLabel(chkResult?.status)"></span>
+                  </span>
+                  <span class="text-slate-500">Need <b class="text-slate-900 tabular-nums" x-text="chkResult?.requirement.required_qty"></b></span>
+                  <span class="text-slate-500">Can make <b class="text-emerald-700 tabular-nums" x-text="chkResult?.total_feasible"></b></span>
                   <span class="text-slate-500" x-show="chkResult?.shortfall > 0">
-                    Short by <b class="text-rose-700" x-text="chkResult?.shortfall"></b></span>
+                    Short by <b class="text-rose-700 tabular-nums" x-text="chkResult?.shortfall"></b></span>
                 </div>
-                <div class="overflow-auto border rounded-lg">
+                <div class="rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div class="overflow-x-auto">
                   <table class="w-full text-xs">
-                    <thead class="bg-slate-50 text-slate-500 uppercase tracking-wide">
-                      <tr>
+                    <thead class="bg-slate-50 border-b-2 border-slate-200">
+                      <tr class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                         <th class="text-left px-3 py-2">Heat</th>
                         <th class="text-right px-3 py-2">Length</th>
                         <th class="text-right px-3 py-2">Ø</th>
@@ -946,23 +1172,23 @@
                         <th class="text-right px-3 py-2">Parts</th>
                       </tr>
                     </thead>
-                    <tbody class="divide-y">
+                    <tbody class="divide-y divide-slate-100">
                       <template x-for="r in checkRows()" :key="r.key">
-                        <tr :class="r.piece && !r.piece.parts ? 'text-slate-400' : ''">
-                          <td class="px-3 py-1.5 font-mono" x-text="r.first ? r.heat.heat_number : ''"></td>
-                          <td class="px-3 py-1.5 text-right" x-text="r.piece ? dim(r.piece.length_mm) : '\u2014'"></td>
-                          <td class="px-3 py-1.5 text-right" x-text="r.piece ? dim(r.piece.diameter_mm) : '\u2014'"></td>
-                          <td class="px-3 py-1.5 text-right" x-text="r.piece ? r.piece.available : r.heat.rods_remaining"></td>
-                          <td class="px-3 py-1.5 text-right" x-text="!r.piece || r.piece.parts_per_piece === null ? '\u2014' : r.piece.parts_per_piece"></td>
-                          <td class="px-3 py-1.5 text-right font-semibold" x-text="r.piece ? r.piece.parts : 0"></td>
+                        <tr :class="r.piece && !r.piece.parts ? 'text-slate-300' : 'even:bg-slate-50/60'">
+                          <td class="px-3 py-1.5 font-mono font-semibold text-brand-700" x-text="r.first ? r.heat.heat_number : ''"></td>
+                          <td class="px-3 py-1.5 text-right tabular-nums" x-text="r.piece ? dim(r.piece.length_mm) : '\u2014'"></td>
+                          <td class="px-3 py-1.5 text-right tabular-nums" x-text="r.piece ? dim(r.piece.diameter_mm) : '\u2014'"></td>
+                          <td class="px-3 py-1.5 text-right tabular-nums" x-text="r.piece ? r.piece.available : r.heat.rods_remaining"></td>
+                          <td class="px-3 py-1.5 text-right tabular-nums" x-text="!r.piece || r.piece.parts_per_piece === null ? '\u2014' : r.piece.parts_per_piece"></td>
+                          <td class="px-3 py-1.5 text-right font-semibold tabular-nums" x-text="r.piece ? r.piece.parts : 0"></td>
                         </tr>
                       </template>
                     </tbody>
                   </table>
+                  </div>
                 </div>
                 <p class="text-xs text-slate-400 mt-2">
-                  Heat-wise so you know which bars the job would come off. Advisory —
-                  nothing is reserved, and this does not affect the order.
+                  Heat-wise so you know which bars the job would come off.
                 </p>
               </div>
             </template>
@@ -971,9 +1197,11 @@
 
         <p x-show="formError" x-text="formError" class="text-rose-600 text-sm"></p>
         <div class="flex gap-3">
-          <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg">Save order</button>
+          <button type="submit"
+                  class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg shadow-sm text-sm
+                         transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">Save order</button>
           <button type="button" @click="closeForm()"
-                  class="flex-1 border border-slate-300 hover:bg-slate-50 text-slate-600 py-2.5 rounded-lg">Cancel</button>
+                  class="flex-1 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-colors">Cancel</button>
         </div>
       </form>
     </div>
@@ -983,40 +1211,66 @@
   <!-- ============================= CONSIGNMENT DETAIL ============================= -->
   <template x-if="consDetail">
   <div class="fixed inset-0 z-40 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-10">
-      <div class="flex items-center gap-3 px-6 py-4 border-b">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl my-10">
+      <div class="flex items-center gap-3 px-6 py-4 border-b border-slate-200">
         <div>
-          <div class="text-lg font-bold" x-text="'Consignment · ' + fmtDate(consDetail.consign_date)"></div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Consignment</div>
+          <div class="text-lg font-bold text-slate-900" x-text="fmtDate(consDetail.consign_date)"></div>
           <div class="text-xs text-slate-500"
                x-text="[consDetail.transporter, consDetail.vehicle_no].filter(Boolean).join(' · ')"></div>
         </div>
         <button @click="toggleDelivered(consDetail)"
-                class="px-2.5 py-1 rounded-full text-xs font-medium"
-                :class="consDetail.delivered ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'"
-                x-text="consDetail.delivered ? 'Delivered ✓' : 'In transit'"></button>
-        <div class="ml-auto flex gap-2">
-          <button @click="removeCons(consDetail)" class="border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-sm">Delete</button>
-          <button @click="consDetail = null" class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+                :title="consDetail.delivered ? 'Mark as still in transit' : 'Mark as delivered'"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
+                :class="consDetail.delivered
+                        ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 hover:bg-emerald-100'
+                        : 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 hover:bg-amber-100'">
+          <span class="w-1.5 h-1.5 rounded-full"
+                :class="consDetail.delivered ? 'bg-emerald-500' : 'bg-amber-500'"></span>
+          <span x-text="consDetail.delivered ? 'Delivered' : 'In transit'"></span>
+        </button>
+        <div class="ml-auto flex items-center gap-2">
+          <button @click="removeCons(consDetail)"
+                  class="border border-rose-300 bg-white text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors">Delete</button>
+          <button @click="consDetail = null" title="Close"
+                  class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none transition-colors">✕</button>
         </div>
       </div>
       <div class="p-6 space-y-4 text-sm">
         <div class="grid grid-cols-3 gap-x-4 gap-y-2">
-          <div class="text-slate-500">LR number</div><div class="col-span-2" x-text="consDetail.lr_no || '—'"></div>
-          <div class="text-slate-500">E-way bill</div><div class="col-span-2" x-text="consDetail.eway_no || '—'"></div>
-          <div class="text-slate-500">Invoice</div><div class="col-span-2" x-text="consDetail.invoice_no || '—'"></div>
-          <div class="text-slate-500">Freight</div><div class="col-span-2" x-text="consDetail.freight ? money(consDetail.freight) : '—'"></div>
-          <div class="text-slate-500" x-show="consDetail.notes">Notes</div>
-          <div class="col-span-2" x-show="consDetail.notes" x-text="consDetail.notes"></div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold pt-0.5">LR number</div>
+          <div class="col-span-2 font-mono text-xs" :class="consDetail.lr_no ? 'text-slate-700' : 'text-slate-300'" x-text="consDetail.lr_no || '—'"></div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold pt-0.5">E-way bill</div>
+          <div class="col-span-2 font-mono text-xs" :class="consDetail.eway_no ? 'text-slate-700' : 'text-slate-300'" x-text="consDetail.eway_no || '—'"></div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold pt-0.5">Invoice</div>
+          <div class="col-span-2 font-mono text-xs" :class="consDetail.invoice_no ? 'text-slate-700' : 'text-slate-300'" x-text="consDetail.invoice_no || '—'"></div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold pt-0.5">Freight</div>
+          <div class="col-span-2 tabular-nums" :class="consDetail.freight ? 'text-slate-700' : 'text-slate-300'" x-text="consDetail.freight ? money(consDetail.freight) : '—'"></div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold pt-0.5" x-show="consDetail.notes">Notes</div>
+          <div class="col-span-2 text-slate-700" x-show="consDetail.notes" x-text="consDetail.notes"></div>
         </div>
-        <div>
-          <div class="font-semibold mb-2">Lines</div>
-          <template x-for="l in consDetail.lines" :key="l.id">
-            <div class="flex items-center gap-2 py-1.5 border-b last:border-0">
-              <span class="font-mono text-xs text-brand-700" x-text="l.order_no"></span>
-              <span x-text="l.drawing_no || l.description"></span>
-              <span class="ml-auto" x-text="l.qty + ' ' + (l.unit || '')"></span>
-            </div>
-          </template>
+        <div class="rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-b-2 border-slate-200">
+              <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <th class="px-4 py-2.5">Order</th>
+                <th class="px-3 py-2.5">Part</th>
+                <th class="px-3 py-2.5 text-right">Quantity</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <template x-for="l in consDetail.lines" :key="l.id">
+                <tr class="even:bg-slate-50/60">
+                  <td class="px-4 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="l.order_no"></td>
+                  <td class="px-3 py-2.5 text-slate-700" x-text="l.drawing_no || l.description"></td>
+                  <td class="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
+                    <span class="font-semibold text-slate-900" x-text="l.qty"></span>
+                    <span class="text-slate-400" x-text="l.unit || ''"></span>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -1026,40 +1280,61 @@
   <!-- ============================= CONSIGNMENT FORM ============================= -->
   <template x-if="consForm">
   <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-6">
-      <div class="px-6 py-4 border-b flex items-center">
-        <div class="text-lg font-bold">New consignment</div>
-        <button @click="consForm = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl my-6">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center">
+        <div class="text-lg font-bold text-slate-900">New consignment</div>
+        <button @click="consForm = null" title="Close"
+                class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none transition-colors">✕</button>
       </div>
-      <form @submit.prevent="saveCons()" class="p-6 space-y-4 text-sm">
-        <div class="grid grid-cols-3 gap-3">
-          <div><label class="block text-xs text-slate-500 mb-1">Date</label>
-            <input type="date" x-model="consForm.consign_date" class="border rounded-lg px-3 py-2 w-full" /></div>
-          <div><label class="block text-xs text-slate-500 mb-1">Transporter</label>
-            <input x-model="consForm.transporter" class="border rounded-lg px-3 py-2 w-full" /></div>
-          <div><label class="block text-xs text-slate-500 mb-1">Vehicle no.</label>
-            <input x-model="consForm.vehicle_no" class="border rounded-lg px-3 py-2 w-full" /></div>
-          <div><label class="block text-xs text-slate-500 mb-1">LR number</label>
-            <input x-model="consForm.lr_no" class="border rounded-lg px-3 py-2 w-full" /></div>
-          <div><label class="block text-xs text-slate-500 mb-1">E-way bill no.</label>
-            <input x-model="consForm.eway_no" class="border rounded-lg px-3 py-2 w-full" /></div>
-          <div><label class="block text-xs text-slate-500 mb-1">Invoice no.</label>
-            <input x-model="consForm.invoice_no" class="border rounded-lg px-3 py-2 w-full" /></div>
-          <div><label class="block text-xs text-slate-500 mb-1">Freight (₹, optional)</label>
-            <input type="number" min="0" step="0.01" x-model="consForm.freight" class="border rounded-lg px-3 py-2 w-full" /></div>
+      <form @submit.prevent="saveCons()" class="p-6 space-y-6 text-sm">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Truck &amp; papers</div>
+          <div class="grid grid-cols-3 gap-3">
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Date</label>
+              <input type="date" x-model="consForm.consign_date"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Transporter</label>
+              <input x-model="consForm.transporter"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Vehicle no.</label>
+              <input x-model="consForm.vehicle_no"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">LR number</label>
+              <input x-model="consForm.lr_no"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">E-way bill no.</label>
+              <input x-model="consForm.eway_no"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Invoice no.</label>
+              <input x-model="consForm.invoice_no"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Freight (₹, optional)</label>
+              <input type="number" min="0" step="0.01" x-model="consForm.freight"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full text-right tabular-nums
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+          </div>
         </div>
 
         <div>
-          <div class="font-semibold mb-2">Items on this truck</div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2"
+               title="One truck can carry several orders — partial quantities are fine">Items on this truck</div>
           <template x-for="(l, i) in consForm.lines" :key="l.order_item_id">
             <div class="flex items-center gap-2 mb-1.5">
-              <span class="font-mono text-xs text-brand-700 w-28 shrink-0" x-text="l.order_no"></span>
-              <span class="flex-1 truncate" x-text="l.label"></span>
-              <span class="text-xs text-slate-400" x-text="'pending ' + l.pending"></span>
+              <span class="font-mono text-xs font-semibold text-brand-700 w-28 shrink-0" x-text="l.order_no"></span>
+              <span class="flex-1 truncate text-slate-700" x-text="l.label"></span>
+              <span class="text-xs text-slate-400 tabular-nums" x-text="'pending ' + l.pending"></span>
               <input type="number" min="0" step="0.01" x-model="l.qty"
-                     class="border rounded-lg px-2 py-1.5 w-24" />
+                     class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white w-24 text-right tabular-nums
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
               <span class="text-xs text-slate-500 w-10" x-text="l.unit"></span>
-              <button type="button" @click="removeConsLine(i)" class="text-slate-300 hover:text-rose-600">✕</button>
+              <button type="button" @click="removeConsLine(i)" title="Take off this truck"
+                      class="text-slate-300 hover:text-rose-600 transition-colors">✕</button>
             </div>
           </template>
           <p x-show="!consForm.lines.length" class="text-xs text-slate-400 mb-1">
@@ -1068,24 +1343,26 @@
           <!-- Add ONE part at a time. An order split across two deliveries
                almost never sends everything at once, so pick the part and say
                how many of it are going. -->
-          <div class="mt-3 border rounded-xl p-3 bg-slate-50">
+          <div class="mt-3 border border-slate-200 rounded-xl p-3 bg-slate-50">
             <div class="flex gap-2">
               <input x-model="consOrderQ" @keydown.enter.prevent="findOrderForCons()"
                      placeholder="Order no or customer PO — press Enter"
-                     class="flex-1 border rounded-lg px-2 py-1.5 text-xs" />
+                     class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
               <button type="button" @click="findOrderForCons()"
-                      class="bg-white hover:bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-medium">Find</button>
+                      class="border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">Find</button>
             </div>
 
             <template x-if="consPick.items.length">
               <div class="mt-3 flex flex-wrap items-end gap-2">
                 <div class="flex-1 min-w-[15rem]">
-                  <label class="block text-[11px] text-slate-500 mb-1">
-                    Which part of <span class="font-mono" x-text="consPick.order_no"></span> is going?
+                  <label class="block text-xs font-medium text-slate-500 mb-1">
+                    Which part of <span class="font-mono text-brand-700" x-text="consPick.order_no"></span> is going?
                   </label>
                   <select x-model="consPick.item_id" @change="pickedPart()"
                           x-effect="consPick.item_id && $nextTick(() => $el.value = consPick.item_id)"
-                          class="border rounded-lg px-2 py-1.5 w-full text-sm bg-white">
+                          class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                                 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
                     <template x-for="it in consPick.items" :key="it.id">
                       <option :value="it.id"
                               x-text="(it.drawing_no ? it.drawing_no + (it.revision ? ' rev ' + it.revision : '') + ' · ' : '')
@@ -1094,31 +1371,36 @@
                   </select>
                 </div>
                 <div class="w-28">
-                  <label class="block text-[11px] text-slate-500 mb-1">Going now</label>
+                  <label class="block text-xs font-medium text-slate-500 mb-1">Going now</label>
                   <input type="number" min="0" step="0.01" x-model="consPick.qty"
-                         class="border rounded-lg px-2 py-1.5 w-full text-right bg-white" />
+                         class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full text-right tabular-nums
+                                focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
                 </div>
                 <button type="button" @click="addPickedToCons()"
-                        class="bg-brand-600 hover:bg-brand-700 text-white rounded-lg px-3 py-2 text-xs font-medium">
+                        class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm
+                               transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
                   Add to truck
                 </button>
                 <button type="button" @click="addOrderToCons()" :title="'Add every pending part of ' + consPick.order_no"
-                        class="text-xs text-slate-500 hover:text-slate-700 underline px-1 pb-2">
+                        class="text-xs font-medium text-brand-700 hover:underline px-1 pb-2.5">
                   or add all of it
                 </button>
               </div>
             </template>
           </div>
-          <p class="text-[11px] text-slate-400 mt-1">One truck can carry several orders — partial quantities are fine.</p>
         </div>
 
-        <div><label class="block text-xs text-slate-500 mb-1">Notes</label>
-          <input x-model="consForm.notes" class="border rounded-lg px-3 py-2 w-full" /></div>
+        <div><label class="block text-xs font-medium text-slate-500 mb-1">Notes</label>
+          <input x-model="consForm.notes"
+                 class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
         <p x-show="consError" x-text="consError" class="text-rose-600 text-sm"></p>
         <div class="flex gap-3">
-          <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg">Create consignment</button>
+          <button type="submit"
+                  class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg shadow-sm text-sm
+                         transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">Create consignment</button>
           <button type="button" @click="consForm = null"
-                  class="flex-1 border border-slate-300 hover:bg-slate-50 text-slate-600 py-2.5 rounded-lg">Cancel</button>
+                  class="flex-1 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-colors">Cancel</button>
         </div>
       </form>
     </div>

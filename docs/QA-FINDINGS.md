@@ -289,6 +289,17 @@ Scripted equivalent: POST /api/users {"username":"Admin","password":"secret123",
 
 ## Employee Management
 
+### [MINOR] Edit form shows "Overtime-eligible" unchecked for an OT-eligible employee (found 2026-08-15, UI restyle pass)
+- **Steps:** open any employee whose leave scheme is Overtime + penalties → Edit.
+- **Observed:** the Overtime-eligible checkbox renders unchecked even though the
+  model holds `overtime_eligible: 1`. Alpine's `x-model` treats an integer as
+  the checkbox's *value*, not its checked state. Saving without touching it
+  would write it back as unchecked — the classic silent downgrade.
+- **Expected:** the checkbox reflects the stored flag. Fix is
+  `:checked="!!form.overtime_eligible"` or boolean coercion when the form is
+  filled (`employees.js editEmp`). Left unfixed by the restyle pass because it
+  is a behaviour change; do it with the other form guards.
+
 ### [MINOR] Out-of-range integers reach SQLite unguarded — creating an employee with a very large base salary returns HTTP 500 'Internal Server Error'
 - **Steps:** 1. Sign in at http://127.0.0.1:8010 as admin/admin123 and open /employees/.
 2. Click '+ Add employee'.
