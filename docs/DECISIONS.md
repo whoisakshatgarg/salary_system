@@ -201,4 +201,25 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   new URL — `registry.py` keeps one entry point per module, and nothing in this
   codebase parses a query string. Inventory, Quotations and Orders follow this;
   the other modules still use their add-modal.
+- **A customer record is a full window, not a dialog.** Profile + growth chart +
+  order history + rate card is more than a modal can hold. Same in-page
+  `fixed inset-0` treatment as the costing workspace and the inventory add
+  screen, with a Back button; the edit form still layers a modal on top (z-50
+  over z-40).
+- **Chemistry belongs to the piece row, not the delivery.** Composition is the
+  reason heat numbers are kept apart in the first place, so each row on the
+  incoming-material screen carries its own. Rows sharing a heat number share one
+  analysis (first non-empty wins) and the delivery-level block stays as a
+  fallback for rows that supply none.
+- **Supplier became a learned dropdown** (`inv_option` kind `supplier`) rather
+  than free text, so the same mill isn't spelled three ways across a year of
+  deliveries. Nothing is seeded — the list is built from what is typed — and
+  `backfill_suppliers()` seeds it from existing heats on startup.
+- **Prefilled `<select>`s need `x-effect` + `$nextTick`.** Alpine applies
+  `x-model` before `x-for` has rendered the options, so a select bound to saved
+  data renders BLANK while holding the right value — and a blind Save then wipes
+  the field. `x-effect="v && $nextTick(() => $el.value = v)"` re-applies it after
+  the options exist. `x-effect` alone is not enough: it runs too early and never
+  retries. This fixed the reported "Edit shows Customer as —" on quotations as
+  well as the inventory edit form.
 

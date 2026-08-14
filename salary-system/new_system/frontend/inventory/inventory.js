@@ -58,8 +58,11 @@ function blankIntake() {
 }
 
 function blankIntakeRow() {
+  // composition sits on the ROW because it belongs to the heat — that is the
+  // whole reason heat numbers are kept apart in the first place.
   return { heat_number: "", material_class: "", grade: "", shape: "",
-           length_mm: "", diameter_mm: "", quantity: 1, note: "" };
+           length_mm: "", diameter_mm: "", quantity: 1, note: "",
+           composition: [], showComp: false };
 }
 
 function inv() {
@@ -76,7 +79,7 @@ function inv() {
     },
     fail(e) { this.flash(e.message || String(e), "err"); },
 
-    options: { material_class: [], shape: [], grade: [], element: [] },
+    options: { material_class: [], shape: [], grade: [], element: [], supplier: [] },
     stats: null,
     rows: [],
     loading: false,
@@ -101,7 +104,7 @@ function inv() {
     mv: { type: "issue", mv_date: "", order_id: "", rods: "", weight_kg: "", remarks: "" },
     log: { q: "", rows: [] },
     upload: { kind: "certificate", busy: false },
-    newOpt: { material_class: "", shape: "", grade: "", element: "" },
+    newOpt: { material_class: "", shape: "", grade: "", element: "", supplier: "" },
 
     async boot() {
       window.addEventListener("unauth", () => { this.authed = false; });
@@ -191,12 +194,26 @@ function inv() {
 
     // ---- incoming delivery (full-screen add page) ------------------------- //
     addRow() { this.intake.pieces.push(blankIntakeRow()); },
+    // ---- per-heat chemistry on a piece row -------------------------------- //
+    toggleComp(r) {
+      r.showComp = !r.showComp;
+      if (r.showComp && !r.composition.length) this.addRowComp(r);
+    },
+    addRowComp(r) { r.composition.push({ element: "", percent: "" }); },
+    compCount(r) {
+      return (r.composition || []).filter(
+        (c) => (c.element || "").trim() !== "" && String(c.percent).trim() !== "").length;
+    },
     removeRow(i) { this.intake.pieces.splice(i, 1); },
     copyDown(i) {
       // Most deliveries repeat the same bar in a different heat — copying the
       // row above beats retyping the dimensions every time.
       const src = this.intake.pieces[i];
-      this.intake.pieces.splice(i + 1, 0, { ...src, heat_number: "" });
+      this.intake.pieces.splice(i + 1, 0, {
+        ...src, heat_number: "",
+        // deep copy: a shallow spread would have both rows editing ONE array
+        composition: (src.composition || []).map((c) => ({ ...c })),
+      });
     },
     intakeRows() {
       return (this.intake?.pieces || []).filter(
@@ -214,6 +231,12 @@ function inv() {
       const rows = this.intakeRows();
       if (!rows.length) { this.formError = "Add at least one piece"; return; }
       for (const [i, r] of rows.entries()) {
+        const half = (r.composition || []).some(
+          (c) => ((c.element || "").trim() === "") !== (String(c.percent).trim() === ""));
+        if (half) {
+          this.formError = `Piece ${i + 1}: every chemistry row needs both an element and a percentage`;
+          return;
+        }
         if (!String(r.heat_number).trim()) {
           this.formError = `Piece ${i + 1}: heat number is required`; return;
         }
@@ -244,6 +267,9 @@ function inv() {
             length_mm: Number(x.length_mm),
             diameter_mm: String(x.diameter_mm).trim() === "" ? null : Number(x.diameter_mm),
             quantity: Number(x.quantity) || 1, note: x.note || "",
+            composition: (x.composition || [])
+              .filter((c) => (c.element || "").trim() !== "")
+              .map((c) => ({ element: c.element, percent: Number(c.percent) })),
           })),
         }});
         this.addPage = false; this.intake = null;

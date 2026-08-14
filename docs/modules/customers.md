@@ -7,7 +7,10 @@ The thin master Orders, Parts & Pricing and consignments reference: name,
 GSTIN, addresses, contact persons, payment terms.
 
 ## User flows
-- List (searchable by name, GSTIN **or code**) → record with three tabs.
+- List (searchable by name, GSTIN **or code**) → the record opens as a **full
+  window** with a Back button, not a dialog: a profile, a growth chart, an order
+  history and a rate card do not fit in a popup. Editing still opens a modal on
+  top of it. Three tabs:
 - **Profile**: addresses, terms, contact persons.
 - **Business**: lifetime totals (total, orders, average, still-open), a
   month-by-month bar chart of business won (hover shows the running total),

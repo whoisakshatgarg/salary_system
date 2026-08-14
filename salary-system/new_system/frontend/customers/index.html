@@ -96,25 +96,32 @@
     </main>
   </div>
 
-  <!-- Detail -->
+  <!-- ===================== ONE CUSTOMER (FULL WINDOW) =====================
+       A customer record is a profile, a growth chart, an order history and a
+       rate card — far too much for a dialog, so it gets the whole screen with
+       its own Back button, like the single-employee view. Editing still opens
+       a modal ON TOP of this (z-50 over z-40). -->
   <template x-if="detail">
-  <div class="fixed inset-0 z-40 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-4">
-      <div class="flex items-center gap-3 px-6 py-4 border-b">
+  <div class="fixed inset-0 z-40 bg-slate-100 flex flex-col">
+    <div class="bg-slate-900 text-slate-300 flex items-center gap-3 px-6 py-3 shrink-0">
+      <button @click="closeDetail()" title="Back to all customers"
+              class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
+        <span class="text-base leading-none">←</span> Back
+      </button>
         <div>
-          <div class="text-xl font-bold">
+          <div class="text-xl font-bold text-white">
             <span class="font-mono text-slate-400 text-base" x-text="detail.code"></span>
             <span x-text="detail.name"></span>
           </div>
-          <div class="text-xs text-slate-500 font-mono" x-text="detail.gstin || 'no GSTIN'"></div>
+          <div class="text-xs text-slate-400 font-mono" x-text="detail.gstin || 'no GSTIN'"></div>
         </div>
         <div class="flex gap-1 ml-2">
           <button @click="tab = 'profile'" class="px-3 py-1.5 rounded-lg text-xs font-medium"
-                  :class="tab === 'profile' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-100'">Profile</button>
+                  :class="tab === 'profile' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800'">Profile</button>
           <button @click="tab = 'business'" class="px-3 py-1.5 rounded-lg text-xs font-medium"
-                  :class="tab === 'business' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-100'">Business</button>
+                  :class="tab === 'business' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800'">Business</button>
           <button @click="tab = 'rates'" class="px-3 py-1.5 rounded-lg text-xs font-medium"
-                  :class="tab === 'rates' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-100'">
+                  :class="tab === 'rates' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800'">
             Rates <span x-show="detail.operation_rates?.length" class="opacity-60"
                         x-text="detail.operation_rates?.length"></span></button>
         </div>
@@ -122,13 +129,15 @@
               :class="detail.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
               x-text="detail.active ? 'Active' : 'Inactive'"></span>
         <div class="ml-auto flex gap-2">
-          <button @click="editCust()" class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm">Edit</button>
-          <button @click="toggleActive()" class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm"
+          <button @click="editCust()" class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm">Edit</button>
+          <button @click="toggleActive()" class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm"
                   x-text="detail.active ? 'Deactivate' : 'Reactivate'"></button>
-          <button @click="removeCust()" class="border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-sm">Delete</button>
-          <button @click="closeDetail()" class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+          <button @click="removeCust()" class="border border-rose-400/60 text-rose-300 hover:bg-rose-900/40 px-3 py-1.5 rounded-lg text-sm">Delete</button>
         </div>
-      </div>
+    </div>
+    <div class="flex-1 overflow-auto">
+      <div class="max-w-6xl mx-auto p-6">
+        <div class="bg-white rounded-2xl shadow-sm">
       <div x-show="tab === 'profile'" class="p-6 grid grid-cols-2 gap-6">
         <div class="space-y-3 text-sm">
           <div><div class="text-xs text-slate-500 mb-0.5">Billing address</div>
@@ -278,7 +287,7 @@
               <table class="w-full text-sm">
                 <thead><tr class="text-left text-xs text-slate-500 border-b">
                   <th class="py-2">Order</th><th class="py-2">Date</th>
-                  <th class="py-2 text-right">Amount</th><th class="py-2">Stage</th></tr></thead>
+                  <th class="py-2 text-right pr-3">Amount</th><th class="py-2 pl-1">Stage</th></tr></thead>
                 <tbody>
                   <template x-for="o in biz.orders" :key="o.id">
                     <tr class="border-b last:border-0">
@@ -311,6 +320,8 @@
           </div>
         </div>
         </template>
+      </div>
+    </div>
       </div>
     </div>
   </div>

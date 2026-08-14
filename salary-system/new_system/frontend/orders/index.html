@@ -315,7 +315,8 @@
       <form @submit.prevent="saveOrder()" class="p-6 space-y-4 text-sm">
         <div class="grid grid-cols-3 gap-3">
           <div><label class="block text-xs text-slate-500 mb-1">Customer *</label>
-            <select x-model="form.customer_id" class="border rounded-lg px-3 py-2 w-full">
+            <select x-model="form.customer_id" x-effect="form.customer_id && $nextTick(() => $el.value = form.customer_id)"
+                    class="border rounded-lg px-3 py-2 w-full">
               <option value="">—</option>
               <template x-for="c in lists.customers" :key="c.id">
                 <option :value="c.id" x-text="c.name"></option>
@@ -342,7 +343,7 @@
           </div>
           <template x-for="(it, i) in form.items" :key="i">
             <div class="grid grid-cols-12 gap-2 mb-2 items-center">
-              <select x-model="it.drawing_id" @change="drawingPicked(it)"
+              <select x-model="it.drawing_id" x-effect="it.drawing_id && $nextTick(() => $el.value = it.drawing_id)" @change="drawingPicked(it)"
                       class="col-span-3 border rounded-lg px-2 py-1.5">
                 <option value="">(no drawing)</option>
                 <template x-for="d in lists.drawings" :key="d.id">

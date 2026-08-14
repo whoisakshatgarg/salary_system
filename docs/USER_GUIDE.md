@@ -222,9 +222,21 @@ usually a dozen bars across several heat numbers, and that needs room.
 ![Add incoming material](guide-images/inv-add-delivery.jpg)
 
 On the left, the things true of the whole delivery: date received, supplier,
-rack, and the material/grade/shape most of it is. On the right, **one row per
+rack, and the material/grade/shape most of it is. On the right, **one card per
 piece**. Press **+ Add piece** for each one, or the ⧉ button to duplicate the
-row above when only the heat number changes.
+card above when only the heat number changes.
+
+**Supplier** is a dropdown, not a typing box. Pick an existing mill, or choose
+**+ Add new…** to enter one — it joins the list from then on, so the same
+supplier never ends up spelled three different ways. You can tidy the list in
+the **Lists** tab.
+
+**Chemistry per piece.** Press **+ Chemistry** on any card to record that heat's
+spectroscopy analysis — element and percentage, as many rows as the report has.
+This sits on the piece, not the delivery, because the composition is the whole
+reason heat numbers are kept apart. If several cards share one heat number they
+share one analysis. The small Composition box on the left is only a fallback for
+cards you leave blank.
 
 Each row carries its **own heat number**, and that matters more than anything
 else on this screen. Two bars can be the same steel, the same diameter, from the
@@ -334,8 +346,11 @@ shipping addresses, payment terms, and the people you talk to.
 
 ![Customer record](guide-images/ws-customer.jpg)
 
-**+ Add customer** creates one; click a row for its record, where you add
-contact persons (name, role, phone, email). Customers with orders or drawings
+**+ Add customer** creates one; click a row and the customer's record opens as
+a **full window** — a Back button top-left takes you to the list. It needs the
+room: the record holds their profile, a growth chart, every order and every
+document. Editing still opens a small form on top. You add contact persons
+(name, role, phone, email) there. Customers with orders or drawings
 can be **deactivated** but never deleted — history stays intact.
 
 Every customer gets a short **code** automatically: the initials of the name

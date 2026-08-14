@@ -7,11 +7,19 @@ Traceability for rod/bar stock: one record per incoming HEAT (mill batch),
 from purchase to the orders it fed or the rejection that sent it back.
 
 ## User flows
-- **Adding is a full screen, not a popup** (`+ New heat`): one delivery, a row
-  per piece, each row carrying its OWN heat number — a delivery routinely mixes
-  heats and they must never be merged. `POST /api/inventory/intake` groups the
-  rows by heat number and writes every heat in ONE transaction, so a delivery is
-  either recorded or it isn't. **Editing** an existing heat keeps the modal.
+- **Adding is a full screen, not a popup** (`+ New heat`): one delivery, a card
+  per piece, each carrying its OWN heat number AND its own chemistry — a
+  delivery routinely mixes heats, and the composition is exactly why they must
+  never be merged. `POST /api/inventory/intake` groups the rows by heat number
+  and writes every heat in ONE transaction, so a delivery is either recorded or
+  it isn't. Rows sharing a heat number share one analysis (first non-empty
+  wins); a delivery-level chemistry block remains as a fallback for rows that
+  give none. **Editing** an existing heat keeps the modal.
+- **Supplier is a learned list** (`inv_option` kind `supplier`), like material
+  class / shape / grade. Nothing is seeded — every shop buys from different
+  mills — so the list is built from what gets typed, appended automatically on
+  save, manageable in the Lists tab, and `backfill_suppliers()` seeds it on
+  startup from suppliers already recorded on heats.
 - **Material Check** tab: the feasibility calculation described below.
 - New heat from the mill certificate: heat number, supplier, class/grade/shape
   (extensible dropdowns with inline "+ Add new…"), size, rods, weight, prices,
@@ -42,7 +50,8 @@ price_rate_per_kg, notes)` · `heat_composition(heat_id, element, percent)` ·
 remarks)` — remaining is ALWAYS derived · `heat_attachment(heat_id, kind,
 filename, mime, stored_name)` · `inv_option(kind, value)` (seeded once,
 user-owned after) · `heat_piece(heat_id, length_mm, diameter_mm, quantity,
-note)` — the individual bars under a heat.
+note)` — the individual bars under a heat. `inv_option` now also holds
+`kind='supplier'`.
 
 Piece rows are OPTIONAL. A heat without them still works and can be checked by
 quantity; it just can't be checked by dimension. When piece rows do exist their

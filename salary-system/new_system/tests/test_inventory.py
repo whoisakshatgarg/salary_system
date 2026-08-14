@@ -599,3 +599,120 @@ class PiecesAndFeasibility(InventoryBase):
         with self.assertRaises(ValueError):
             inventory.check_material(self.conn, {"method": "dimension",
                                                  "part_length": float("inf")})
+
+
+class SuppliersAndPerHeatComposition(InventoryBase):
+    """Supplier is a learned dropdown list; chemistry belongs to each heat."""
+
+    def test_supplier_is_an_option_kind(self):
+        self.assertIn("supplier", inventory.OPTION_KINDS)
+        opts = inventory.list_options(self.conn)
+        self.assertEqual(opts["supplier"], [])      # nothing seeded: shop-specific
+
+    def test_supplier_learned_from_a_heat(self):
+        inventory.create_heat(self.conn, heat_data(supplier="Jindal Steel"))
+        self.assertIn("Jindal Steel", inventory.list_options(self.conn)["supplier"])
+
+    def test_supplier_list_appends(self):
+        inventory.create_heat(self.conn, heat_data(heat_number="S-1", supplier="Jindal Steel"))
+        inventory.create_heat(self.conn, heat_data(heat_number="S-2", supplier="Bharat Steels"))
+        inventory.create_heat(self.conn, heat_data(heat_number="S-3", supplier="Jindal Steel"))
+        self.assertEqual(inventory.list_options(self.conn)["supplier"],
+                         ["Bharat Steels", "Jindal Steel"])   # sorted, no duplicate
+
+    def test_supplier_added_and_removed_by_hand(self):
+        opts = inventory.add_option(self.conn, "supplier", "  Vishal Metals ")
+        self.assertIn("Vishal Metals", opts["supplier"])
+        opts = inventory.delete_option(self.conn, "supplier", "Vishal Metals")
+        self.assertNotIn("Vishal Metals", opts["supplier"])
+
+    def test_backfill_picks_up_existing_heats(self):
+        # a heat written before suppliers were a list
+        self.conn.execute(
+            "INSERT INTO heat (heat_number, date_received, supplier, rods_received)"
+            " VALUES ('OLD-1','2026-08-01','  Legacy Mills  ',5)")
+        self.conn.commit()
+        self.assertNotIn("Legacy Mills", inventory.list_options(self.conn)["supplier"])
+        inventory.backfill_suppliers(self.db_path)
+        self.assertIn("Legacy Mills", inventory.list_options(self.conn)["supplier"])
+
+    def test_backfill_ignores_blanks(self):
+        self.conn.execute(
+            "INSERT INTO heat (heat_number, date_received, supplier, rods_received)"
+            " VALUES ('OLD-2','2026-08-01','   ',5)")
+        self.conn.execute(
+            "INSERT INTO heat (heat_number, date_received, supplier, rods_received)"
+            " VALUES ('OLD-3','2026-08-01',NULL,5)")
+        self.conn.commit()
+        inventory.backfill_suppliers(self.db_path)
+        self.assertEqual(inventory.list_options(self.conn)["supplier"], [])
+
+    def test_each_heat_keeps_its_own_chemistry(self):
+        inventory.create_intake(self.conn, {
+            "date_received": "2026-08-14", "supplier": "Jindal Steel",
+            "material_class": "Steel",
+            "pieces": [
+                {"heat_number": "K-1", "length_mm": 10, "quantity": 1, "grade": "EN8",
+                 "composition": [{"element": "C", "percent": 0.42},
+                                 {"element": "Mn", "percent": 0.75}]},
+                {"heat_number": "K-2", "length_mm": 8, "quantity": 1, "grade": "EN19",
+                 "composition": [{"element": "Cr", "percent": 1.05}]},
+            ]})
+        got = {}
+        for hn in ("K-1", "K-2"):
+            hid = self.conn.execute(
+                "SELECT id FROM heat WHERE heat_number=?", (hn,)).fetchone()["id"]
+            h = inventory.get_heat(self.conn, hid)
+            got[hn] = ({c["element"]: c["percent"] for c in h["composition"]}, h["grade"])
+        self.assertEqual(got["K-1"], ({"C": 0.42, "Mn": 0.75}, "EN8"))
+        self.assertEqual(got["K-2"], ({"Cr": 1.05}, "EN19"))
+
+    def test_rows_sharing_a_heat_share_one_analysis(self):
+        inventory.create_intake(self.conn, {
+            "date_received": "2026-08-14", "material_class": "Steel",
+            "pieces": [
+                {"heat_number": "K-3", "length_mm": 10, "quantity": 1},
+                {"heat_number": "K-3", "length_mm": 4, "quantity": 2,
+                 "composition": [{"element": "C", "percent": 0.5}]},
+            ]})
+        hid = self.conn.execute(
+            "SELECT id FROM heat WHERE heat_number='K-3'").fetchone()["id"]
+        h = inventory.get_heat(self.conn, hid)
+        # the later row supplied the analysis the first row omitted
+        self.assertEqual([(c["element"], c["percent"]) for c in h["composition"]],
+                         [("C", 0.5)])
+        self.assertEqual(len(h["pieces"]), 2)
+
+    def test_row_chemistry_beats_the_delivery_default(self):
+        inventory.create_intake(self.conn, {
+            "date_received": "2026-08-14", "material_class": "Steel",
+            "composition": [{"element": "C", "percent": 0.2}],
+            "pieces": [
+                {"heat_number": "K-4", "length_mm": 10, "quantity": 1,
+                 "composition": [{"element": "C", "percent": 0.9}]},
+                {"heat_number": "K-5", "length_mm": 10, "quantity": 1},
+            ]})
+        def comp(hn):
+            hid = self.conn.execute(
+                "SELECT id FROM heat WHERE heat_number=?", (hn,)).fetchone()["id"]
+            return {c["element"]: c["percent"]
+                    for c in inventory.get_heat(self.conn, hid)["composition"]}
+        self.assertEqual(comp("K-4"), {"C": 0.9})   # its own wins
+        self.assertEqual(comp("K-5"), {"C": 0.2})   # falls back to the delivery's
+
+    def test_intake_learns_supplier_and_elements(self):
+        inventory.create_intake(self.conn, {
+            "date_received": "2026-08-14", "supplier": "Vishal Metals",
+            "material_class": "Steel",
+            "pieces": [{"heat_number": "K-6", "length_mm": 10, "quantity": 1,
+                        "composition": [{"element": "Zz", "percent": 0.1}]}]})
+        opts = inventory.list_options(self.conn)
+        self.assertIn("Vishal Metals", opts["supplier"])
+        self.assertIn("Zz", opts["element"])
+
+    def test_bad_chemistry_still_rejected_on_a_row(self):
+        with self.assertRaises(ValueError):
+            inventory.create_intake(self.conn, {
+                "date_received": "2026-08-14", "material_class": "Steel",
+                "pieces": [{"heat_number": "K-7", "length_mm": 10, "quantity": 1,
+                            "composition": [{"element": "C", "percent": 150}]}]})

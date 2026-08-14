@@ -69,6 +69,7 @@ def _startup() -> None:
     db.init_db()
     seed.seed()  # no-op if already populated
     inventory.ensure_defaults()  # first-run inventory dropdown lists
+    inventory.backfill_suppliers()   # suppliers became a list after heats existed
     settings.ensure_defaults()   # first-run units / operations / order format
     with db.connect() as _c:     # customers added before codes existed
         customers.backfill_codes(_c)

@@ -49,7 +49,7 @@ check_router = APIRouter(
     dependencies=[Depends(require_module("inventory", "quotations", "orders"))],
 )
 
-OPTION_KINDS = ("material_class", "shape", "grade", "element")
+OPTION_KINDS = ("material_class", "shape", "grade", "element", "supplier")
 ATTACHMENT_KINDS = ("certificate", "invoice")
 MOVEMENT_TYPES = ("issue", "reject")
 
@@ -61,7 +61,27 @@ DEFAULT_OPTIONS = {
               "SS304", "SS316", "C36000"],
     "element": ["C", "Si", "Mn", "P", "S", "Cr", "Ni", "Mo",
                 "Cu", "Al", "Zn", "Sn", "Pb", "Fe"],
+    # No seeded suppliers: every shop buys from different mills, so the list is
+    # built entirely from what the user types (and backfilled from existing heats).
+    "supplier": [],
 }
+
+
+def backfill_suppliers(db_path=None) -> None:
+    """Suppliers became a dropdown after heats already existed — seed the list
+    from the names already recorded so the first delivery isn't typed twice."""
+    conn = db.connect(db_path)
+    try:
+        for r in conn.execute(
+            "SELECT DISTINCT supplier FROM heat"
+            " WHERE supplier IS NOT NULL AND TRIM(supplier) <> ''"
+        ):
+            conn.execute(
+                "INSERT OR IGNORE INTO inv_option (kind, value) VALUES ('supplier',?)",
+                (r["supplier"].strip(),))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def ensure_defaults(db_path=None) -> None:
@@ -124,7 +144,8 @@ def delete_option(conn, kind: str, value: str) -> dict:
 def _learn_options(conn, data: dict) -> None:
     """Anything typed on the heat form joins its dropdown list automatically."""
     for kind, field in (("material_class", "material_class"),
-                        ("shape", "shape"), ("grade", "grade")):
+                        ("shape", "shape"), ("grade", "grade"),
+                        ("supplier", "supplier")):
         v = _s(data.get(field))
         if v:
             conn.execute("INSERT OR IGNORE INTO inv_option (kind, value) VALUES (?,?)", (kind, v))
@@ -352,6 +373,8 @@ def create_intake(conn, data: dict) -> dict:
             "composition": r.get("composition") or data.get("composition") or [],
             "pieces": [],
         })
+        if not g["composition"] and (r.get("composition") or []):
+            g["composition"] = r["composition"]
         g["pieces"].append({
             "length_mm": r.get("length_mm"), "diameter_mm": r.get("diameter_mm"),
             "quantity": r.get("quantity"), "note": _s(r.get("note")),
@@ -914,7 +937,12 @@ class PieceRow(BaseModel):
 
 class IntakePieceRow(BaseModel):
     """One line on the incoming-material screen. Carries its OWN heat number:
-    a single delivery routinely mixes heats, and they must not be merged."""
+    a single delivery routinely mixes heats, and they must not be merged.
+
+    `composition` is per row because it belongs to the HEAT — that is the whole
+    reason heat numbers stay separate. Rows sharing a heat number share one
+    composition (the first non-empty one wins; see create_intake).
+    """
     heat_number: str
     material_class: str = ""
     grade: str = ""
@@ -923,6 +951,7 @@ class IntakePieceRow(BaseModel):
     diameter_mm: float | None = None
     quantity: int = 1
     note: str = ""
+    composition: list[CompositionRow] = []
 
 
 class IntakeIn(BaseModel):
