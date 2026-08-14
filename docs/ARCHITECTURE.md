@@ -69,10 +69,14 @@ salary_system/                        repo root
         │   ├── employees/            index.html + employees.js → /employees/
         │   ├── inventory/            index.html + inventory.js → /inventory/
         │   ├── customers/ · parts/ · orders/ · quotations/ · settings/  → /<module>/
+        │   ├── help/                GENERATED user guide (index.html + images/)
+        │   │                        → /help/ — build with tools/build_help.py
         │   └── vendor/               tailwind.js, alpine.js (offline, shared:
         │                             pages load it as /vendor/…)
         ├── config/                   rules.json (payroll policy) · sync.json · update.json
-        ├── tests/                    test_payroll / test_inventory / test_users / test_workshop
+        ├── tools/build_help.py       docs/USER_GUIDE.md → frontend/help/ (stdlib only)
+        ├── tests/                    test_payroll / test_inventory / test_users /
+        │                             test_workshop / test_help_build
         ├── data/                     runtime state, gitignored (salary.db, backups,
         │                             inventory_files/, employee_files/, drawing_files/) — frozen
         │                             builds use %APPDATA%
@@ -87,7 +91,10 @@ salary_system/                        repo root
 - **One entry point per module:** a module is reachable only from its launcher
   tile (`core/registry.py`). Pages never link sideways into another module — the
   single cross-module link on any page is Home (top-left). This is why the
-  payroll dashboard no longer carries its own Inventory shortcut. Each module owns its routes (`router.py`, included from
+  payroll dashboard no longer carries its own Inventory shortcut. `/help/` is the
+  one page that is NOT a module: no registry entry, no grant, reachable from its
+  Home tile and directly by URL, because someone who is stuck needs to read it.
+  Each module owns its routes (`router.py`, included from
   `main.py`) and its SQL (`repo.py`). Newer modules namespace their routes with a
   router prefix (`/api/{inventory,customers,parts,orders,settings}/*`); the
   original payroll/employee routes stay flat (`/api/employees`, `/api/attendance*`,

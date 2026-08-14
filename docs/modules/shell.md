@@ -16,6 +16,9 @@ touching code.
   checkboxes), edit grants, reset password, delete. Last-admin and self-delete
   are refused.
 - Update popup appears on Home when a newer GitHub Release exists.
+- **📖 User Guide** tile opens `/help/` — the illustrated manual, generated from
+  `docs/USER_GUIDE.md`. Not a module: no registry entry and no grant, so every
+  account sees it, and it can be read without signing in.
 - **Deadlines panel** under the tiles: orders whose delivery date is close, as
   two lists — *next 7 days* and *next month* — with anything already overdue
   called out above them. Each line is customer · order number · quantity still

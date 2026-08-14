@@ -4,6 +4,13 @@ A complete guide to using the software, with pictures. Written for the people
 who use it every day — no technical knowledge needed. (Screens show sample
 data.)
 
+**You can read this inside the app**: sign in and click the **📖 User Guide**
+tile on Home, or go straight to `/help/`. It has a contents list down the side
+and a search box, and it works with no internet.
+
+*(For whoever maintains this: that page is generated from this file. After
+editing, run `python tools/build_help.py` and commit `frontend/help/`.)*
+
 ---
 
 ## 1. Getting started

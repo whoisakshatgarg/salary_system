@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Guide — APEX THERMOCON</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+         Roboto, sans-serif; color: #1e293b; background: #f1f5f9; }
+  header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center;
+           gap: 1rem; padding: .75rem 1.5rem; background: #0f172a; color: #cbd5e1; }
+  header .home { display: inline-flex; align-items: center; gap: .4rem; background: #1e293b;
+                 color: #e2e8f0; text-decoration: none; padding: .5rem .75rem;
+                 border-radius: .5rem; font-size: .875rem; font-weight: 500; }
+  header .home:hover { background: #334155; color: #fff; }
+  header h1 { font-size: 1rem; margin: 0; color: #fff; }
+  header .sub { font-size: .6875rem; color: #94a3b8; }
+  header .search { margin-left: auto; }
+  header input { width: 17rem; padding: .5rem .75rem; border-radius: .5rem;
+                 border: 1px solid #334155; background: #1e293b; color: #e2e8f0;
+                 font-size: .875rem; }
+  header input::placeholder { color: #64748b; }
+
+  .layout { display: flex; align-items: flex-start; max-width: 78rem; margin: 0 auto;
+            gap: 2rem; padding: 1.5rem; }
+  nav { position: sticky; top: 4.5rem; width: 17rem; flex: 0 0 17rem;
+        max-height: calc(100vh - 6rem); overflow-y: auto; background: #fff;
+        border-radius: .75rem; padding: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  nav a { display: block; padding: .3rem .5rem; border-radius: .375rem; font-size: .8125rem;
+          color: #475569; text-decoration: none; }
+  nav a:hover { background: #f1f5f9; color: #0f172a; }
+  nav a.h2 { font-weight: 600; color: #0f172a; margin-top: .35rem; }
+  nav a.h3 { padding-left: 1.25rem; }
+  nav a.on { background: #1d4ed8; color: #fff; }
+  nav .none { font-size: .8125rem; color: #94a3b8; padding: .5rem; }
+
+  main { flex: 1; min-width: 0; background: #fff; border-radius: .75rem; padding: 2rem 2.5rem;
+         box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  main h1 { font-size: 1.875rem; margin: 0 0 .5rem; }
+  main h2 { font-size: 1.375rem; margin: 2.5rem 0 .75rem; padding-top: .5rem;
+            border-top: 1px solid #e2e8f0; }
+  main h2:first-of-type { border-top: 0; margin-top: 1rem; }
+  main h3 { font-size: 1.0625rem; margin: 1.75rem 0 .5rem; color: #1d4ed8; }
+  main p { line-height: 1.65; margin: .75rem 0; }
+  main ul, main ol { line-height: 1.65; padding-left: 1.25rem; }
+  main li { margin: .35rem 0; }
+  main hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2rem 0; }
+  main code { background: #f1f5f9; padding: .1rem .35rem; border-radius: .25rem;
+              font-size: .875em; }
+  blockquote { margin: 1rem 0; padding: .875rem 1.125rem; background: #eff6ff;
+               border-left: 3px solid #1d4ed8; border-radius: 0 .5rem .5rem 0;
+               line-height: 1.6; }
+  figure { margin: 1.25rem 0; }
+  figure img { max-width: 100%; border: 1px solid #e2e8f0; border-radius: .5rem;
+               display: block; }
+  figcaption { font-size: .75rem; color: #94a3b8; margin-top: .4rem; }
+  .tablewrap { overflow-x: auto; margin: 1rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .875rem; }
+  th, td { text-align: left; padding: .5rem .75rem; border-bottom: 1px solid #e2e8f0;
+           vertical-align: top; }
+  th { background: #f8fafc; font-size: .75rem; text-transform: uppercase;
+       letter-spacing: .03em; color: #64748b; }
+  mark { background: #fef08a; }
+  .hidden { display: none; }
+
+  @media print {
+    header, nav { display: none; }
+    .layout { display: block; padding: 0; }
+    main { box-shadow: none; padding: 0; }
+    figure img { max-width: 60%; }
+  }
+  @media (max-width: 60rem) {
+    .layout { flex-direction: column; }
+    nav { position: static; width: 100%; flex: none; max-height: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a class="home" href="/" title="Back to all modules"><span>⌂</span> Home</a>
+  <div>
+    <h1>User Guide</h1>
+    <div class="sub">APEX THERMOCON · how to do everything, with pictures</div>
+  </div>
+  <div class="search">
+    <input id="q" type="search" placeholder="Search the guide…" autocomplete="off">
+  </div>
+</header>
+
+<div class="layout">
+  <nav id="toc">
+    <a class="h2" href="#1-getting-started">1. Getting started</a>
+    <a class="h3" href="#opening-the-app">Opening the app</a>
+    <a class="h3" href="#signing-in">Signing in</a>
+    <a class="h3" href="#home--your-modules">Home — your modules</a>
+    <a class="h3" href="#deadlines-coming-up">Deadlines coming up</a>
+    <a class="h2" href="#2-accounts--who-can-open-what">2. Accounts — who can open what</a>
+    <a class="h2" href="#3-salary--attendance">3. Salary &amp; Attendance</a>
+    <a class="h3" href="#31-the-dashboard">3.1 The dashboard</a>
+    <a class="h3" href="#32-pay-setup">3.2 Pay Setup</a>
+    <a class="h3" href="#33-attendance-usually-the-operators-job">3.3 Attendance (usually the operator&#x27;s job)</a>
+    <a class="h3" href="#34-getting-attendance-to-your-machine-sync">3.4 Getting attendance to your machine (sync)</a>
+    <a class="h3" href="#35-advances">3.5 Advances</a>
+    <a class="h3" href="#36-calculating-and-publishing-salaries">3.6 Calculating and publishing salaries</a>
+    <a class="h3" href="#37-history-and-excel-sheets">3.7 History and Excel sheets</a>
+    <a class="h3" href="#38-salary-rules">3.8 Salary rules</a>
+    <a class="h2" href="#4-employee-management">4. Employee Management</a>
+    <a class="h3" href="#41-the-roster">4.1 The roster</a>
+    <a class="h3" href="#42-one-employees-record">4.2 One employee&#x27;s record</a>
+    <a class="h3" href="#43-editing-a-profile">4.3 Editing a profile</a>
+    <a class="h2" href="#5-raw-material-inventory">5. Raw Material Inventory</a>
+    <a class="h3" href="#51-the-stock-list">5.1 The stock list</a>
+    <a class="h3" href="#52-adding-incoming-material">5.2 Adding incoming material</a>
+    <a class="h3" href="#53-can-we-actually-make-it--the-material-check">5.3 Can we actually make it? — the Material Check</a>
+    <a class="h3" href="#54-using-stock--the-usage-log">5.4 Using stock — the usage log</a>
+    <a class="h3" href="#55-tracing-an-order">5.5 Tracing an order</a>
+    <a class="h3" href="#56-lists">5.6 Lists</a>
+    <a class="h2" href="#6-customers">6. Customers</a>
+    <a class="h3" href="#61-business--what-theyre-worth-to-you">6.1 Business — what they&#x27;re worth to you</a>
+    <a class="h3" href="#62-rates--the-prices-you-agreed-with-them">6.2 Rates — the prices you agreed with them</a>
+    <a class="h2" href="#7-parts--pricing">7. Parts &amp; Pricing</a>
+    <a class="h3" href="#71-the-costing-workspace">7.1 The costing workspace</a>
+    <a class="h3" href="#72-bill-of-materials--pricing-the-steel-from-stock">7.2 Bill of materials — pricing the steel from stock</a>
+    <a class="h2" href="#8-order-tracking">8. Order Tracking</a>
+    <a class="h3" href="#81-planning-a-long-order">8.1 Planning a long order</a>
+    <a class="h3" href="#82-shipments--what-do-we-still-owe">8.2 Shipments — what do we still owe?</a>
+    <a class="h2" href="#9-quotations--invoices">9. Quotations &amp; Invoices</a>
+    <a class="h3" href="#91-checking-material-before-you-commit">9.1 Checking material before you commit</a>
+    <a class="h3" href="#92-printing-and-sending">9.2 Printing and sending</a>
+    <a class="h2" href="#10-settings">10. Settings</a>
+    <a class="h2" href="#11-keeping-your-data-safe">11. Keeping your data safe</a>
+    <a class="h2" href="#12-if-something-goes-wrong">12. If something goes wrong</a>
+  </nav>
+  <main id="content">
+<h1 id="apex-thermocon-workshop--user-guide">APEX THERMOCON Workshop — User Guide</h1>
+<p>A complete guide to using the software, with pictures. Written for the people who use it every day — no technical knowledge needed. (Screens show sample data.)</p>
+<p><strong>You can read this inside the app</strong>: sign in and click the <strong>📖 User Guide</strong> tile on Home, or go straight to <code>/help/</code>. It has a contents list down the side and a search box, and it works with no internet.</p>
+<p><em>(For whoever maintains this: that page is generated from this file. After editing, run <code>python tools/build_help.py</code> and commit <code>frontend/help/</code>.)</em></p>
+<hr>
+<h2 id="1-getting-started">1. Getting started</h2>
+<h3 id="opening-the-app">Opening the app</h3>
+<p>Double-click <strong>APEX Payroll (Admin).exe</strong> on the main computer, or <strong>APEX Payroll (Operator).exe</strong> on the attendance laptop. A normal app window opens — no internet needed.</p>
+<h3 id="signing-in">Signing in</h3>
+<figure><img src="images/shell-login.jpg" alt="Login screen" loading="lazy"><figcaption>Login screen</figcaption></figure>
+<p>Type your username and password and press <strong>Sign in</strong>. The app comes with two accounts:</p>
+<div class='tablewrap'><table>
+<thead><tr><th>Account</th><th>Password</th><th>Who it's for</th></tr></thead>
+<tbody>
+<tr><td><code>admin</code></td><td><code>admin123</code></td><td>The owner — full access to everything</td></tr>
+<tr><td><code>operator</code></td><td><code>operator123</code></td><td>Attendance entry only</td></tr>
+</tbody></table></div>
+<blockquote>⚠️ <strong>Change these passwords</strong> after first use (section 2). The operator laptop signs itself in automatically — it goes straight to attendance.</blockquote>
+<h3 id="home--your-modules">Home — your modules</h3>
+<figure><img src="images/shell-home.jpg" alt="Home launcher" loading="lazy"><figcaption>Home launcher</figcaption></figure>
+<p>After signing in you land on <strong>Home</strong>. Every box (tile) is one part of the business — all of them are live. Click a tile to open it; the <strong>⌂ Home</strong> button at the top-left of any module brings you back.</p>
+<p>You only see the tiles your account is allowed to use. Here is what a staff account with two permissions sees:</p>
+<figure><img src="images/shell-home-restricted.jpg" alt="Restricted account&#x27;s home" loading="lazy"><figcaption>Restricted account&#x27;s home</figcaption></figure>
+<h3 id="deadlines-coming-up">Deadlines coming up</h3>
+<p>Under the tiles you'll find a panel of orders whose delivery dates are close, split into <strong>Next 7 days</strong> and <strong>Next month</strong>, with anything already <strong>overdue</strong> called out in red above them. Each line names the customer, the order number and how much of it still has to go out.</p>
+<p>An order disappears from the panel once it has been fully sent — nothing left to deliver is not a deadline. If you have nothing due, the panel doesn't appear at all. It's only visible to accounts that can open Order Tracking.</p>
+<hr>
+<h2 id="2-accounts--who-can-open-what">2. Accounts — who can open what</h2>
+<p><em>Owner (admin) only.</em> Open <strong>Users &amp; Access</strong> from Home.</p>
+<figure><img src="images/shell-users.jpg" alt="Users &amp; Access" loading="lazy"><figcaption>Users &amp; Access</figcaption></figure>
+<ul>
+<li><strong>+ Add account</strong> — choose a username and password, then either tick <strong>Administrator</strong> (full access, like you) or tick just the modules this person may open:</li>
+</ul>
+<figure><img src="images/shell-user-form.jpg" alt="New account form" loading="lazy"><figcaption>New account form</figcaption></figure>
+<ul>
+<li><strong>Edit</strong> — change what an account can open, or set a new password if someone forgot theirs.</li>
+<li><strong>✕</strong> — delete an account. The app refuses to delete the last administrator or the account you're signed in with, so you can't lock yourself out.</li>
+</ul>
+<hr>
+<h2 id="3-salary--attendance">3. Salary &amp; Attendance</h2>
+<p>The monthly rhythm: <strong>operator fills attendance → it syncs to your machine → you calculate and publish salaries → print the two Excel sheets.</strong></p>
+<h3 id="31-the-dashboard">3.1 The dashboard</h3>
+<figure><img src="images/pay-dashboard.jpg" alt="Payroll dashboard" loading="lazy"><figcaption>Payroll dashboard</figcaption></figure>
+<p>Quick counts, plus the sections on the left: Pay Setup, Attendance, Advances, Calculate Salary, View Salaries, Export Slips, Sync/Exchange, Rules.</p>
+<h3 id="32-pay-setup">3.2 Pay Setup</h3>
+<figure><img src="images/pay-employees.jpg" alt="Pay Setup" loading="lazy"><figcaption>Pay Setup</figcaption></figure>
+<p>The money side of each employee lives here: <strong>base salary, PF/ESI applicability, and the advance balance</strong> — press <em>Edit pay</em> on a row. Click a name for the full pay story (salary, attendance and advances over time):</p>
+<figure><img src="images/pay-employee-profile.jpg" alt="Employee profile" loading="lazy"><figcaption>Employee profile</figcaption></figure>
+<blockquote>Everything else about a person — adding employees, profiles, documents, the leave bank — lives in <strong>Employee Management</strong> (section 4).</blockquote>
+<h3 id="33-attendance-usually-the-operators-job">3.3 Attendance (usually the operator's job)</h3>
+<figure><img src="images/pay-attendance-grid.jpg" alt="Attendance grid" loading="lazy"><figcaption>Attendance grid</figcaption></figure>
+<p><strong>All employees</strong> view: one row per employee, one column per day. Everyone starts as Present (green) — just click days to mark absences (red) and type overtime hours where earned. Sundays are highlighted; they're paid days off. <strong>Save all</strong> stores the whole month in one go.</p>
+<p>For one person at a time, use the <strong>Single employee</strong> calendar view:</p>
+<figure><img src="images/pay-attendance-single.jpg" alt="Single employee calendar" loading="lazy"><figcaption>Single employee calendar</figcaption></figure>
+<p>The reminder banner nags until the previous month is complete (due by the 7th).</p>
+<h3 id="34-getting-attendance-to-your-machine-sync">3.4 Getting attendance to your machine (sync)</h3>
+<figure><img src="images/pay-sync.jpg" alt="Sync &amp; backup" loading="lazy"><figcaption>Sync &amp; backup</figcaption></figure>
+<p>Both laptops watch a shared folder (Google Drive / Dropbox):</p>
+<ul>
+<li>The <strong>operator</strong> presses <em>Export attendance</em> when the month is done.</li>
+<li>On your next sign-in, the app <strong>offers the file with one Yes/No prompt</strong> — accept and it's imported (leave banks and penalties recompute automatically).</li>
+<li>When you change the employee list, press <em>Export roster</em>; the operator's app picks it up silently.</li>
+</ul>
+<p>No shared folder configured? The same buttons download/upload files you can move by pen drive.</p>
+<h3 id="35-advances">3.5 Advances</h3>
+<figure><img src="images/pay-advances.jpg" alt="Advances" loading="lazy"><figcaption>Advances</figcaption></figure>
+<p>Pick the employee, enter the amount and how it was paid (cheque + cash must add up), and the ledger updates. Outstanding advances appear automatically in the salary table and can be recovered at payroll time.</p>
+<h3 id="36-calculating-and-publishing-salaries">3.6 Calculating and publishing salaries</h3>
+<figure><img src="images/pay-salary-table.jpg" alt="Salary table" loading="lazy"><figcaption>Salary table</figcaption></figure>
+<ol>
+<li>Pick the month and press <strong>Prepare</strong> — one row per employee, pre-filled from attendance. A ⚠ badge means a penalty rule fired (hover to see which days).</li>
+<li>Every attendance number is <strong>yours to adjust</strong>: paid days, penalty days, OT hours, refreshment days.</li>
+<li>Use <strong>Set PF for all eligible…</strong> / <strong>Set ESI for all eligible…</strong>, then fine-tune individuals. Enter advance recovery (<em>Adj Adv</em>) or fresh advances.</li>
+<li><strong>Calculate</strong> shows every total. Cash = Total − Cheque automatically.</li>
+<li><strong>Publish</strong> locks the month in: salaries recorded, advance ledgers posted, your adjustments written back. Re-publishing the same month overwrites it.</li>
+</ol>
+<h3 id="37-history-and-excel-sheets">3.7 History and Excel sheets</h3>
+<figure><img src="images/pay-history.jpg" alt="Salary history" loading="lazy"><figcaption>Salary history</figcaption></figure>
+<p><strong>View Salaries</strong> lists any published month. <strong>Export Slips</strong> downloads the two sheets the office already uses — the CEO reconciliation sheet and the distribution slip:</p>
+<figure><img src="images/pay-exports.jpg" alt="Exports" loading="lazy"><figcaption>Exports</figcaption></figure>
+<h3 id="38-salary-rules">3.8 Salary rules</h3>
+<figure><img src="images/pay-rules.jpg" alt="Rules" loading="lazy"><figcaption>Rules</figcaption></figure>
+<p>Leave entitlement, overtime rate, penalty tiers, the CNC bonus — all live here and can be changed without touching the program. Careful: this is the raw policy file; a friendlier Settings screen is planned.</p>
+<hr>
+<h2 id="4-employee-management">4. Employee Management</h2>
+<p>Everything about your people that isn't money: profiles, documents, the leave bank, and attendance summaries. Open the <strong>👥 Employee Management</strong> tile.</p>
+<h3 id="41-the-roster">4.1 The roster</h3>
+<figure><img src="images/em-roster.jpg" alt="Employee roster" loading="lazy"><figcaption>Employee roster</figcaption></figure>
+<p>Search by name/department/number, filter by department or <strong>Working / Left</strong>. Each row shows the shift, joining date, leave scheme and the leave bank. Click a row to open the full record. <strong>+ Add employee</strong> creates a new person — profile details plus a one-time <em>Starting pay</em> box (afterwards pay is managed in Salary → Pay Setup).</p>
+<h3 id="42-one-employees-record">4.2 One employee's record</h3>
+<figure><img src="images/em-detail.jpg" alt="Employee record" loading="lazy"><figcaption>Employee record</figcaption></figure>
+<ul>
+<li><strong>Leave bank</strong> — the <strong>+ / −</strong> buttons add or subtract days (for example a compensatory day off, or a correction). The bank can never go below zero. Overtime-eligible workers have no bank — their absences follow the penalty rules at payroll time.</li>
+<li><strong>Documents</strong> — upload Aadhaar cards, agreements, certificates (label them, then <em>+ Add files</em>). Photos from a phone are compressed automatically; click a name to view, ⬇ to download. Documents ride along in every backup.</li>
+<li><strong>Pay</strong> — shown read-only here; change it in Salary → Pay Setup.</li>
+<li><strong>Attendance</strong> — this financial year's totals and the last six months.</li>
+<li><strong>Deactivate</strong> marks someone as left; history is always kept and they can be reactivated any time.</li>
+</ul>
+<h3 id="43-editing-a-profile">4.3 Editing a profile</h3>
+<figure><img src="images/em-edit.jpg" alt="Edit employee" loading="lazy"><figcaption>Edit employee</figcaption></figure>
+<p>Name, department, shift, joining date, and the overtime-eligible flag (this switches the leave scheme, so change it knowingly).</p>
+<hr>
+<h2 id="5-raw-material-inventory">5. Raw Material Inventory</h2>
+<p>Every incoming batch of rods/bars is one <strong>heat</strong> — the number stamped on the mill test certificate. The app tracks each heat from arrival to the orders it fed.</p>
+<h3 id="51-the-stock-list">5.1 The stock list</h3>
+<figure><img src="images/inv-stock.jpg" alt="Stock list" loading="lazy"><figcaption>Stock list</figcaption></figure>
+<p>Top strip: total heats, rods in stock, stock value (₹), rods issued. Each row shows <strong>remaining/received</strong> with a bar and a status: <strong>In stock</strong>, <strong>Consumed</strong>, or <strong>Rejected</strong> (returned to supplier). Search by heat number, grade, supplier or rack; filter by material, shape, status — or find steel by its chemistry (e.g. Carbon 0.40–0.50%).</p>
+<h3 id="52-adding-incoming-material">5.2 Adding incoming material</h3>
+<p><strong>+ New heat</strong> opens a <strong>whole screen</strong>, not a small popup — a delivery is usually a dozen bars across several heat numbers, and that needs room.</p>
+<figure><img src="images/inv-add-delivery.jpg" alt="Add incoming material" loading="lazy"><figcaption>Add incoming material</figcaption></figure>
+<p>On the left, the things true of the whole delivery: date received, supplier, rack, and the material/grade/shape most of it is. On the right, <strong>one card per piece</strong>. Press <strong>+ Add piece</strong> for each one, or the ⧉ button to duplicate the card above when only the heat number changes.</p>
+<p><strong>Supplier</strong> is a dropdown, not a typing box. Pick an existing mill, or choose <strong>+ Add new…</strong> to enter one — it joins the list from then on, so the same supplier never ends up spelled three different ways. You can tidy the list in the <strong>Lists</strong> tab.</p>
+<p><strong>Chemistry per piece.</strong> Press <strong>+ Chemistry</strong> on any card to record that heat's spectroscopy analysis — element and percentage, as many rows as the report has. This sits on the piece, not the delivery, because the composition is the whole reason heat numbers are kept apart. If several cards share one heat number they share one analysis. The small Composition box on the left is only a fallback for cards you leave blank.</p>
+<p>Each row carries its <strong>own heat number</strong>, and that matters more than anything else on this screen. Two bars can be the same steel, the same diameter, from the same lorry, and still be <em>different metal</em> — a different heat is a different melt with a different composition. So the software never merges them: each heat number becomes its own record and stays that way for good.</p>
+<div class='tablewrap'><table>
+<thead><tr><th>Column</th><th>What to put in it</th></tr></thead>
+<tbody>
+<tr><td><strong>Heat number</strong></td><td>Off the mill certificate. Required.</td></tr>
+<tr><td><strong>Material / Grade</strong></td><td>Leave blank to inherit what you set on the left.</td></tr>
+<tr><td><strong>Length</strong></td><td>The actual length of this bar. Required — it is what makes the material check possible.</td></tr>
+<tr><td><strong>Ø</strong></td><td>Diameter.</td></tr>
+<tr><td><strong>Qty</strong></td><td>How many identical bars of this length.</td></tr>
+<tr><td><strong>Note</strong></td><td>Anything worth remembering, e.g. "short offcuts".</td></tr>
+</tbody></table></div>
+<p>The header keeps a running tally — <em>3 heat number(s), 4 piece(s)</em> — so you can check it against the delivery challan before saving. <strong>Save delivery</strong> records the whole thing at once: if one heat number turns out to be a duplicate, nothing at all is saved and you can fix that row.</p>
+<p>Afterwards, open any heat to attach photos or PDFs of the mill certificate and purchase invoice — phone photos are compressed automatically. Editing an existing heat still opens the familiar popup, where you can also correct the piece lengths and diameters.</p>
+<blockquote>If you don't know the lengths, you can still record the heat the old way and leave the pieces out. You just won't be able to check it by dimension — only by counting bars.</blockquote>
+<h3 id="53-can-we-actually-make-it--the-material-check">5.3 Can we actually make it? — the Material Check</h3>
+<p>The <strong>Material Check</strong> tab answers the question you ask before promising a customer anything: <em>do we have enough steel to make this?</em></p>
+<figure><img src="images/inv-material-check.jpg" alt="Material check" loading="lazy"><figcaption>Material check</figcaption></figure>
+<p>Fill in the material, the grade, how many parts you need, and the part's length and diameter. Add a <strong>tolerance / margin</strong> if each part needs a little extra for parting off and facing. Press <strong>Check availability</strong>.</p>
+<p><strong>How the number is worked out</strong> — this is the important bit. The software counts the whole parts that come out of <em>each individual bar</em>, then adds those up. It does <strong>not</strong> divide total stock by part size, because offcuts can't be welded back together.</p>
+<blockquote>Three bars, each 10 long, and you need parts 3 long: each bar gives <code>10 ÷ 3 = 3</code> whole parts with 1 left over as scrap. <strong>3 bars × 3 = 9 parts.</strong> Not 10.</blockquote>
+<p>The result is broken down <strong>heat by heat</strong>, so you can see exactly which bars the job would come off:</p>
+<div class='tablewrap'><table>
+<thead><tr><th>Heat</th><th>Length</th><th>Pieces</th><th>Parts / piece</th><th>Parts</th></tr></thead>
+<tbody>
+<tr><td>H1001</td><td>10</td><td>1</td><td>3</td><td>3</td></tr>
+<tr><td>H1002</td><td>8</td><td>1</td><td>2</td><td>2</td></tr>
+<tr><td>H1003</td><td>6.5</td><td>2</td><td>2</td><td>4</td></tr>
+<tr><td></td><td></td><td></td><td><strong>Total</strong></td><td><strong>9</strong></td></tr>
+</tbody></table></div>
+<p>You also get a status — <strong>Available</strong>, <strong>Partially available</strong> or <strong>Not available</strong> — with the shortfall if you're short, the leftover on each bar, and an honest note against any heat whose dimensions were never recorded ("33 rods on the rack, but no piece dimensions recorded") so nothing quietly disappears from the answer.</p>
+<p>Switch to <strong>By quantity</strong> when the dimensions don't decide it and you just want to know how many bars are on the rack.</p>
+<p>Nothing is reserved. The check only tells you what's possible right now; stock still leaves the rack through the usage log.</p>
+<h3 id="54-using-stock--the-usage-log">5.4 Using stock — the usage log</h3>
+<figure><img src="images/inv-heat-detail.jpg" alt="Heat detail" loading="lazy"><figcaption>Heat detail</figcaption></figure>
+<p>Open any heat to see its full story. To take rods out:</p>
+<ul>
+<li><strong>Issued to order</strong> — enter the order/PO number (required) and how many rods.</li>
+<li><strong>Rejected → supplier</strong> — for bad material; the red <strong>Reject remaining batch</strong> button returns everything left in one click.</li>
+</ul>
+<p>The app refuses to issue more rods than remain. Deleting a log entry (✕) puts the rods back — that's also how you undo a rejection.</p>
+<h3 id="55-tracing-an-order">5.5 Tracing an order</h3>
+<figure><img src="images/inv-usage-log.jpg" alt="Usage log" loading="lazy"><figcaption>Usage log</figcaption></figure>
+<p>The <strong>Usage Log</strong> tab searches every movement by order number — type a PO number and see exactly which heats (and therefore which mill certificates) fed that order. That's your traceability answer when a customer asks.</p>
+<h3 id="56-lists">5.6 Lists</h3>
+<figure><img src="images/inv-lists.jpg" alt="Lists" loading="lazy"><figcaption>Lists</figcaption></figure>
+<p>Material classes, shapes, grades and chemical elements are yours to manage. Removing a value never changes heats already recorded with it.</p>
+<hr>
+<h2 id="6-customers">6. Customers</h2>
+<p>Open the <strong>🏢 Customers</strong> tile. One record per customer: GSTIN, billing and shipping addresses, payment terms, and the people you talk to.</p>
+<figure><img src="images/ws-customer.jpg" alt="Customer record" loading="lazy"><figcaption>Customer record</figcaption></figure>
+<p><strong>+ Add customer</strong> creates one; click a row and the customer's record opens as a <strong>full window</strong> — a Back button top-left takes you to the list. It needs the room: the record holds their profile, a growth chart, every order and every document. Editing still opens a small form on top. You add contact persons (name, role, phone, email) there. Customers with orders or drawings can be <strong>deactivated</strong> but never deleted — history stays intact.</p>
+<p>Every customer gets a short <strong>code</strong> automatically: the initials of the name plus a number, so Acme Castings becomes <strong>AC01</strong> and the next AC… customer becomes <strong>AC02</strong>. "M/s", "Pvt", "Ltd" and similar words are ignored. If you'd rather the initials were something else, type them in the form — the code preview updates as you type. You can search the list by code, name or GSTIN.</p>
+<p>The record has three tabs.</p>
+<h3 id="61-business--what-theyre-worth-to-you">6.1 Business — what they're worth to you</h3>
+<figure><img src="images/ws-customer-business.jpg" alt="Customer business" loading="lazy"><figcaption>Customer business</figcaption></figure>
+<p>Lifetime total, number of orders, average order value and how much is still open, then a <strong>month-by-month bar chart</strong> of business won — hover a bar to see the running total to that month. Below it, every order newest-first with its stage, and every quotation and invoice with a <strong>Print</strong> button, so any past document can be reprinted from here without hunting for the original.</p>
+<h3 id="62-rates--the-prices-you-agreed-with-them">6.2 Rates — the prices you agreed with them</h3>
+<figure><img src="images/ws-customer-rates.jpg" alt="Customer rates" loading="lazy"><figcaption>Customer rates</figcaption></figure>
+<p>Most customers negotiate their own machining rates. Put them here once and every part you price for that customer uses them automatically.</p>
+<p>Pick the <strong>Operation</strong>, type <strong>Their ₹/hour</strong> (what this customer pays for it), optionally an <strong>Additional ₹/hour</strong> on top, add a note like <em>"agreed Apr 2026"</em> so you remember when it was settled, and press <strong>Save</strong>. The standard shop rate from Settings sits greyed out in the <strong>Standard ₹/hr</strong> column beside it, so you can see at a glance what was negotiated.</p>
+<ul>
+<li>The <strong>effective rate</strong> is <em>their ₹/hour + additional ₹/hour</em>. In the picture, ₹520 + ₹30 = <strong>₹550/hour</strong>.</li>
+<li>Saving the same operation again updates it — you never get duplicate rows.</li>
+<li>Changing a rate here reprices every future costing for that customer in one edit. Costings you already saved keep the price they were saved with.</li>
+</ul>
+<hr>
+<h2 id="7-parts--pricing">7. Parts &amp; Pricing</h2>
+<p>Open the <strong>📐 Parts &amp; Pricing</strong> tile — one record per customer drawing.</p>
+<figure><img src="images/ws-part-detail.jpg" alt="Drawing record" loading="lazy"><figcaption>Drawing record</figcaption></figure>
+<ul>
+<li><strong>Drawing number + revision</strong> identify the part; <strong>+ Revision</strong> starts a new revision (its rates and files begin fresh — pricing history is per revision).</li>
+<li><strong>Drawing files</strong> — attach the PDF or a scan.</li>
+<li><strong>Rate history</strong> answers "what did we charge last time": dated entries marked <strong>quoted / agreed / revised</strong>, newest first. The latest rate shows on the list and auto-fills order items.</li>
+<li><strong>Customer</strong> — assign the drawing to a customer here. This is what makes the costing screen use that customer's agreed rates.</li>
+</ul>
+<h3 id="71-the-costing-workspace">7.1 The costing workspace</h3>
+<p><strong>Open costing workspace</strong> on a drawing gives pricing a full screen of its own.</p>
+<figure><img src="images/ws-costing-workspace.jpg" alt="Costing workspace" loading="lazy"><figcaption>Costing workspace</figcaption></figure>
+<p>The part, its customer and its rate history sit on the left; the operations table is on the right. Switch revisions with the <strong>A / B</strong> buttons at the top right — each revision is priced separately.</p>
+<p>Add a row per operation with <strong>+ Add operation</strong>, then fill in:</p>
+<div class='tablewrap'><table>
+<thead><tr><th>Column</th><th>What to put in it</th></tr></thead>
+<tbody>
+<tr><td><strong>Operation</strong></td><td>Pick from your Settings list. The rates fill in by themselves.</td></tr>
+<tr><td><strong>Minutes</strong></td><td>Minutes this operation takes <strong>per piece</strong>.</td></tr>
+<tr><td><strong>₹ / hour</strong></td><td>The hourly rate. Comes from Settings, or from the customer's agreed rate if they have one.</td></tr>
+<tr><td><strong>Add'l ₹/hour</strong></td><td>Extra rupees per hour for this one operation — a better machine, a tighter tolerance, an awkward setup.</td></tr>
+<tr><td><strong>Effective ₹/hr</strong></td><td>Calculated: ₹/hour + additional ₹/hour. Not editable.</td></tr>
+<tr><td><strong>Weightage</strong></td><td>How much this operation counts relative to its clock time. Leave blank for normal (1).</td></tr>
+<tr><td><strong>Row ₹</strong></td><td>Calculated: <code>minutes ÷ 60 × effective ₹/hr × weightage</code>.</td></tr>
+</tbody></table></div>
+<p>Everything recalculates as you type — there is no "calculate" button.</p>
+<blockquote><strong>The additional margin is rupees per hour, not a percentage.</strong> ₹520/hour with ₹30 additional means you are charging <strong>₹550 an hour</strong>, so 12 minutes costs ₹110. It sits in the same units as the rate next to it, so the two numbers are directly comparable.</blockquote>
+<p><strong>Weightage</strong> is for work that is worth more than the stopwatch says. Setup time spread across a batch, a second spindle running at the same time, an allowance for scrap — put 1.5 and the row bills at one and a half times.</p>
+<p>When the drawing belongs to a customer who has agreed rates, the row shows a green <strong>★ <em>customer</em> rate</strong> badge and uses their price instead of the shop standard. No badge means it's the standard Settings rate.</p>
+<p>Below the table, add <strong>material cost per piece</strong> and an <strong>overall margin %</strong>; the build-up on the right shows operations → + material → + margin → the final ₹/piece. <strong>Save costing</strong> stores it against the revision, and from the drawing you can then push it into the rate history with <strong>→ quote</strong> or <strong>→ agreed</strong>.</p>
+<p>A saved costing keeps the rates it was saved with. Changing a rate in Settings or on the customer later will never quietly change a price you already quoted.</p>
+<h3 id="72-bill-of-materials--pricing-the-steel-from-stock">7.2 Bill of materials — pricing the steel from stock</h3>
+<p>You no longer have to remember what the bar cost. <strong>+ Add material</strong> in the costing workspace searches your inventory:</p>
+<figure><img src="images/ws-bom.jpg" alt="Bill of materials" loading="lazy"><figcaption>Bill of materials</figcaption></figure>
+<p>Type a <strong>heat number</strong>, a <strong>grade</strong> (EN8), a <strong>material</strong> (Stainless Steel) or a <strong>supplier</strong> — one box searches all of them. Each result shows what's left on the rack and what that steel cost per rod (or per kg), worked out from the purchase price you recorded when it came in.</p>
+<p>Pick one and it becomes a line in the bill of materials. Then fill in the one number only you know: <strong>how many parts come out of one rod</strong>. The cost per piece follows:</p>
+<blockquote>A rod cost ₹4,500 and yields 3 parts → <strong>₹1,500 of material in every piece.</strong></blockquote>
+<p>Add as many lines as the part needs. The <strong>Material per piece</strong> total feeds straight into the costing, and while a bill of materials exists the manual "Material cost" box is greyed out — one number, one source, so the two can never disagree.</p>
+<p>Like the operation rates, the prices are <strong>frozen into the costing when you save</strong>. If that steel costs more next month, the quote you already sent doesn't change underneath you.</p>
+<hr>
+<h2 id="8-order-tracking">8. Order Tracking</h2>
+<p>Open the <strong>🗂 Order Tracking</strong> tile. It has three tabs: <strong>Orders</strong>, <strong>Consignments</strong> and <strong>Shipments</strong>.</p>
+<p>Clicking an order opens it as a <strong>full window</strong> with a Back button — an order carries its items, its delivery plan, its shipments and its stage history, which is more than a popup can hold. <strong>New order</strong> and <strong>Edit</strong> both fill the screen the same way.</p>
+<figure><img src="images/ws-order-detail.jpg" alt="Order record" loading="lazy"><figcaption>Order record</figcaption></figure>
+<ul>
+<li><strong>New order</strong> — pick the customer, note their PO number, add items (picking a drawing fills the unit and its latest rate). The order number is automatic (format set in Settings) and restarts every financial year.</li>
+<li><strong>Deadline</strong> — the date the whole order must be with the customer. It shows as a column on the list, turning <strong>amber inside a week</strong> and <strong>red once overdue</strong>, and it drives the warning panel on Home.</li>
+<li><strong>Stages</strong> — Enquiry → Quote → PO received → Production → QC → Dispatch → Payment received. Click any stage to move there (skipping is fine); every move is logged with a note.</li>
+<li><strong>Material used</strong> — rods issued in Inventory against this order number appear automatically, with their heat numbers: order → heat → mill certificate, the full traceability chain.</li>
+<li><strong>Shipping (consignments)</strong> — press <strong>🚚 Ship</strong>:</li>
+</ul>
+<figure><img src="images/ws-consignment.jpg" alt="Consignment" loading="lazy"><figcaption>Consignment</figcaption></figure>
+<p>Enter the GST paperwork (transporter, LR number, e-way bill, invoice, vehicle, freight) and the quantities going on this truck. <strong>Partial shipments are fine</strong>, and one consignment can carry items from <strong>several orders</strong> (type another order number and press <em>Add order</em>). The app refuses to ship more than an item has left. The <strong>Consignments</strong> tab lists every shipment — mark them <strong>Delivered ✓</strong> when confirmed.</p>
+<h3 id="81-planning-a-long-order">8.1 Planning a long order</h3>
+<p>Some orders run for months and go out in instalments. Press <strong>Plan</strong> on any item to say when each part of it is due:</p>
+<figure><img src="images/ws-delivery-plan.jpg" alt="Delivery plan" loading="lazy"><figcaption>Delivery plan</figcaption></figure>
+<blockquote>An order for 600 pieces: 250 by 15 September, 100 by 15 October, and the remaining 250 before the deadline.</blockquote>
+<p>Add a line per drop. The <strong>+ Remaining (N) by the deadline</strong> button writes that last line for you, using the order's own deadline. The panel keeps three figures in view — <strong>Ordered</strong>, <strong>Planned</strong> and <strong>Not planned yet</strong> — and the last one is worked out for you, so it can never disagree with the others. You can't plan more than the item quantity; the app will say so.</p>
+<p>The button on the item row then shows how many drops are planned, so you can see at a glance which items have a schedule and which don't.</p>
+<h3 id="82-shipments--what-do-we-still-owe">8.2 Shipments — what do we still owe?</h3>
+<p>The <strong>Shipments</strong> tab is the answer to <em>"how much of this order is still to go?"</em></p>
+<figure><img src="images/ws-shipments.jpg" alt="Shipments" loading="lazy"><figcaption>Shipments</figcaption></figure>
+<p>One row per order: how much was <strong>ordered</strong>, how much has been <strong>sent</strong>, how much <strong>remains</strong>, and a progress bar. "Sent" counts every consignment ever raised against that order, so an order delivered in six lorries over four months adds up correctly. By default you only see orders that still owe something — untick the box to include the finished ones. The figure at the bottom is everything still outstanding across the orders shown.</p>
+<hr>
+<h2 id="9-quotations--invoices">9. Quotations &amp; Invoices</h2>
+<p>Open the <strong>🧾 Quotations &amp; Invoices</strong> tile. Both live here — a quotation is what you send before the work, an invoice is what you send after it.</p>
+<figure><img src="images/ws-invoice-form.jpg" alt="Invoice form" loading="lazy"><figcaption>Invoice form</figcaption></figure>
+<p><strong>+ Quotation</strong> or <strong>+ Invoice</strong> opens a full screen (editing an existing one still opens the popup). Choose the customer and their details fill in. Add a line per item: description, quantity, rate — the amount, subtotal, GST and grand total all calculate themselves. For an invoice you can pick an <strong>order</strong> instead and its items are copied in for you, so you are not retyping what you already entered in Order Tracking.</p>
+<p>Document numbers are issued automatically per financial year, and quotations and invoices are numbered in separate series.</p>
+<h3 id="91-checking-material-before-you-commit">9.1 Checking material before you commit</h3>
+<p>While writing a quotation you can tick <strong>☐ Check material availability</strong>.</p>
+<figure><img src="images/ws-quote-material-check.jpg" alt="Material check while quoting" loading="lazy"><figcaption>Material check while quoting</figcaption></figure>
+<p>It is entirely optional and off unless you tick it — the quotation is written and saved exactly as before either way. Ticking it opens the same check described in <a href="#53-can-we-actually-make-it--the-material-check">5.3</a>, with the quantity already filled in from your quotation lines. Fill in the part length, diameter and any margin, press <strong>Check stock</strong>, and you get the same heat-wise answer right there in the form.</p>
+<p>The point is to find out you're short <em>before</em> you promise a date, not after. Nothing is reserved and the check never stops you saving — a shortage is information, not a blocker. The same checkbox is on the new-order screen.</p>
+<h3 id="92-printing-and-sending">9.2 Printing and sending</h3>
+<p><strong>Print</strong> opens a clean A4 copy in a new tab.</p>
+<figure><img src="images/ws-invoice-print.jpg" alt="Printed invoice" loading="lazy"><figcaption>Printed invoice</figcaption></figure>
+<p>From there use your browser's print dialog — choose your printer for a paper copy, or <strong>Save as PDF</strong> to get a file you can email or put on WhatsApp. There is nothing extra to install.</p>
+<p>Every document stays on the customer's <strong>Business</strong> tab too, so you can reprint any past quotation or invoice from there at any time.</p>
+<hr>
+<h2 id="10-settings">10. Settings</h2>
+<p>Open the <strong>⚙ Settings</strong> tile (changes are owner/admin only).</p>
+<figure><img src="images/ws-settings.jpg" alt="Settings" loading="lazy"><figcaption>Settings</figcaption></figure>
+<ul>
+<li><strong>Order numbers</strong> — the format template (<code>{FY}</code> financial year, <code>{SEQ}</code> running number) with a live preview of the next number.</li>
+<li><strong>Units</strong> — the searchable list every unit dropdown uses.</li>
+<li><strong>Machining operations &amp; hourly rates</strong> — what the Parts costing builder charges per hour. Changing a rate affects new costings only.</li>
+<li><strong>Departments</strong> — shared with employees and payroll.</li>
+</ul>
+<hr>
+<h2 id="11-keeping-your-data-safe">11. Keeping your data safe</h2>
+<ul>
+<li><strong>Back up regularly:</strong> Salary &amp; Attendance → Sync/Exchange → <strong>Back up now</strong>. Each backup is one <code>.zip</code> holding the entire database <em>and</em> every attachment (inventory certificates and employee documents). <em>Download a copy</em> saves it wherever you choose — keep one off the computer.</li>
+<li><strong>Restore:</strong> unzip into the app's data folder (<code>%APPDATA%\APEX Payroll\</code>), replacing <code>salary.db</code> and <strong>every</strong> <code>*_files/</code> folder in the zip (<code>inventory_files/</code>, <code>employee_files/</code>, <code>drawing_files/</code>).</li>
+<li><strong>Updates:</strong> when a new version is released, a popup offers it at sign-in — one click downloads, restarts, done. Your data is never touched. No popup = you're up to date (the <code>v1.x.x</code> label in the header checks on demand).</li>
+</ul>
+<hr>
+<h2 id="12-if-something-goes-wrong">12. If something goes wrong</h2>
+<div class='tablewrap'><table>
+<thead><tr><th>Problem</th><th>What to do</th></tr></thead>
+<tbody>
+<tr><td>Forgot a password</td><td>An administrator resets it in <strong>Users &amp; Access → Edit</strong>.</td></tr>
+<tr><td>"Only N rods remaining"</td><td>You tried to issue more than the heat has left — check the heat's usage log.</td></tr>
+<tr><td>"Cheque + Cash must equal…"</td><td>The two amounts must add up to the total/advance exactly.</td></tr>
+<tr><td>Attendance won't import</td><td>Only the <strong>admin</strong> machine imports attendance; only the <strong>operator</strong> machine imports the roster. Check you're on the right laptop.</td></tr>
+<tr><td>A tile is missing</td><td>That account wasn't given access — the owner can grant it in <strong>Users &amp; Access</strong>.</td></tr>
+<tr><td>App window never opens</td><td>Rare: install Microsoft's WebView2 runtime (see DEPLOY.md), or the app opens in your browser instead.</td></tr>
+</tbody></table></div>
+<p><em>Developer-facing documentation starts at START_HERE.md.</em></p>
+  </main>
+</div>
+
+<script>
+// Jump-to highlighting: mark the section you are reading in the sidebar.
+const links = [...document.querySelectorAll('#toc a')];
+const targets = links.map(a => document.getElementById(a.hash.slice(1))).filter(Boolean);
+function onScroll() {
+  let current = null;
+  for (const t of targets) {
+    if (t.getBoundingClientRect().top <= 120) current = t; else break;
+  }
+  links.forEach(a => a.classList.toggle('on', current && a.hash === '#' + current.id));
+}
+document.addEventListener('scroll', onScroll, { passive: true });
+onScroll();
+
+// Search: filter the contents list, and highlight hits in the page.
+const q = document.getElementById('q');
+const content = document.getElementById('content');
+const blocks = [...content.children];
+let none = null;
+q.addEventListener('input', () => {
+  const term = q.value.trim().toLowerCase();
+  document.querySelectorAll('#content mark').forEach(m => m.replaceWith(m.textContent));
+  if (!term) {
+    blocks.forEach(b => b.classList.remove('hidden'));
+    links.forEach(a => a.classList.remove('hidden'));
+    if (none) { none.remove(); none = null; }
+    return;
+  }
+  // show a whole chapter when anything inside it matches
+  let keep = false, hits = 0;
+  for (const b of blocks) {
+    if (/^H[12]$/.test(b.tagName)) keep = b.textContent.toLowerCase().includes(term);
+    const self = b.textContent.toLowerCase().includes(term);
+    if (self) { keep = true; hits++; }
+    b.classList.toggle('hidden', !(keep || self));
+  }
+  links.forEach(a => a.classList.toggle('hidden', !a.textContent.toLowerCase().includes(term)));
+  if (!hits && !none) {
+    none = document.createElement('p');
+    none.textContent = 'Nothing in the guide matches “' + q.value + '”.';
+    content.appendChild(none);
+  } else if (hits && none) { none.remove(); none = null; }
+});
+</script>
+</body>
+</html>

@@ -27,6 +27,7 @@ Tests: `../venv/bin/python -m unittest discover -s tests`.
 | Customers (codes, order history, growth, agreed per-operation rates) | 🏢 | ✅ built | [modules/customers.md](modules/customers.md) |
 | Settings (order format, units, op rates, departments) | ⚙ | ✅ built | [modules/settings.md](modules/settings.md) |
 | Self-update / backups / two-machine sync | — | ✅ built (shared services) | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| In-app User Guide (`/help/`, generated from USER_GUIDE.md) | 📖 | ✅ built | [USER_GUIDE.md](USER_GUIDE.md) |
 
 ## Reading order for a new session
 
@@ -37,6 +38,8 @@ Tests: `../venv/bin/python -m unittest discover -s tests`.
    known-but-unfixed defects ([QA-FINDINGS.md](QA-FINDINGS.md) is the full sweep).
 5. The module doc for whatever you're touching (`modules/<name>.md`).
 6. End-user behaviour reference: [USER_GUIDE.md](USER_GUIDE.md) (illustrated).
+   It is also the SOURCE for the in-app guide at `/help/` — after editing it run
+   `python tools/build_help.py` and commit the regenerated `frontend/help/`.
 
 **Rules of the road:** code is the source of truth — verify docs against it and fix
 docs when they drift. Every session must end by updating this file's status table,
