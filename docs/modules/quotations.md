@@ -18,6 +18,20 @@ invoice bills for it and is usually raised straight from an order.
   The same button appears on the customer's Business tab, so any past document
   can be reprinted at any time.
 
+## Material availability (optional)
+Creating a quotation opens a **full page** now, not a modal; editing one still
+opens the modal. On that page a **☐ Check material availability** checkbox is
+off by default and changes nothing about how a quotation is written or saved —
+tick it and a panel asks for material, grade, part length/diameter, tolerance
+and the quantity needed (prefilled from the quotation lines), then reports what the
+rack could actually yield, heat by heat, with any shortfall.
+
+It is advisory: nothing is reserved, and the check never blocks Save. It calls
+the shared `POST /api/material/check` (see
+[modules/inventory.md](inventory.md)), which is grant-shared with Inventory so a
+quotations-only account can use it. The point is to see a shortage BEFORE
+quoting to it.
+
 ## Implemented (file paths)
 `backend/modules/quotations.py` (data + `/api/quotations/*`, grant `quotations`;
 `render_print` builds the printable HTML) · UI `frontend/quotations/index.html`

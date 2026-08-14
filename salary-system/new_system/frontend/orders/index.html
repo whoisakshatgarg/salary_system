@@ -297,12 +297,20 @@
   </template>
 
   <!-- ============================= ORDER FORM ============================= -->
+  <!-- ONE set of fields, two surfaces: adding = full page, editing = modal. -->
   <template x-if="form">
-  <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-6">
-      <div class="px-6 py-4 border-b flex items-center">
+  <div :class="addPage ? 'fixed inset-0 z-[60] bg-slate-100 overflow-auto'
+                       : 'fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto'">
+    <div :class="addPage ? 'bg-white min-h-full w-full max-w-6xl mx-auto shadow-sm'
+                         : 'bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-6'">
+      <div class="px-6 py-4 border-b flex items-center gap-3"
+           :class="addPage ? 'bg-slate-900 text-white sticky top-0 z-10' : ''">
+        <button x-show="addPage" @click="closeForm()"
+                class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
+          <span class="text-base leading-none">←</span> Back
+        </button>
         <div class="text-lg font-bold" x-text="form.id ? 'Edit order' : 'New order'"></div>
-        <button @click="form = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+        <button x-show="!addPage" @click="closeForm()" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
       </div>
       <form @submit.prevent="saveOrder()" class="p-6 space-y-4 text-sm">
         <div class="grid grid-cols-3 gap-3">
@@ -362,10 +370,115 @@
 
         <div><label class="block text-xs text-slate-500 mb-1">Notes</label>
           <textarea x-model="form.notes" rows="2" class="border rounded-lg px-3 py-2 w-full"></textarea></div>
+        <!-- ============ OPTIONAL: material availability ============
+             Off by default and entirely advisory. Ticking it does not change
+             the order, block the Save button, or reserve any stock — it
+             answers "could we actually make this?" before you commit. -->
+        <div class="border rounded-xl" :class="checkOn ? 'border-brand-600' : 'border-slate-200'">
+          <label class="flex items-center gap-3 px-4 py-3 cursor-pointer">
+            <input type="checkbox" :checked="checkOn" @change="toggleCheck()" class="w-4 h-4" />
+            <span class="font-medium">Check material availability</span>
+            <span class="text-xs text-slate-400">optional · nothing is reserved</span>
+            <template x-if="chkResult">
+              <span class="ml-auto px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                    :class="availClass(chkResult?.status)"
+                    x-text="availLabel(chkResult?.status) + ' · ' + chkResult?.total_feasible + ' makeable'"></span>
+            </template>
+          </label>
+
+          <div x-show="checkOn" x-cloak class="px-4 pb-4 border-t pt-4">
+            <div class="flex gap-1 mb-3">
+              <button type="button" @click="chk.method='dimension'; chkResult=null"
+                      class="px-3 py-1 rounded-lg text-xs font-medium border"
+                      :class="chk.method==='dimension' ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-300 text-slate-600'">
+                By dimension</button>
+              <button type="button" @click="chk.method='quantity'; chkResult=null"
+                      class="px-3 py-1 rounded-lg text-xs font-medium border"
+                      :class="chk.method==='quantity' ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-300 text-slate-600'">
+                By quantity</button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+              <div><label class="block text-xs text-slate-500 mb-1">Material</label>
+                <select x-model="chk.material_class" class="border rounded-lg px-2 py-1.5 w-full">
+                  <option value="">Any</option>
+                  <template x-for="o in chkRefs.material_class" :key="o"><option :value="o" x-text="o"></option></template>
+                </select></div>
+              <div><label class="block text-xs text-slate-500 mb-1">Grade</label>
+                <select x-model="chk.grade" class="border rounded-lg px-2 py-1.5 w-full">
+                  <option value="">Any</option>
+                  <template x-for="o in chkRefs.grade" :key="o"><option :value="o" x-text="o"></option></template>
+                </select></div>
+              <div><label class="block text-xs text-slate-500 mb-1">Parts required</label>
+                <input x-model="chk.required_qty" type="number" min="0" step="1"
+                       class="border rounded-lg px-2 py-1.5 w-full" /></div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 mt-3" x-show="chk.method==='dimension'">
+              <div><label class="block text-xs text-slate-500 mb-1">Part length *</label>
+                <input x-model="chk.part_length" type="number" min="0" step="0.01"
+                       class="border rounded-lg px-2 py-1.5 w-full" /></div>
+              <div><label class="block text-xs text-slate-500 mb-1">Part diameter</label>
+                <input x-model="chk.part_diameter" type="number" min="0" step="0.01"
+                       class="border rounded-lg px-2 py-1.5 w-full" /></div>
+              <div><label class="block text-xs text-slate-500 mb-1">Tolerance / margin</label>
+                <input x-model="chk.margin" type="number" min="0" step="0.01"
+                       class="border rounded-lg px-2 py-1.5 w-full" /></div>
+            </div>
+
+            <button type="button" @click="runCheck()" :disabled="chkBusy"
+                    class="mt-3 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                    x-text="chkBusy ? 'Checking…' : 'Check stock'"></button>
+
+            <template x-if="chkResult">
+              <div class="mt-4">
+                <div class="flex items-center gap-5 flex-wrap text-sm mb-2">
+                  <span class="px-2.5 py-1 rounded-full text-xs font-semibold"
+                        :class="availClass(chkResult?.status)" x-text="availLabel(chkResult?.status)"></span>
+                  <span class="text-slate-500">Need <b class="text-slate-800" x-text="chkResult?.requirement.required_qty"></b></span>
+                  <span class="text-slate-500">Can make <b class="text-emerald-700" x-text="chkResult?.total_feasible"></b></span>
+                  <span class="text-slate-500" x-show="chkResult?.shortfall > 0">
+                    Short by <b class="text-rose-700" x-text="chkResult?.shortfall"></b></span>
+                </div>
+                <div class="overflow-auto border rounded-lg">
+                  <table class="w-full text-xs">
+                    <thead class="bg-slate-50 text-slate-500 uppercase tracking-wide">
+                      <tr>
+                        <th class="text-left px-3 py-2">Heat</th>
+                        <th class="text-right px-3 py-2">Length</th>
+                        <th class="text-right px-3 py-2">Ø</th>
+                        <th class="text-right px-3 py-2">Pieces</th>
+                        <th class="text-right px-3 py-2">Parts/piece</th>
+                        <th class="text-right px-3 py-2">Parts</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y">
+                      <template x-for="r in checkRows()" :key="r.key">
+                        <tr :class="r.piece && !r.piece.parts ? 'text-slate-400' : ''">
+                          <td class="px-3 py-1.5 font-mono" x-text="r.first ? r.heat.heat_number : ''"></td>
+                          <td class="px-3 py-1.5 text-right" x-text="r.piece ? dim(r.piece.length_mm) : '\u2014'"></td>
+                          <td class="px-3 py-1.5 text-right" x-text="r.piece ? dim(r.piece.diameter_mm) : '\u2014'"></td>
+                          <td class="px-3 py-1.5 text-right" x-text="r.piece ? r.piece.available : r.heat.rods_remaining"></td>
+                          <td class="px-3 py-1.5 text-right" x-text="!r.piece || r.piece.parts_per_piece === null ? '\u2014' : r.piece.parts_per_piece"></td>
+                          <td class="px-3 py-1.5 text-right font-semibold" x-text="r.piece ? r.piece.parts : 0"></td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="text-xs text-slate-400 mt-2">
+                  Heat-wise so you know which bars the job would come off. Advisory —
+                  nothing is reserved, and this does not affect the order.
+                </p>
+              </div>
+            </template>
+          </div>
+        </div>
+
         <p x-show="formError" x-text="formError" class="text-rose-600 text-sm"></p>
         <div class="flex gap-3">
           <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg">Save order</button>
-          <button type="button" @click="form = null"
+          <button type="button" @click="closeForm()"
                   class="flex-1 border border-slate-300 hover:bg-slate-50 text-slate-600 py-2.5 rounded-lg">Cancel</button>
         </div>
       </form>

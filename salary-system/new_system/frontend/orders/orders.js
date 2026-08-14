@@ -59,6 +59,11 @@ function od() {
     stageFilter: "",
     detail: null,
     form: null,
+    addPage: false,      // ADDING is a full page; EDITING stays a modal
+    checkOn: false,      // optional material check, off by default
+    chk: { method: "dimension", material_class: "", grade: "",
+           required_qty: "", part_length: "", part_diameter: "", margin: "" },
+    chkResult: null, chkBusy: false, chkRefs: { material_class: [], grade: [] },
     formError: "",
     cons: { q: "", rows: [] },
     consDetail: null,
@@ -132,6 +137,71 @@ function od() {
                     order_date: today(), due_date: "", notes: "",
                     items: [this.blankItem()] };
       this.formError = "";
+      this.addPage = true;
+      this.checkOn = false; this.chkResult = null;
+      this.loadCheckRefs();
+    },
+    closeForm() { this.form = null; this.addPage = false; this.formError = ""; },
+    async loadCheckRefs() {
+      if (this.chkRefs.material_class.length) return;
+      try { this.chkRefs = await api("/api/material/refs"); } catch (_) { /* optional */ }
+    },
+    toggleCheck() {
+      this.checkOn = !this.checkOn;
+      if (!this.checkOn) return;
+      this.loadCheckRefs();
+      if (!this.chk.required_qty) {
+        const qty = (this.form?.items || []).reduce((n, i) => n + (Number(i.qty) || 0), 0);
+        if (qty) this.chk.required_qty = qty;
+      }
+    },
+    async runCheck() {
+      this.chkResult = null;
+      const c = this.chk;
+      if (c.method === "dimension" && !(Number(c.part_length) > 0)) {
+        this.fail(new Error("Enter the part length to check by dimension")); return;
+      }
+      this.chkBusy = true;
+      try {
+        this.chkResult = await api("/api/material/check", { method: "POST", body: {
+          method: c.method, material_class: c.material_class, grade: c.grade,
+          required_qty: Number(c.required_qty) || 0,
+          part_length: c.part_length === "" ? null : Number(c.part_length),
+          part_diameter: c.part_diameter === "" ? null : Number(c.part_diameter),
+          margin: c.margin === "" ? null : Number(c.margin),
+        }});
+      } catch (e) { this.fail(e); } finally { this.chkBusy = false; }
+    },
+    // availLabel/availClass, NOT statusLabel/statusClass: those names are already
+    // taken on these pages (heat status, document status) and an object literal
+    // silently keeps the LAST definition.
+    // Flatten heats -> one display row per piece. Nesting <tbody> inside <tbody>
+    // (or <template x-for> inside <template x-for>) is invalid table markup and
+    // the browser silently stops aligning the body with the header.
+    checkRows() {
+      const out = [];
+      for (const h of (this.chkResult?.heats || [])) {
+        if (!h.pieces || !h.pieces.length) {
+          out.push({ key: "h" + h.heat_id, first: true, heat: h, piece: null });
+          continue;
+        }
+        h.pieces.forEach((p, i) => out.push({
+          key: "p" + p.piece_id, first: i === 0, heat: h, piece: p }));
+      }
+      return out;
+    },
+    availLabel(s) {
+      return { available: "Available", partial: "Partially available",
+               none: "Not available" }[s] || s;
+    },
+    availClass(s) {
+      return { available: "bg-emerald-100 text-emerald-800",
+               partial: "bg-amber-100 text-amber-800",
+               none: "bg-rose-100 text-rose-800" }[s] || "bg-slate-100 text-slate-700";
+    },
+    dim(v) {
+      if (v === null || v === undefined || v === "") return "—";
+      return String(Math.round(Number(v) * 10000) / 10000);
     },
     _ensureRef(list, id, label) {
       if (!id) return;
@@ -156,6 +226,8 @@ function od() {
                                      unit: i.unit, rate: i.rate })),
       };
       this.formError = "";
+      this.addPage = false;   // editing stays a modal
+      this.checkOn = false; this.chkResult = null;
     },
     addItem() { this.form.items.push(this.blankItem()); },
     removeItem(i) { this.form.items.splice(i, 1); },
@@ -195,7 +267,7 @@ function od() {
         const saved = f.id
           ? await api(`/api/orders/${f.id}`, { method: "PUT", body: payload })
           : await api("/api/orders", { method: "POST", body: payload });
-        this.form = null;
+        this.form = null; this.addPage = false;
         this.detail = saved;
         await this.load();
         this.flash(`Order ${saved.order_no} saved`);

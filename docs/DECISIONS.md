@@ -168,3 +168,37 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   (a `kind` distinguishes them); invoices prefill from an order's items.
   Printing is HTML + the browser's "Save as PDF" — no PDF dependency, works
   offline, and the layout stays editable by anyone who can read HTML.
+- **Inventory gains piece-level rows, and feasibility is counted per piece.**
+  `heat_piece(length_mm, diameter_mm, quantity)` sits under the heat, and
+  `parts_from_piece` = `floor(length / (part_length + margin))`. Explicitly NOT
+  total volume ÷ part volume: offcuts can't be welded together, so three 10-unit
+  bars make 9 parts of 3, not 10. Piece rows are optional — a heat without them
+  is still checkable by quantity — but when present their quantities ARE the rod
+  count, so stock and feasibility can't disagree.
+- **The tolerance/margin is length per part.** Each part consumes
+  `part_length + margin` (the parting-off and facing allowance), and diameter is
+  a plain filter: a bar qualifies when its Ø is at least the part's. A single
+  number in the same units as the dimension beside it, rather than a percentage
+  of stock or a second diameter allowance, because that is the number an
+  estimator already has in their head.
+- **Heat numbers are never merged.** Two bars of the same size from different
+  heats are different steel, so they stay separate records and every feasibility
+  answer is broken down heat by heat. A heat with no piece dimensions is
+  reported as such rather than dropped, so stock never silently disappears from
+  an answer.
+- **The check is advisory, not a reservation.** It reserves nothing and never
+  blocks a save; stock still leaves only through the usage log. Reserving would
+  need an allocation record, an expiry, a release path and a way to see what is
+  held — a much bigger feature than "can we make this?", and the wrong default
+  for a shop where the answer is usually yes.
+- **Consumption maps to piece rows FIFO.** The usage log records rods against
+  the HEAT, not a specific bar, so availability applies consumption to piece
+  rows in receipt order. Deterministic, needs no new schema, and the piece
+  totals always reconcile with the heat's derived `remaining`.
+- **Adding opens a full screen; editing keeps the modal.** A delivery is a dozen
+  bars across several heat numbers and does not fit in a dialog. Implemented as
+  an in-page `fixed inset-0 z-[60]` view (the costing-workspace pattern), not a
+  new URL — `registry.py` keeps one entry point per module, and nothing in this
+  codebase parses a query string. Inventory, Quotations and Orders follow this;
+  the other modules still use their add-modal.
+

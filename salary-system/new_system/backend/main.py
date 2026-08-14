@@ -77,6 +77,7 @@ def _startup() -> None:
 app.include_router(employees_router)
 app.include_router(payroll_router)
 app.include_router(inventory.router)
+app.include_router(inventory.check_router)   # /api/material/* — shared with quotes/orders
 app.include_router(users.router)
 app.include_router(settings.router)
 app.include_router(customers.router)

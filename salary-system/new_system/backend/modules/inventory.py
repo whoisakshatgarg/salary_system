@@ -41,6 +41,14 @@ from ..core.deps import get_db, require_module
 # can use it (admins always can). Operator edition stays excluded (deps.py).
 router = APIRouter(prefix="/api/inventory", dependencies=[Depends(require_module("inventory"))])
 
+# The feasibility check is READ-ONLY and is offered from three places — the
+# inventory page, quotation creation and order creation — so it must not demand
+# the inventory grant. Separate router, mounted alongside in main.py.
+check_router = APIRouter(
+    prefix="/api/material",
+    dependencies=[Depends(require_module("inventory", "quotations", "orders"))],
+)
+
 OPTION_KINDS = ("material_class", "shape", "grade", "element")
 ATTACHMENT_KINDS = ("certificate", "invoice")
 MOVEMENT_TYPES = ("issue", "reject")
@@ -170,7 +178,57 @@ def _validate_heat(conn, data: dict, heat_id: int | None = None) -> tuple[str, i
                          ("price_total", "Purchase price"),
                          ("price_rate_per_kg", "Rate per kg")):
         _check_number(data.get(field), label)
+    pieces = _validate_pieces(data.get("pieces"))
+    if pieces:
+        # The piece rows ARE the rod count once they exist — anything else would
+        # let the feasibility check and the stock figure disagree.
+        rods = sum(p["quantity"] for p in pieces)
+        if heat_id is not None:
+            moved = conn.execute(
+                "SELECT COALESCE(SUM(rods),0) AS n FROM heat_movement WHERE heat_id=?",
+                (heat_id,),
+            ).fetchone()["n"]
+            if rods < moved:
+                raise ValueError(
+                    f"Those pieces add up to {rods} rod(s), but {moved} have "
+                    f"already been issued or rejected from this heat"
+                )
     return hn, rods
+
+
+def _validate_pieces(rows) -> list[dict]:
+    """Individual physical pieces: one row per (length, diameter) with a count.
+
+    Returns clean rows; [] means "no piece detail", which is legal — such a heat
+    can still be checked by quantity, just not by dimension.
+    """
+    out: list[dict] = []
+    for i, r in enumerate(rows or [], start=1):
+        length = _check_number(r.get("length_mm"), f"Piece {i}: length")
+        if not length:
+            raise ValueError(f"Piece {i}: length is required")
+        dia = _check_number(r.get("diameter_mm"), f"Piece {i}: diameter")
+        try:
+            qty = int(r.get("quantity") if r.get("quantity") not in (None, "") else 1)
+        except (TypeError, ValueError):
+            raise ValueError(f"Piece {i}: quantity must be a whole number")
+        if qty < 1:
+            raise ValueError(f"Piece {i}: quantity must be at least 1")
+        out.append({"length_mm": length, "diameter_mm": dia,
+                    "quantity": qty, "note": _s(r.get("note"))})
+    return out
+
+
+def _write_pieces(conn, heat_id: int, pieces: list[dict]) -> None:
+    """Replace the piece rows. Only called when the payload carried a 'pieces'
+    key at all, so an edit that doesn't mention pieces leaves them alone."""
+    conn.execute("DELETE FROM heat_piece WHERE heat_id=?", (heat_id,))
+    for p in pieces:
+        conn.execute(
+            "INSERT INTO heat_piece (heat_id, length_mm, diameter_mm, quantity,"
+            " note, created_at) VALUES (?,?,?,?,?,?)",
+            (heat_id, p["length_mm"], p["diameter_mm"], p["quantity"],
+             p["note"], _now()))
 
 
 def _check_date(value, label: str) -> str:
@@ -236,7 +294,9 @@ def _write_composition(conn, heat_id: int, composition: list[dict]) -> None:
         )
 
 
-def create_heat(conn, data: dict) -> int:
+def _insert_heat(conn, data: dict) -> int:
+    """Write one heat WITHOUT committing, so an intake of several heats is
+    all-or-nothing."""
     hn, rods = _validate_heat(conn, data)
     cur = conn.execute(
         f"INSERT INTO heat ({','.join(_HEAT_FIELDS)}, created_at)"
@@ -245,9 +305,76 @@ def create_heat(conn, data: dict) -> int:
     )
     heat_id = cur.lastrowid
     _write_composition(conn, heat_id, data.get("composition") or [])
+    if data.get("pieces") is not None:
+        _write_pieces(conn, heat_id, _validate_pieces(data.get("pieces")))
     _learn_options(conn, data)
+    return heat_id
+
+
+def create_heat(conn, data: dict) -> int:
+    heat_id = _insert_heat(conn, data)
     conn.commit()
     return heat_id
+
+
+def create_intake(conn, data: dict) -> dict:
+    """One incoming shipment, many heats.
+
+    A delivery routinely arrives as an assortment — three bars of one heat, two
+    of another, a short offcut of a third — and heat numbers must never be
+    merged, so each distinct heat number becomes its own record with its own
+    piece rows. The shipment-level fields (date, supplier, rack, …) are just
+    defaults every row inherits unless it overrides them.
+
+    All heats are written in ONE transaction: a delivery is either recorded or
+    it isn't, never half.
+    """
+    rows = data.get("pieces") or []
+    if not rows:
+        raise ValueError("Add at least one piece")
+
+    common = {k: data.get(k, "") for k in
+              ("date_received", "supplier", "rack", "notes", "material_class",
+               "grade", "shape", "size_section")}
+
+    # group by heat number, preserving the order they were typed in
+    grouped: dict[str, dict] = {}
+    for i, r in enumerate(rows, start=1):
+        hn = _s(r.get("heat_number"))
+        if not hn:
+            raise ValueError(f"Piece {i}: heat number is required")
+        g = grouped.setdefault(hn, {
+            **common,
+            "heat_number": hn,
+            "material_class": _s(r.get("material_class")) or common["material_class"],
+            "grade": _s(r.get("grade")) or common["grade"],
+            "shape": _s(r.get("shape")) or common["shape"],
+            "composition": r.get("composition") or data.get("composition") or [],
+            "pieces": [],
+        })
+        g["pieces"].append({
+            "length_mm": r.get("length_mm"), "diameter_mm": r.get("diameter_mm"),
+            "quantity": r.get("quantity"), "note": _s(r.get("note")),
+        })
+
+    # BEGIN IMMEDIATE: two people recording deliveries at once must not both
+    # pass the "heat number is free" check and then collide on the UNIQUE index.
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        made = []
+        for hn, payload in grouped.items():
+            payload["rods_received"] = sum(
+                int(p["quantity"] or 1) for p in payload["pieces"])
+            heat_id = _insert_heat(conn, payload)
+            made.append({"id": heat_id, "heat_number": hn,
+                         "pieces": len(payload["pieces"]),
+                         "rods": payload["rods_received"]})
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return {"heats": made, "count": len(made),
+            "rods": sum(m["rods"] for m in made)}
 
 
 def update_heat(conn, heat_id: int, data: dict) -> None:
@@ -260,6 +387,8 @@ def update_heat(conn, heat_id: int, data: dict) -> None:
         (*_heat_row_values(data, hn, rods), heat_id),
     )
     _write_composition(conn, heat_id, data.get("composition") or [])
+    if data.get("pieces") is not None:
+        _write_pieces(conn, heat_id, _validate_pieces(data.get("pieces")))
     _learn_options(conn, data)
     conn.commit()
 
@@ -281,6 +410,192 @@ def delete_heat(conn, heat_id: int) -> None:
     conn.commit()
     for name in stored:
         (paths.inventory_files_dir() / name).unlink(missing_ok=True)
+
+
+# --------------------------------------------------------------------------- #
+# Manufacturability — "can we actually make this from what is on the rack?"
+# --------------------------------------------------------------------------- #
+def parts_from_piece(length: float, part_length: float,
+                     margin: float = 0.0) -> tuple[int, float]:
+    """Complete parts obtainable from ONE physical piece, and the offcut left.
+
+    This is deliberately NOT total-volume / part-volume: you cannot weld the
+    offcuts of three rods together to make a fourth part. Three 10-unit rods
+    yield 3 x floor(10/3) = 9 parts of length 3, never 10, and the leftover unit
+    on each rod is scrap unless a whole part fits in it.
+
+    Each part consumes `part_length + margin` — the margin is the parting-off
+    and facing allowance the saw and the lathe eat per part.
+    """
+    need = (part_length or 0) + (margin or 0)
+    if need <= 0 or not length or length <= 0:
+        return 0, float(length or 0)
+    # +1e-9 relative slack: 9.9 / 3.3 is 2.9999999999999996 in binary floating
+    # point, and a shop that says "three 3.3s fit in 9.9" is right.
+    n = int(math.floor(length / need + 1e-9))
+    return n, round(max(length - n * need, 0.0), 4)
+
+
+def _available_pieces(conn, heat_id: int, consumed: int) -> list[dict]:
+    """Piece rows still on the rack.
+
+    The usage log records rods against the HEAT, not against a specific bar, so
+    consumption is applied to the piece rows in receipt order (FIFO) — the
+    conventional stock assumption. It is deterministic and it never invents
+    stock: the totals always agree with `remaining` on the heat.
+    """
+    rows = [dict(r) for r in conn.execute(
+        "SELECT * FROM heat_piece WHERE heat_id=? ORDER BY id", (heat_id,))]
+    left = max(consumed, 0)
+    out = []
+    for p in rows:
+        take = min(left, p["quantity"])
+        left -= take
+        p["available"] = p["quantity"] - take
+        if p["available"] > 0:
+            out.append(p)
+    return out
+
+
+def check_material(conn, req: dict) -> dict:
+    """Advisory feasibility check — reports, never reserves.
+
+    Two methods:
+      'dimension' — how many complete parts each individual piece yields, at
+                    the given part length/diameter and margin.
+      'quantity'  — just how many pieces are on the rack, for material whose
+                    dimensions don't decide the answer.
+
+    The answer is always broken down heat by heat: two bars of the same size
+    from different heats have different compositions, so "9 parts" is only
+    useful alongside "3 from H1001, 2 from H1002, 4 from H1003".
+    """
+    method = _s(req.get("method")) or "dimension"
+    if method not in ("dimension", "quantity"):
+        raise ValueError("Method must be 'dimension' or 'quantity'")
+
+    try:
+        required = int(req.get("required_qty") or 0)
+    except (TypeError, ValueError):
+        raise ValueError("Required quantity must be a whole number")
+    if required < 0:
+        raise ValueError("Required quantity can't be negative")
+
+    part_length = _check_number(req.get("part_length"), "Part length") or 0.0
+    part_dia = _check_number(req.get("part_diameter"), "Part diameter") or 0.0
+    margin = _check_number(req.get("margin"), "Tolerance / margin") or 0.0
+    if method == "dimension" and part_length <= 0:
+        raise ValueError("Part length is required for a dimension check")
+
+    material = _s(req.get("material_class"))
+    grade = _s(req.get("grade"))
+    shape = _s(req.get("shape"))
+    only = [h for h in (req.get("heat_numbers") or []) if _s(h)]
+
+    sql = "SELECT * FROM heat WHERE 1=1"
+    args: list = []
+    for col, val in (("material_class", material), ("grade", grade), ("shape", shape)):
+        if val:
+            sql += f" AND {col}=?"
+            args.append(val)
+    if only:
+        sql += f" AND heat_number IN ({','.join('?' * len(only))})"
+        args += [_s(h) for h in only]
+    sql += " ORDER BY date_received, id"
+
+    totals = _movement_totals(conn)
+    heats_out: list[dict] = []
+    total_feasible = 0
+
+    for row in conn.execute(sql, args):
+        heat = dict(row)
+        mv = totals.get(heat["id"], {"out": 0})
+        remaining = heat["rods_received"] - mv["out"]
+        if remaining <= 0:
+            continue
+        pieces = _available_pieces(conn, heat["id"], mv["out"])
+
+        entry = {
+            "heat_id": heat["id"], "heat_number": heat["heat_number"],
+            "material_class": heat["material_class"], "grade": heat["grade"],
+            "shape": heat["shape"], "rack": heat["rack"],
+            "rods_remaining": remaining, "pieces": [], "feasible": 0,
+            "has_dimensions": bool(pieces),
+        }
+
+        if method == "quantity":
+            entry["feasible"] = remaining
+            for p in pieces:
+                entry["pieces"].append({
+                    "piece_id": p["id"], "length_mm": p["length_mm"],
+                    "diameter_mm": p["diameter_mm"], "available": p["available"],
+                    "parts_per_piece": None, "parts": p["available"],
+                    "leftover_each": None, "reason": "",
+                })
+        else:
+            if not pieces:
+                # Dimensions were never recorded for this heat: say so rather
+                # than silently leaving usable stock out of the answer.
+                entry["skipped"] = "no piece dimensions recorded"
+                heats_out.append(entry)
+                continue
+            for p in pieces:
+                dia = p["diameter_mm"]
+                if part_dia and dia and dia < part_dia:
+                    entry["pieces"].append({
+                        "piece_id": p["id"], "length_mm": p["length_mm"],
+                        "diameter_mm": dia, "available": p["available"],
+                        "parts_per_piece": 0, "parts": 0, "leftover_each": None,
+                        "reason": f"Ø{_fmt(dia)} is under the Ø{_fmt(part_dia)} needed",
+                    })
+                    continue
+                per, leftover = parts_from_piece(p["length_mm"], part_length, margin)
+                entry["pieces"].append({
+                    "piece_id": p["id"], "length_mm": p["length_mm"],
+                    "diameter_mm": dia, "available": p["available"],
+                    "parts_per_piece": per, "parts": per * p["available"],
+                    "leftover_each": leftover,
+                    "reason": "" if per else
+                              f"{_fmt(p['length_mm'])} is too short for "
+                              f"{_fmt(part_length + margin)} per part",
+                })
+                entry["feasible"] += per * p["available"]
+
+        total_feasible += entry["feasible"]
+        heats_out.append(entry)
+
+    # Biggest contributor first — that is the heat you would cut from.
+    heats_out.sort(key=lambda h: (-h["feasible"], h["heat_number"]))
+
+    if total_feasible >= required and required > 0:
+        status = "available"
+    elif total_feasible > 0:
+        status = "partial"
+    else:
+        status = "none"
+
+    return {
+        "method": method,
+        "requirement": {
+            "material_class": material, "grade": grade, "shape": shape,
+            "required_qty": required, "part_length": part_length,
+            "part_diameter": part_dia, "margin": margin,
+            "length_per_part": round(part_length + margin, 4),
+            "heat_numbers": only,
+        },
+        "heats": heats_out,
+        "heats_considered": len(heats_out),
+        "total_feasible": total_feasible,
+        "shortfall": max(required - total_feasible, 0),
+        "status": status,
+    }
+
+
+def _fmt(v) -> str:
+    """Trim the pointless decimals: 3.0 -> '3', 6.5 -> '6.5'."""
+    if v is None:
+        return "—"
+    return f"{v:.4f}".rstrip("0").rstrip(".") or "0"
 
 
 # --------------------------------------------------------------------------- #
@@ -422,6 +737,15 @@ def get_heat(conn, heat_id: int) -> dict:
     heat["attachments"] = [dict(r) for r in conn.execute(
         "SELECT id, kind, filename, mime, size_bytes, uploaded_at"
         " FROM heat_attachment WHERE heat_id=? ORDER BY id", (heat_id,))]
+    heat["pieces"] = [dict(r) for r in conn.execute(
+        "SELECT id, length_mm, diameter_mm, quantity, note FROM heat_piece"
+        " WHERE heat_id=? ORDER BY id", (heat_id,))]
+    # what is still on the rack, piece by piece (consumption applied FIFO)
+    consumed = heat["rods_received"] - heat["remaining"]
+    heat["pieces_available"] = [
+        {"piece_id": p["id"], "length_mm": p["length_mm"],
+         "diameter_mm": p["diameter_mm"], "available": p["available"]}
+        for p in _available_pieces(conn, heat_id, consumed)]
     return heat
 
 
@@ -580,6 +904,53 @@ class CompositionRow(BaseModel):
     percent: float
 
 
+class PieceRow(BaseModel):
+    """One physical piece (or N identical ones) under a heat."""
+    length_mm: float
+    diameter_mm: float | None = None
+    quantity: int = 1
+    note: str = ""
+
+
+class IntakePieceRow(BaseModel):
+    """One line on the incoming-material screen. Carries its OWN heat number:
+    a single delivery routinely mixes heats, and they must not be merged."""
+    heat_number: str
+    material_class: str = ""
+    grade: str = ""
+    shape: str = ""
+    length_mm: float
+    diameter_mm: float | None = None
+    quantity: int = 1
+    note: str = ""
+
+
+class IntakeIn(BaseModel):
+    date_received: str
+    supplier: str = ""
+    rack: str = ""
+    notes: str = ""
+    material_class: str = ""
+    grade: str = ""
+    shape: str = ""
+    size_section: str = ""
+    composition: list[CompositionRow] = []
+    pieces: list[IntakePieceRow] = []
+
+
+class CheckIn(BaseModel):
+    """A material requirement to test against the rack. Advisory only."""
+    method: str = "dimension"           # 'dimension' | 'quantity'
+    material_class: str = ""
+    grade: str = ""
+    shape: str = ""
+    required_qty: int = 0
+    part_length: float | None = None
+    part_diameter: float | None = None
+    margin: float | None = None
+    heat_numbers: list[str] = []
+
+
 class HeatIn(BaseModel):
     heat_number: str
     date_received: str
@@ -595,6 +966,9 @@ class HeatIn(BaseModel):
     price_rate_per_kg: float | None = None
     notes: str = ""
     composition: list[CompositionRow] = []
+    # None = "this payload says nothing about pieces, leave them alone";
+    # [] = "this heat has no piece detail". The two are NOT the same.
+    pieces: list[PieceRow] | None = None
 
 
 class MovementIn(BaseModel):
@@ -732,3 +1106,40 @@ def attachment_view(attachment_id: int, download: bool = False, conn=Depends(get
 @router.delete("/attachments/{attachment_id}")
 def attachment_delete(attachment_id: int, conn=Depends(get_db)):
     return _400(delete_attachment, conn, attachment_id)
+
+
+# --------------------------------------------------------------------------- #
+# Material availability — shared by Inventory, Quotations and Orders
+# --------------------------------------------------------------------------- #
+@router.post("/intake")
+def intake_create(body: IntakeIn, conn=Depends(get_db)):
+    """Record one incoming delivery — several heats, each with its pieces."""
+    return _400(create_intake, conn, body.model_dump())
+
+
+@check_router.post("/check")
+def material_check(body: CheckIn, conn=Depends(get_db)):
+    """Advisory: what could we actually make from the rack right now?
+
+    Reserves nothing — two quotations checked a minute apart will both be told
+    the same bar is free. Stock only ever moves through the usage log.
+    """
+    return _400(check_material, conn, body.model_dump())
+
+
+@check_router.get("/refs")
+def material_refs(conn=Depends(get_db)):
+    """Dropdown fodder for the check panel, without the inventory grant."""
+    opts = list_options(conn)
+    heats = [dict(r) for r in conn.execute(
+        "SELECT h.id, h.heat_number, h.material_class, h.grade, h.shape,"
+        " h.rods_received - COALESCE((SELECT SUM(m.rods) FROM heat_movement m"
+        "   WHERE m.heat_id=h.id),0) AS remaining,"
+        " (SELECT COUNT(*) FROM heat_piece p WHERE p.heat_id=h.id) AS piece_rows"
+        " FROM heat h ORDER BY h.material_class, h.heat_number")]
+    return {
+        "material_class": opts["material_class"],
+        "grade": opts["grade"],
+        "shape": opts["shape"],
+        "heats": [h for h in heats if h["remaining"] > 0],
+    }

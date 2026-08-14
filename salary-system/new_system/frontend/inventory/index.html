@@ -54,7 +54,7 @@
         <div class="text-[11px] text-slate-400">APEX THERMOCON · rod &amp; bar stock by heat</div>
       </div>
       <nav class="flex gap-1 ml-4">
-        <template x-for="t in [{k:'stock',label:'Stock'},{k:'log',label:'Usage Log'},{k:'settings',label:'Lists'}]">
+        <template x-for="t in [{k:'stock',label:'Stock'},{k:'check',label:'Material Check'},{k:'log',label:'Usage Log'},{k:'settings',label:'Lists'}]">
           <button @click="tab = t.k; if (t.k==='log') loadLog()"
                   class="px-4 py-1.5 rounded-lg text-sm font-medium transition"
                   :class="tab === t.k ? 'bg-brand-600 text-white' : 'hover:bg-slate-800'"
@@ -205,6 +205,163 @@
             </tbody>
           </table>
         </div>
+      </section>
+
+      <!-- ========================== MATERIAL CHECK ========================== -->
+      <!-- Advisory: what could the rack actually YIELD? Reserves nothing. -->
+      <section x-show="tab === 'check'">
+        <div class="bg-white rounded-xl shadow-sm p-5 mb-4">
+          <div class="flex items-start gap-6 mb-4">
+            <div>
+              <div class="font-bold">Can we make it?</div>
+              <p class="text-xs text-slate-500 mt-0.5 max-w-xl">
+                Counts the complete parts each individual bar would yield — not
+                total weight divided by part weight, because offcuts can't be
+                welded back together. Nothing is reserved.
+              </p>
+            </div>
+            <div class="ml-auto flex gap-1 shrink-0">
+              <button @click="chk.method='dimension'; chkResult=null"
+                      class="px-3 py-1.5 rounded-lg text-sm font-medium border"
+                      :class="chk.method==='dimension' ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-300 text-slate-600 hover:bg-slate-50'">
+                By dimension
+              </button>
+              <button @click="chk.method='quantity'; chkResult=null"
+                      class="px-3 py-1.5 rounded-lg text-sm font-medium border"
+                      :class="chk.method==='quantity' ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-300 text-slate-600 hover:bg-slate-50'">
+                By quantity
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-4 gap-4 text-sm">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Material</label>
+              <select x-model="chk.material_class" class="border rounded-lg px-2 py-2 w-full">
+                <option value="">Any material</option>
+                <template x-for="o in options.material_class" :key="o"><option :value="o" x-text="o"></option></template>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Grade</label>
+              <select x-model="chk.grade" class="border rounded-lg px-2 py-2 w-full">
+                <option value="">Any grade</option>
+                <template x-for="o in options.grade" :key="o"><option :value="o" x-text="o"></option></template>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Parts required</label>
+              <input x-model="chk.required_qty" type="number" min="0" step="1"
+                     class="border rounded-lg px-2 py-2 w-full" placeholder="e.g. 250" />
+            </div>
+            <div class="flex items-end">
+              <button @click="runCheck()" :disabled="chkBusy"
+                      class="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                      x-text="chkBusy ? 'Checking…' : 'Check availability'"></button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-4 gap-4 text-sm mt-4" x-show="chk.method==='dimension'">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Part length *</label>
+              <input x-model="chk.part_length" type="number" min="0" step="0.01"
+                     class="border rounded-lg px-2 py-2 w-full" placeholder="e.g. 120" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Part diameter</label>
+              <input x-model="chk.part_diameter" type="number" min="0" step="0.01"
+                     class="border rounded-lg px-2 py-2 w-full" placeholder="bar must be at least this" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Tolerance / margin</label>
+              <input x-model="chk.margin" type="number" min="0" step="0.01"
+                     class="border rounded-lg px-2 py-2 w-full" placeholder="cut-off per part" />
+            </div>
+            <div class="flex items-end text-xs text-slate-500">
+              <span x-show="Number(chk.part_length) > 0">
+                Each part eats
+                <b x-text="dim((Number(chk.part_length)||0) + (Number(chk.margin)||0))"></b>
+                of bar.
+              </span>
+            </div>
+          </div>
+          <p class="text-xs text-slate-400 mt-3" x-show="chk.method==='quantity'">
+            Quantity mode ignores dimensions and just counts the pieces still on the rack.
+          </p>
+        </div>
+
+        <!-- ---------------------------- RESULT ---------------------------- -->
+        <template x-if="chkResult">
+          <div>
+            <div class="bg-white rounded-xl shadow-sm p-5 mb-4">
+              <div class="flex items-center gap-6 flex-wrap">
+                <span class="px-3 py-1 rounded-full text-sm font-semibold"
+                      :class="availClass(chkResult?.status)"
+                      x-text="availLabel(chkResult?.status)"></span>
+                <div><div class="text-xs text-slate-500">Required</div>
+                     <div class="text-xl font-bold" x-text="chkResult?.requirement.required_qty || '—'"></div></div>
+                <div><div class="text-xs text-slate-500">Can make</div>
+                     <div class="text-xl font-bold text-emerald-700" x-text="chkResult?.total_feasible"></div></div>
+                <div x-show="chkResult?.shortfall > 0">
+                     <div class="text-xs text-slate-500">Short by</div>
+                     <div class="text-xl font-bold text-rose-700" x-text="chkResult?.shortfall"></div></div>
+                <div><div class="text-xs text-slate-500">Heats considered</div>
+                     <div class="text-xl font-bold" x-text="chkResult?.heats_considered"></div></div>
+                <div class="text-xs text-slate-500 ml-auto max-w-xs" x-show="chkResult?.method==='dimension'">
+                  Part <b x-text="dim(chkResult?.requirement.part_length)"></b>
+                  <template x-if="chkResult?.requirement.margin">
+                    <span>+ <b x-text="dim(chkResult?.requirement.margin)"></b> margin</span>
+                  </template>
+                  = <b x-text="dim(chkResult?.requirement.length_per_part)"></b> per part
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm overflow-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
+                  <tr>
+                    <th class="text-left px-4 py-2.5">Heat no.</th>
+                    <th class="text-left px-4 py-2.5">Material</th>
+                    <th class="text-right px-4 py-2.5">Length</th>
+                    <th class="text-right px-4 py-2.5">Ø</th>
+                    <th class="text-right px-4 py-2.5">Pieces</th>
+                    <th class="text-right px-4 py-2.5">Parts / piece</th>
+                    <th class="text-right px-4 py-2.5">Parts</th>
+                    <th class="text-right px-4 py-2.5">Left over each</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y">
+                  <template x-for="r in checkRows()" :key="r.key">
+                    <tr :class="r.piece && !r.piece.parts ? 'text-slate-400' : ''">
+                      <td class="px-4 py-2.5 font-mono font-semibold"
+                          x-text="r.first ? r.heat.heat_number : ''"></td>
+                      <td class="px-4 py-2.5 text-slate-500"
+                          x-text="r.first ? [r.heat.material_class, r.heat.grade].filter(Boolean).join(' \u00b7 ') : ''"></td>
+                      <template x-if="!r.piece">
+                        <td class="px-4 py-2.5 text-slate-400 italic" colspan="6"
+                            x-text="r.heat.skipped ? (r.heat.rods_remaining + ' rod(s) on the rack, but ' + r.heat.skipped) : '\u2014'"></td>
+                      </template>
+                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right" x-text="dim(r.piece.length_mm)"></td></template>
+                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right" x-text="dim(r.piece.diameter_mm)"></td></template>
+                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right" x-text="r.piece.available"></td></template>
+                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right" x-text="r.piece.parts_per_piece === null ? '\u2014' : r.piece.parts_per_piece"></td></template>
+                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right font-semibold" x-text="r.piece.parts"></td></template>
+                      <template x-if="r.piece"><td class="px-4 py-2.5 text-right text-slate-500 text-xs" x-text="r.piece.reason ? r.piece.reason : dim(r.piece.leftover_each)"></td></template>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+              <div class="px-4 py-3 bg-slate-50 border-t flex items-center text-sm">
+                <span class="text-slate-500">Total manufacturable from stock</span>
+                <span class="ml-auto text-lg font-bold" x-text="chkResult?.total_feasible + ' part(s)'"></span>
+              </div>
+            </div>
+            <p class="text-xs text-slate-400 mt-3">
+              Advisory only — nothing has been reserved. Stock still leaves through the Usage Log.
+            </p>
+          </div>
+        </template>
       </section>
 
       <!-- ============================= GLOBAL LOG ============================= -->
@@ -466,8 +623,192 @@
   </div>
   </template>
 
-  <!-- ============================= HEAT FORM ============================= -->
-  <template x-if="form">
+  <!-- ==================== ADD INCOMING MATERIAL (FULL PAGE) ==================
+       Adding gets a whole screen, not a popup — a delivery is a dozen bars
+       across several heat numbers and that does not fit in a dialog.
+       z-[60] matches the costing workspace in Parts & Pricing.            -->
+  <template x-if="addPage && intake">
+  <div class="fixed inset-0 z-[60] bg-slate-100 flex flex-col">
+    <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
+      <button @click="closeAdd()" title="Back to the stock list"
+              class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
+        <span class="text-base leading-none">←</span> Back
+      </button>
+      <div>
+        <div class="text-white font-bold leading-tight">Add incoming material</div>
+        <div class="text-[11px] text-slate-400">one delivery · a row per piece · every row keeps its own heat number</div>
+      </div>
+      <div class="ml-auto flex items-center gap-4">
+        <div class="text-right text-xs text-slate-400 leading-tight">
+          <div><span class="text-white font-bold" x-text="intakeHeatCount()"></span> heat(s)</div>
+          <div><span class="text-white font-bold" x-text="intakeRodCount()"></span> piece(s)</div>
+        </div>
+        <button @click="saveIntake()"
+                class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg text-sm font-medium">
+          Save delivery
+        </button>
+      </div>
+    </header>
+
+    <div class="flex-1 overflow-auto p-6">
+      <div class="max-w-7xl mx-auto grid grid-cols-4 gap-5">
+
+        <!-- delivery-level details: defaults every row inherits -->
+        <aside class="col-span-1 space-y-4">
+          <div class="bg-white rounded-xl shadow-sm p-4">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">The delivery</div>
+            <div class="space-y-3 text-sm">
+              <div><label class="block text-xs text-slate-500 mb-1">Date received *</label>
+                <input x-model="intake.date_received" type="date" class="border rounded-lg px-2 py-1.5 w-full" /></div>
+              <div><label class="block text-xs text-slate-500 mb-1">Supplier</label>
+                <input x-model="intake.supplier" class="border rounded-lg px-2 py-1.5 w-full" /></div>
+              <div><label class="block text-xs text-slate-500 mb-1">Rack</label>
+                <input x-model="intake.rack" class="border rounded-lg px-2 py-1.5 w-full" /></div>
+              <div><label class="block text-xs text-slate-500 mb-1">Notes</label>
+                <textarea x-model="intake.notes" rows="2" class="border rounded-lg px-2 py-1.5 w-full"></textarea></div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-sm p-4">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Applies to every row</div>
+            <p class="text-[11px] text-slate-400 mb-3">A row can override any of these.</p>
+            <div class="space-y-3 text-sm">
+              <div><label class="block text-xs text-slate-500 mb-1">Material</label>
+                <select x-model="intake.material_class" class="border rounded-lg px-2 py-1.5 w-full">
+                  <option value="">—</option>
+                  <template x-for="o in options.material_class" :key="o"><option :value="o" x-text="o"></option></template>
+                </select></div>
+              <div><label class="block text-xs text-slate-500 mb-1">Grade</label>
+                <select x-model="intake.grade" class="border rounded-lg px-2 py-1.5 w-full">
+                  <option value="">—</option>
+                  <template x-for="o in options.grade" :key="o"><option :value="o" x-text="o"></option></template>
+                </select></div>
+              <div><label class="block text-xs text-slate-500 mb-1">Shape</label>
+                <select x-model="intake.shape" class="border rounded-lg px-2 py-1.5 w-full">
+                  <option value="">—</option>
+                  <template x-for="o in options.shape" :key="o"><option :value="o" x-text="o"></option></template>
+                </select></div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-sm p-4">
+            <div class="flex items-center mb-2">
+              <div class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Composition</div>
+              <button type="button" @click="intake.composition.push({element:'',percent:''})"
+                      class="ml-auto text-xs text-brand-700 hover:underline">+ element</button>
+            </div>
+            <p class="text-[11px] text-slate-400 mb-2">Recorded against every heat in this delivery.</p>
+            <template x-for="(c, i) in intake.composition" :key="i">
+              <div class="flex gap-2 mb-2">
+                <select x-model="c.element" class="border rounded-lg px-2 py-1 text-sm w-24">
+                  <option value="">—</option>
+                  <template x-for="o in options.element" :key="o"><option :value="o" x-text="o"></option></template>
+                </select>
+                <input x-model="c.percent" type="number" step="0.001" min="0" max="100"
+                       placeholder="%" class="border rounded-lg px-2 py-1 text-sm flex-1" />
+                <button type="button" @click="intake.composition.splice(i,1)"
+                        class="text-slate-300 hover:text-rose-600 px-1">✕</button>
+              </div>
+            </template>
+          </div>
+        </aside>
+
+        <!-- the pieces -->
+        <section class="col-span-3">
+          <div class="bg-white rounded-xl shadow-sm p-5">
+            <div class="flex items-center mb-1">
+              <div>
+                <div class="font-bold">Pieces in this delivery</div>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Each row is one bar (or several identical ones). Heat numbers stay
+                  separate records — two bars of the same size from different heats
+                  are different steel.
+                </p>
+              </div>
+              <button type="button" @click="addRow()"
+                      class="ml-auto shrink-0 whitespace-nowrap bg-slate-100 hover:bg-slate-200 border border-slate-300 px-3 py-1.5 rounded-lg text-sm font-medium">
+                + Add piece
+              </button>
+            </div>
+
+            <div class="overflow-auto mt-4">
+              <table class="w-full text-sm">
+                <thead class="text-slate-500 text-xs uppercase tracking-wide border-b">
+                  <tr>
+                    <th class="text-left pb-2 w-8">#</th>
+                    <th class="text-left pb-2">Heat number *</th>
+                    <th class="text-left pb-2">Material</th>
+                    <th class="text-left pb-2">Grade</th>
+                    <th class="text-right pb-2">Length *</th>
+                    <th class="text-right pb-2">Ø</th>
+                    <th class="text-right pb-2 pr-3">Qty</th>
+                    <th class="text-left pb-2 pl-1">Note</th>
+                    <th class="pb-2 w-16"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="(r, i) in intake.pieces" :key="i">
+                    <tr class="border-b last:border-0">
+                      <td class="py-2 text-slate-400" x-text="i + 1"></td>
+                      <td class="py-2 pr-2">
+                        <input x-model="r.heat_number" placeholder="H1001"
+                               class="border rounded-lg px-2 py-1.5 w-full font-mono" /></td>
+                      <td class="py-2 pr-2">
+                        <select x-model="r.material_class" class="border rounded-lg px-2 py-1.5 w-full">
+                          <option value="" x-text="intake.material_class || '—'"></option>
+                          <template x-for="o in options.material_class" :key="o"><option :value="o" x-text="o"></option></template>
+                        </select></td>
+                      <td class="py-2 pr-2">
+                        <select x-model="r.grade" class="border rounded-lg px-2 py-1.5 w-full">
+                          <option value="" x-text="intake.grade || '—'"></option>
+                          <template x-for="o in options.grade" :key="o"><option :value="o" x-text="o"></option></template>
+                        </select></td>
+                      <td class="py-2 pr-2">
+                        <input x-model="r.length_mm" type="number" step="0.01" min="0"
+                               class="border rounded-lg px-2 py-1.5 w-24 text-right" /></td>
+                      <td class="py-2 pr-2">
+                        <input x-model="r.diameter_mm" type="number" step="0.01" min="0"
+                               class="border rounded-lg px-2 py-1.5 w-20 text-right" /></td>
+                      <td class="py-2 pr-2">
+                        <input x-model="r.quantity" type="number" step="1" min="1"
+                               class="border rounded-lg px-2 py-1.5 w-16 text-right" /></td>
+                      <td class="py-2 pr-2">
+                        <input x-model="r.note" class="border rounded-lg px-2 py-1.5 w-full" /></td>
+                      <td class="py-2 text-right whitespace-nowrap">
+                        <button type="button" @click="copyDown(i)" title="Duplicate this row"
+                                class="text-slate-300 hover:text-brand-600 px-1">⧉</button>
+                        <button type="button" @click="removeRow(i)" title="Remove"
+                                class="text-slate-300 hover:text-rose-600 px-1">✕</button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mt-4 pt-4 border-t flex items-center text-sm">
+              <div class="text-slate-500">
+                <span class="font-bold text-slate-800" x-text="intakeHeatCount()"></span> heat number(s),
+                <span class="font-bold text-slate-800" x-text="intakeRodCount()"></span> piece(s) in this delivery
+              </div>
+              <div class="ml-auto flex items-center gap-3">
+                <span class="text-rose-600 text-sm" x-text="formError"></span>
+                <button @click="saveIntake()"
+                        class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg text-sm font-medium">
+                  Save delivery
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+  </template>
+
+  <!-- ======================= HEAT FORM (EDIT ONLY) ======================= -->
+  <!-- Adding opens the full-screen page further down; editing stays a modal. -->
+  <template x-if="form && !addPage">
   <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-4">
       <div class="px-6 py-4 border-b flex items-center">
@@ -562,6 +903,45 @@
                 <button type="button" @click="removeComp(i)" class="text-slate-300 hover:text-rose-600">✕</button>
               </div>
             </template>
+          </div>
+        </div>
+
+        <!-- Piece dimensions: what makes a dimensional feasibility check possible.
+             Editing them here keeps the rod count in step automatically. -->
+        <div class="mt-5 pt-4 border-t">
+          <div class="flex items-center mb-1">
+            <div>
+              <div class="text-sm font-semibold">Pieces</div>
+              <p class="text-xs text-slate-500">
+                Individual bars under this heat. Length and Ø are what the material
+                check measures against — without them this heat can only be checked
+                by quantity.
+              </p>
+            </div>
+            <button type="button" @click="addPiece()" class="ml-auto text-sm text-brand-700 hover:underline">+ Add piece</button>
+          </div>
+          <div class="space-y-2 mt-2">
+            <template x-for="(pc, i) in form?.pieces || []" :key="i">
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-400 w-4" x-text="i + 1"></span>
+                <input type="number" step="0.01" min="0" x-model="pc.length_mm" placeholder="length"
+                       class="border rounded-lg px-2 py-1.5 text-sm w-28 text-right" />
+                <input type="number" step="0.01" min="0" x-model="pc.diameter_mm" placeholder="Ø"
+                       class="border rounded-lg px-2 py-1.5 text-sm w-24 text-right" />
+                <span class="text-slate-400 text-sm">×</span>
+                <input type="number" step="1" min="1" x-model="pc.quantity" placeholder="qty"
+                       class="border rounded-lg px-2 py-1.5 text-sm w-20 text-right" />
+                <input x-model="pc.note" placeholder="note" class="border rounded-lg px-2 py-1.5 text-sm flex-1" />
+                <button type="button" @click="removePiece(i)" class="text-slate-300 hover:text-rose-600">✕</button>
+              </div>
+            </template>
+            <p class="text-xs text-slate-400" x-show="!(form?.pieces || []).length">
+              No piece dimensions recorded — add one to make this heat checkable by dimension.
+            </p>
+            <p class="text-xs text-slate-500" x-show="pieceRods() > 0">
+              These pieces total <b x-text="pieceRods()"></b> rod(s), which replaces the
+              &ldquo;rods received&rdquo; figure above on save.
+            </p>
           </div>
         </div>
 

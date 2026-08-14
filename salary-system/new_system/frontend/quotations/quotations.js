@@ -54,6 +54,14 @@ function qi() {
     data: { rows: [], counts: {} },
     kind: "", q: "",
     detail: null, form: null, formError: "",
+    // ADDING gets a full page, EDITING keeps the modal (same fields either way).
+    addPage: false,
+    // Optional material-availability check, off by default: ticking it must not
+    // change anything about how a quotation is written or saved.
+    checkOn: false,
+    chk: { method: "dimension", material_class: "", grade: "",
+           required_qty: "", part_length: "", part_diameter: "", margin: "" },
+    chkResult: null, chkBusy: false, chkRefs: { material_class: [], grade: [] },
 
     kindLabel(k) { return k === "quotation" ? "Quotation" : "Invoice"; },
     kindClass(k) { return k === "quotation" ? "bg-sky-100 text-sky-700" : "bg-indigo-100 text-indigo-700"; },
@@ -106,6 +114,74 @@ function qi() {
                     tax_pct: 18, notes: "", terms: this.refs.default_terms,
                     lines: [this.blankLine()] };
       this.formError = "";
+      this.addPage = true;              // adding opens the full page
+      this.checkOn = false; this.chkResult = null;
+      this.loadCheckRefs();
+    },
+    closeForm() { this.form = null; this.addPage = false; this.formError = ""; },
+    async loadCheckRefs() {
+      if (this.chkRefs.material_class.length) return;
+      try { this.chkRefs = await api("/api/material/refs"); } catch (_) { /* optional */ }
+    },
+    // Prefill the requirement from the quotation itself so the common case is
+    // one tick and one click.
+    toggleCheck() {
+      this.checkOn = !this.checkOn;
+      if (!this.checkOn) return;
+      this.loadCheckRefs();
+      if (!this.chk.required_qty) {
+        const qty = (this.form?.lines || [])
+          .reduce((n, l) => n + (Number(l.qty) || 0), 0);
+        if (qty) this.chk.required_qty = qty;
+      }
+    },
+    async runCheck() {
+      this.chkResult = null;
+      const c = this.chk;
+      if (c.method === "dimension" && !(Number(c.part_length) > 0)) {
+        this.fail(new Error("Enter the part length to check by dimension")); return;
+      }
+      this.chkBusy = true;
+      try {
+        this.chkResult = await api("/api/material/check", { method: "POST", body: {
+          method: c.method, material_class: c.material_class, grade: c.grade,
+          required_qty: Number(c.required_qty) || 0,
+          part_length: c.part_length === "" ? null : Number(c.part_length),
+          part_diameter: c.part_diameter === "" ? null : Number(c.part_diameter),
+          margin: c.margin === "" ? null : Number(c.margin),
+        }});
+      } catch (e) { this.fail(e); } finally { this.chkBusy = false; }
+    },
+    // availLabel/availClass, NOT statusLabel/statusClass: those names are already
+    // taken on these pages (heat status, document status) and an object literal
+    // silently keeps the LAST definition.
+    // Flatten heats -> one display row per piece. Nesting <tbody> inside <tbody>
+    // (or <template x-for> inside <template x-for>) is invalid table markup and
+    // the browser silently stops aligning the body with the header.
+    checkRows() {
+      const out = [];
+      for (const h of (this.chkResult?.heats || [])) {
+        if (!h.pieces || !h.pieces.length) {
+          out.push({ key: "h" + h.heat_id, first: true, heat: h, piece: null });
+          continue;
+        }
+        h.pieces.forEach((p, i) => out.push({
+          key: "p" + p.piece_id, first: i === 0, heat: h, piece: p }));
+      }
+      return out;
+    },
+    availLabel(s) {
+      return { available: "Available", partial: "Partially available",
+               none: "Not available" }[s] || s;
+    },
+    availClass(s) {
+      return { available: "bg-emerald-100 text-emerald-800",
+               partial: "bg-amber-100 text-amber-800",
+               none: "bg-rose-100 text-rose-800" }[s] || "bg-slate-100 text-slate-700";
+    },
+    dim(v) {
+      if (v === null || v === undefined || v === "") return "—";
+      return String(Math.round(Number(v) * 10000) / 10000);
     },
     editDoc() {
       const d = this.detail;
@@ -115,6 +191,8 @@ function qi() {
                     lines: d.lines.map((l) => ({ drawing_id: l.drawing_id || "", description: l.description || "",
                                                  qty: l.qty, unit: l.unit, rate: l.rate })) };
       this.formError = "";
+      this.addPage = false;             // editing stays a modal
+      this.checkOn = false; this.chkResult = null;
     },
     async fromOrder(orderId) {
       if (!orderId) return;
@@ -161,7 +239,7 @@ function qi() {
         const saved = f.id
           ? await api(`/api/quotations/${f.id}`, { method: "PUT", body: payload })
           : await api("/api/quotations", { method: "POST", body: payload });
-        this.form = null; this.detail = saved; await this.load();
+        this.form = null; this.addPage = false; this.detail = saved; await this.load();
         this.flash(`${saved.doc_no} saved`);
       } catch (e) { this.formError = e.message; }
     },

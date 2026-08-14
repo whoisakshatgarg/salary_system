@@ -423,3 +423,179 @@ class ReviewRegressions(InventoryBase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class PiecesAndFeasibility(InventoryBase):
+    """Piece-level stock and the manufacturability check."""
+
+    def test_parts_from_piece(self):
+        pf = inventory.parts_from_piece
+        # The spec's rule: whole parts per PIECE, never total-length / part-length.
+        self.assertEqual(pf(10, 3), (3, 1))          # not 3.33
+        self.assertEqual(pf(8, 3), (2, 2))
+        self.assertEqual(pf(6.5, 3), (2, 0.5))
+        self.assertEqual(pf(3, 3), (1, 0))
+        self.assertEqual(pf(2.9, 3), (0, 2.9))
+        # margin is eaten by EACH part
+        self.assertEqual(pf(10, 3, 0.2), (3, 0.4))
+        self.assertEqual(pf(10, 4, 1), (2, 0))
+        # binary floating point must not steal a part: 9.9/3.3 is 2.9999...
+        self.assertEqual(pf(9.9, 3.3), (3, 0.0))
+        # degenerate input can't divide by zero or loop
+        self.assertEqual(pf(10, 0), (0, 10.0))
+        self.assertEqual(pf(0, 3), (0, 0.0))
+
+    def _stock(self):
+        for hn, length, qty in (("H1001", 10, 1), ("H1002", 8, 1), ("H1003", 6.5, 2)):
+            inventory.create_heat(self.conn, heat_data(
+                heat_number=hn, rods_received=qty, material_class="Steel", grade="EN8",
+                pieces=[{"length_mm": length, "diameter_mm": 20, "quantity": qty}]))
+
+    def test_spec_example(self):
+        """3 rods of 10, part 3 -> 9 parts, and never 10."""
+        inventory.create_heat(self.conn, heat_data(
+            heat_number="R-3", rods_received=3, material_class="Steel",
+            pieces=[{"length_mm": 10, "diameter_mm": 20, "quantity": 3}]))
+        r = inventory.check_material(self.conn, {
+            "method": "dimension", "material_class": "Steel",
+            "required_qty": 9, "part_length": 3, "part_diameter": 20})
+        self.assertEqual(r["total_feasible"], 9)
+        self.assertEqual(r["status"], "available")
+
+    def test_heat_breakdown_kept(self):
+        self._stock()
+        r = inventory.check_material(self.conn, {
+            "method": "dimension", "material_class": "Steel", "grade": "EN8",
+            "required_qty": 9, "part_length": 3, "part_diameter": 20})
+        per = {h["heat_number"]: h["feasible"] for h in r["heats"]}
+        self.assertEqual(per, {"H1001": 3, "H1002": 2, "H1003": 4})
+        self.assertEqual(r["total_feasible"], 9)
+        # heats are never merged into one interchangeable pile
+        self.assertEqual(len(r["heats"]), 3)
+
+    def test_status_and_shortfall(self):
+        self._stock()
+        req = {"method": "dimension", "material_class": "Steel", "grade": "EN8",
+               "part_length": 3, "part_diameter": 20}
+        self.assertEqual(inventory.check_material(
+            self.conn, {**req, "required_qty": 9})["status"], "available")
+        r = inventory.check_material(self.conn, {**req, "required_qty": 12})
+        self.assertEqual((r["status"], r["shortfall"]), ("partial", 3))
+        r = inventory.check_material(
+            self.conn, {**req, "required_qty": 5, "part_length": 999})
+        self.assertEqual((r["status"], r["total_feasible"]), ("none", 0))
+
+    def test_diameter_filters(self):
+        self._stock()
+        r = inventory.check_material(self.conn, {
+            "method": "dimension", "material_class": "Steel", "grade": "EN8",
+            "required_qty": 1, "part_length": 3, "part_diameter": 25})
+        self.assertEqual(r["total_feasible"], 0)   # Ø20 stock can't make a Ø25 part
+        self.assertTrue(any("under" in p["reason"]
+                            for h in r["heats"] for p in h["pieces"]))
+
+    def test_margin_costs_a_part(self):
+        inventory.create_heat(self.conn, heat_data(
+            heat_number="M-1", rods_received=1, material_class="Steel",
+            pieces=[{"length_mm": 10, "diameter_mm": 20, "quantity": 1}]))
+        req = {"method": "dimension", "material_class": "Steel",
+               "required_qty": 1, "part_length": 2.5, "part_diameter": 20}
+        self.assertEqual(inventory.check_material(self.conn, req)["total_feasible"], 4)
+        self.assertEqual(inventory.check_material(
+            self.conn, {**req, "margin": 0.2})["total_feasible"], 3)
+
+    def test_quantity_method(self):
+        self._stock()
+        r = inventory.check_material(self.conn, {
+            "method": "quantity", "material_class": "Steel", "required_qty": 3})
+        self.assertEqual(r["total_feasible"], 4)   # 1 + 1 + 2 rods, dimensions ignored
+        self.assertEqual(r["status"], "available")
+
+    def test_consumed_stock_drops_out(self):
+        self._stock()
+        hid = self.conn.execute(
+            "SELECT id FROM heat WHERE heat_number='H1003'").fetchone()["id"]
+        inventory.add_movement(self.conn, hid,
+                               {"type": "issue", "rods": 1, "order_id": "PO-1"})
+        r = inventory.check_material(self.conn, {
+            "method": "dimension", "material_class": "Steel", "grade": "EN8",
+            "required_qty": 9, "part_length": 3, "part_diameter": 20})
+        per = {h["heat_number"]: h["feasible"] for h in r["heats"]}
+        self.assertEqual(per["H1003"], 2)          # one of the two 6.5s is gone
+        self.assertEqual(r["total_feasible"], 7)
+
+    def test_heat_without_pieces_is_reported_not_hidden(self):
+        inventory.create_heat(self.conn, heat_data(
+            heat_number="NO-DIM", rods_received=5, material_class="Steel"))
+        r = inventory.check_material(self.conn, {
+            "method": "dimension", "material_class": "Steel",
+            "required_qty": 1, "part_length": 3})
+        entry = [h for h in r["heats"] if h["heat_number"] == "NO-DIM"][0]
+        self.assertEqual(entry["feasible"], 0)
+        self.assertIn("no piece dimensions", entry["skipped"])
+        # but it IS usable by quantity
+        q = inventory.check_material(self.conn, {
+            "method": "quantity", "material_class": "Steel", "required_qty": 1})
+        self.assertEqual(q["total_feasible"], 5)
+
+    def test_pieces_set_the_rod_count(self):
+        hid = inventory.create_heat(self.conn, heat_data(
+            heat_number="SUM-1", rods_received=99,   # wrong on purpose
+            pieces=[{"length_mm": 10, "quantity": 2},
+                    {"length_mm": 4, "quantity": 3}]))
+        self.assertEqual(inventory.get_heat(self.conn, hid)["rods_received"], 5)
+
+    def test_bad_pieces_rejected(self):
+        for bad in ([{"length_mm": 0, "quantity": 1}],
+                    [{"length_mm": -5, "quantity": 1}],
+                    [{"length_mm": 10, "quantity": 0}],
+                    [{"length_mm": "x", "quantity": 1}]):
+            with self.assertRaises(ValueError):
+                inventory.create_heat(self.conn, heat_data(
+                    heat_number="BAD-1", pieces=bad))
+
+    def test_intake_groups_by_heat_number(self):
+        r = inventory.create_intake(self.conn, {
+            "date_received": "2026-08-14", "supplier": "Bharat Steels",
+            "material_class": "Steel", "grade": "EN8",
+            "pieces": [
+                {"heat_number": "I-1", "length_mm": 10, "diameter_mm": 20, "quantity": 1},
+                {"heat_number": "I-2", "length_mm": 8, "diameter_mm": 20, "quantity": 1},
+                {"heat_number": "I-1", "length_mm": 4, "diameter_mm": 20, "quantity": 2},
+            ]})
+        self.assertEqual(r["count"], 2)      # two heat numbers, three rows
+        self.assertEqual(r["rods"], 4)
+        hid = self.conn.execute(
+            "SELECT id FROM heat WHERE heat_number='I-1'").fetchone()["id"]
+        h = inventory.get_heat(self.conn, hid)
+        self.assertEqual(len(h["pieces"]), 2)
+        self.assertEqual(h["rods_received"], 3)
+
+    def test_intake_is_all_or_nothing(self):
+        inventory.create_heat(self.conn, heat_data(heat_number="TAKEN"))
+        before = len(inventory.list_heats(self.conn)["rows"])
+        with self.assertRaises(ValueError):
+            inventory.create_intake(self.conn, {
+                "date_received": "2026-08-14", "material_class": "Steel",
+                "pieces": [{"heat_number": "FRESH", "length_mm": 5, "quantity": 1},
+                           {"heat_number": "TAKEN", "length_mm": 5, "quantity": 1}]})
+        self.assertEqual(len(inventory.list_heats(self.conn)["rows"]), before)
+        self.assertIsNone(self.conn.execute(
+            "SELECT id FROM heat WHERE heat_number='FRESH'").fetchone())
+
+    def test_intake_needs_a_heat_number(self):
+        with self.assertRaises(ValueError):
+            inventory.create_intake(self.conn, {
+                "date_received": "2026-08-14",
+                "pieces": [{"heat_number": "", "length_mm": 5, "quantity": 1}]})
+        with self.assertRaises(ValueError):
+            inventory.create_intake(self.conn, {"date_received": "2026-08-14", "pieces": []})
+
+    def test_check_rejects_bad_input(self):
+        with self.assertRaises(ValueError):
+            inventory.check_material(self.conn, {"method": "sideways"})
+        with self.assertRaises(ValueError):   # dimension check needs a length
+            inventory.check_material(self.conn, {"method": "dimension", "required_qty": 5})
+        with self.assertRaises(ValueError):
+            inventory.check_material(self.conn, {"method": "dimension",
+                                                 "part_length": float("inf")})

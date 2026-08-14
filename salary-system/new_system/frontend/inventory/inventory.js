@@ -36,7 +36,30 @@ function blankHeat() {
     rods_received: "", total_weight_kg: "", rack: "", price_total: "",
     price_rate_per_kg: "", notes: "",
     composition: [{ element: "", percent: "" }],
+    pieces: [blankPiece()],
   };
+}
+
+// One physical piece (or N identical ones) under this heat. Length and diameter
+// are what make a dimensional feasibility check possible later.
+function blankPiece() {
+  return { length_mm: "", diameter_mm: "", quantity: 1, note: "" };
+}
+
+// The incoming-delivery screen. One delivery routinely mixes heat numbers, so
+// every ROW carries its own — they are saved as separate heats and never merged.
+function blankIntake() {
+  return {
+    date_received: today(), supplier: "", rack: "", notes: "",
+    material_class: "", grade: "", shape: "", size_section: "",
+    composition: [{ element: "", percent: "" }],
+    pieces: [blankIntakeRow()],
+  };
+}
+
+function blankIntakeRow() {
+  return { heat_number: "", material_class: "", grade: "", shape: "",
+           length_mm: "", diameter_mm: "", quantity: 1, note: "" };
 }
 
 function inv() {
@@ -65,6 +88,15 @@ function inv() {
     detail: null,        // open heat (full record)
     form: null,          // create/edit model
     formError: "",
+    // ADDING opens a full screen (house pattern: the costing workspace);
+    // EDITING keeps the modal. Same `form` model drives both.
+    addPage: false,
+    intake: null,        // the incoming-delivery model behind the add page
+    // Material availability check — advisory, reserves nothing.
+    chk: { method: "dimension", material_class: "", grade: "", shape: "",
+           required_qty: "", part_length: "", part_diameter: "", margin: "" },
+    chkResult: null,
+    chkBusy: false,
     // Initialised (not null) so bindings are always safe to evaluate.
     mv: { type: "issue", mv_date: "", order_id: "", rods: "", weight_kg: "", remarks: "" },
     log: { q: "", rows: [] },
@@ -153,7 +185,73 @@ function inv() {
     },
 
     // ---- create / edit form ---------------------------------------------- //
-    newHeat() { this.form = blankHeat(); this.formError = ""; },
+    // ADD -> full screen (the delivery model), EDIT -> modal (the heat model).
+    newHeat() { this.intake = blankIntake(); this.formError = ""; this.form = null; this.addPage = true; },
+    closeAdd() { this.addPage = false; this.intake = null; this.formError = ""; },
+
+    // ---- incoming delivery (full-screen add page) ------------------------- //
+    addRow() { this.intake.pieces.push(blankIntakeRow()); },
+    removeRow(i) { this.intake.pieces.splice(i, 1); },
+    copyDown(i) {
+      // Most deliveries repeat the same bar in a different heat — copying the
+      // row above beats retyping the dimensions every time.
+      const src = this.intake.pieces[i];
+      this.intake.pieces.splice(i + 1, 0, { ...src, heat_number: "" });
+    },
+    intakeRows() {
+      return (this.intake?.pieces || []).filter(
+        (r) => String(r.heat_number).trim() !== "" || String(r.length_mm).trim() !== "");
+    },
+    intakeHeatCount() {
+      return new Set(this.intakeRows()
+        .map((r) => String(r.heat_number).trim()).filter(Boolean)).size;
+    },
+    intakeRodCount() {
+      return this.intakeRows().reduce((n, r) => n + (Number(r.quantity) || 0), 0);
+    },
+    async saveIntake() {
+      this.formError = "";
+      const rows = this.intakeRows();
+      if (!rows.length) { this.formError = "Add at least one piece"; return; }
+      for (const [i, r] of rows.entries()) {
+        if (!String(r.heat_number).trim()) {
+          this.formError = `Piece ${i + 1}: heat number is required`; return;
+        }
+        if (!(Number(r.length_mm) > 0)) {
+          this.formError = `Piece ${i + 1}: length must be greater than 0`; return;
+        }
+        if (!(Number(r.quantity) >= 1)) {
+          this.formError = `Piece ${i + 1}: quantity must be at least 1`; return;
+        }
+      }
+      const g = this.intake;
+      const comp = g.composition.filter(
+        (c) => (c.element || "").trim() !== "" || String(c.percent).trim() !== "");
+      if (comp.some((c) => (c.element || "").trim() === "" || String(c.percent).trim() === "")) {
+        this.formError = "Each composition row needs both an element and a percentage";
+        return;
+      }
+      try {
+        const r = await api("/api/inventory/intake", { method: "POST", body: {
+          date_received: g.date_received, supplier: g.supplier, rack: g.rack,
+          notes: g.notes, material_class: g.material_class, grade: g.grade,
+          shape: g.shape, size_section: g.size_section,
+          composition: comp.map((c) => ({ element: c.element, percent: Number(c.percent) })),
+          pieces: rows.map((x) => ({
+            heat_number: String(x.heat_number).trim(),
+            material_class: x.material_class || "", grade: x.grade || "",
+            shape: x.shape || "",
+            length_mm: Number(x.length_mm),
+            diameter_mm: String(x.diameter_mm).trim() === "" ? null : Number(x.diameter_mm),
+            quantity: Number(x.quantity) || 1, note: x.note || "",
+          })),
+        }});
+        this.addPage = false; this.intake = null;
+        await this.loadOptions();
+        await this.loadHeats();
+        this.flash(`Recorded ${r.count} heat(s), ${r.rods} rod(s)`);
+      } catch (e) { this.formError = e.message; }
+    },
     editHeat() {
       const d = this.detail;
       this.form = {
@@ -166,11 +264,32 @@ function inv() {
         composition: d.composition.length
           ? d.composition.map((c) => ({ element: c.element, percent: c.percent }))
           : [{ element: "", percent: "" }],
+        pieces: (d.pieces || []).map((p) => ({
+          length_mm: p.length_mm, diameter_mm: p.diameter_mm ?? "",
+          quantity: p.quantity, note: p.note || "" })),
       };
       this.formError = "";
+      this.addPage = false;   // editing stays a modal
     },
     addComp() { this.form.composition.push({ element: "", percent: "" }); },
     removeComp(i) { this.form.composition.splice(i, 1); },
+
+    // ---- pieces (Add Piece repeater) -------------------------------------- //
+    addPiece() { this.form.pieces.push(blankPiece()); },
+    removePiece(i) { this.form.pieces.splice(i, 1); },
+    // Rows that carry a length are real; blank rows are ignored on save.
+    filledPieces() {
+      return (this.form?.pieces || []).filter((p) => String(p.length_mm).trim() !== "");
+    },
+    // The piece rows ARE the rod count once any exist, so the header figure
+    // updates live and the user never has to add it up themselves.
+    pieceRods() {
+      return this.filledPieces().reduce((n, p) => n + (Number(p.quantity) || 0), 0);
+    },
+    rodsShown() {
+      const n = this.pieceRods();
+      return n > 0 ? n : (Number(this.form?.rods_received) || 0);
+    },
     // "+ Add new…" sentinel in any dropdown: prompt, save, select it.
     async inlineAdd(kind, obj, field) {
       const labels = { material_class: "material class", shape: "rod shape",
@@ -207,17 +326,98 @@ function inv() {
         notes: f.notes,
         composition: comp.map((c) => ({ element: c.element, percent: Number(c.percent) })),
       };
+      // Only send `pieces` when the form actually carries the key, so an edit
+      // made from a surface without the repeater can't wipe existing pieces.
+      if (f.pieces) {
+        const rows = this.filledPieces();
+        if (rows.some((p) => Number(p.length_mm) <= 0)) {
+          this.formError = "Every piece needs a length greater than 0 (remove blank rows with ✕)";
+          return;
+        }
+        payload.pieces = rows.map((p) => ({
+          length_mm: Number(p.length_mm),
+          diameter_mm: String(p.diameter_mm).trim() === "" ? null : Number(p.diameter_mm),
+          quantity: Number(p.quantity) || 1,
+          note: p.note || "",
+        }));
+        // Piece rows win over the typed rod count — the backend does the same.
+        if (payload.pieces.length) {
+          payload.rods_received = payload.pieces.reduce((n, p) => n + p.quantity, 0);
+        }
+      }
       try {
         const saved = f.id
           ? await api(`/api/inventory/heats/${f.id}`, { method: "PUT", body: payload })
           : await api("/api/inventory/heats", { method: "POST", body: payload });
         this.form = null;
+        this.addPage = false;
         if (this.detail) this.detail = saved;
         await this.loadOptions();   // form may have taught new dropdown values
         await this.loadHeats();
         this.flash(`Heat ${saved.heat_number} saved`);
       } catch (e) { this.formError = e.message; }
     },
+    // ---- material availability check -------------------------------------- //
+    // Advisory only: reports what the rack could actually yield, reserves
+    // nothing. Shared verbatim with the quotation and order screens.
+    async runCheck() {
+      this.chkResult = null;
+      const c = this.chk;
+      if (c.method === "dimension" && !(Number(c.part_length) > 0)) {
+        this.flash("Enter the part length to check by dimension", "err");
+        return;
+      }
+      this.chkBusy = true;
+      try {
+        this.chkResult = await api("/api/material/check", { method: "POST", body: {
+          method: c.method,
+          material_class: c.material_class, grade: c.grade, shape: c.shape,
+          required_qty: Number(c.required_qty) || 0,
+          part_length: c.part_length === "" ? null : Number(c.part_length),
+          part_diameter: c.part_diameter === "" ? null : Number(c.part_diameter),
+          margin: c.margin === "" ? null : Number(c.margin),
+        }});
+      } catch (e) { this.fail(e); } finally { this.chkBusy = false; }
+    },
+    resetCheck() {
+      this.chk = { method: "dimension", material_class: "", grade: "", shape: "",
+                   required_qty: "", part_length: "", part_diameter: "", margin: "" };
+      this.chkResult = null;
+    },
+    // availLabel/availClass, NOT statusLabel/statusClass: those names are already
+    // taken on these pages (heat status, document status) and an object literal
+    // silently keeps the LAST definition.
+    // Flatten heats -> one display row per piece. Nesting <tbody> inside <tbody>
+    // (or <template x-for> inside <template x-for>) is invalid table markup and
+    // the browser silently stops aligning the body with the header.
+    checkRows() {
+      const out = [];
+      for (const h of (this.chkResult?.heats || [])) {
+        if (!h.pieces || !h.pieces.length) {
+          out.push({ key: "h" + h.heat_id, first: true, heat: h, piece: null });
+          continue;
+        }
+        h.pieces.forEach((p, i) => out.push({
+          key: "p" + p.piece_id, first: i === 0, heat: h, piece: p }));
+      }
+      return out;
+    },
+    availLabel(s) {
+      return { available: "Available", partial: "Partially available",
+               none: "Not available" }[s] || s;
+    },
+    availClass(s) {
+      return { available: "bg-emerald-100 text-emerald-800",
+               partial: "bg-amber-100 text-amber-800",
+               none: "bg-rose-100 text-rose-800" }[s] || "bg-slate-100 text-slate-700";
+    },
+    // dim(), not num(): num() already exists here and formats Indian-grouped
+    // integers for the stat strip. Dimensions want the plain decimal.
+    dim(v) {
+      if (v === null || v === undefined || v === "") return "—";
+      return String(Math.round(Number(v) * 10000) / 10000);
+    },
+
     async deleteHeat() {
       if (!window.confirm(`Delete heat ${this.detail.heat_number}? This removes its composition and attachments.`)) return;
       try {

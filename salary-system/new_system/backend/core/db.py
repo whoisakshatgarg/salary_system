@@ -157,6 +157,26 @@ CREATE TABLE IF NOT EXISTS heat_composition (
     UNIQUE(heat_id, element)
 );
 
+-- Individual physical pieces under a heat. One row per (length, diameter) with
+-- a quantity, so "4 rods of Ø25 × 3000, plus 1 short 1200 offcut" is two rows.
+--
+-- Heat numbers are NEVER merged: two steel bars of the same size from different
+-- heats have different compositions, so they stay separate records and the
+-- feasibility check reports its answer heat by heat.
+--
+-- Optional: a heat recorded before this existed (or one where the dimensions
+-- genuinely don't matter) simply has no piece rows and can only be checked by
+-- quantity. When piece rows DO exist their quantities sum to heat.rods_received.
+CREATE TABLE IF NOT EXISTS heat_piece (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    heat_id     INTEGER NOT NULL REFERENCES heat(id) ON DELETE CASCADE,
+    length_mm   REAL NOT NULL,
+    diameter_mm REAL,
+    quantity    INTEGER NOT NULL DEFAULT 1,
+    note        TEXT,
+    created_at  TEXT
+);
+
 CREATE TABLE IF NOT EXISTS heat_movement (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     heat_id    INTEGER NOT NULL REFERENCES heat(id),   -- no cascade: guard deletes
@@ -180,6 +200,7 @@ CREATE TABLE IF NOT EXISTS heat_attachment (
     uploaded_at TEXT
 );
 
+CREATE INDEX IF NOT EXISTS idx_heat_piece_heat     ON heat_piece(heat_id);
 CREATE INDEX IF NOT EXISTS idx_heat_movement_heat  ON heat_movement(heat_id);
 CREATE INDEX IF NOT EXISTS idx_heat_movement_order ON heat_movement(order_id);
 CREATE INDEX IF NOT EXISTS idx_heat_comp_heat      ON heat_composition(heat_id);
