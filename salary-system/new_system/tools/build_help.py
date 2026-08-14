@@ -325,6 +325,11 @@ PAGE = """<!DOCTYPE html>
        letter-spacing: .03em; color: #64748b; }}
   mark {{ background: #fef08a; }}
   .hidden {{ display: none; }}
+  /* Fail closed: nothing with an access key paints until applyScope() has run
+     and marked the page .scoped. A hung or slow /api/modules therefore shows
+     nothing rather than everything. */
+  body:not(.scoped) [data-access] {{ display: none; }}
+  body:not(.scoped) #scope {{ display: block; }}
   .scope {{ background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
            border-radius: .5rem; padding: .625rem .875rem; font-size: .8125rem;
            margin-bottom: 1.25rem; }}
@@ -374,7 +379,7 @@ PAGE = """<!DOCTYPE html>
 // ---------------------------------------------------------------------------
 const ALWAYS = new Set(['general']);
 async function applyScope() {{
-  let granted = null, isAdmin = false, who = '';
+  let granted = null, isAdmin = false, who = '', failed = false;
   try {{
     const r = await fetch('/api/modules', {{headers: {{'X-Requested-With': 'apex-payroll'}}}});
     if (r.ok) {{
@@ -383,7 +388,8 @@ async function applyScope() {{
       granted = new Set((d.modules || []).filter(m => m.granted).map(m => m.key));
       who = d.username || '';
     }}
-  }} catch (_) {{ /* offline or signed out — fall through */ }}
+    else if (r.status !== 401) failed = true;   // 500 etc — not "signed out"
+  }} catch (_) {{ failed = true; }}
 
   const allowed = (key) => {{
     if (ALWAYS.has(key)) return true;
@@ -402,8 +408,13 @@ async function applyScope() {{
   // hide, but keep them out of search too (see the filter below)
   document.querySelectorAll('.scoped-out').forEach(el => el.classList.add('hidden'));
 
+  document.body.classList.add('scoped');   // reveal what survived the filter
   const note = document.getElementById('scope');
-  if (granted === null) {{
+  if (granted === null && failed) {{
+    note.textContent = 'Could not check your access just now, so this is showing the '
+      + 'general chapters only. Reload to try again.';
+    note.classList.remove('hidden');
+  }} else if (granted === null) {{
     note.textContent = 'You are not signed in, so this shows the general chapters only. '
       + 'Sign in and the guide will also show the parts for the sections your account can open.';
     note.classList.remove('hidden');
@@ -416,6 +427,9 @@ async function applyScope() {{
   return true;
 }}
 const scopeReady = applyScope();
+// Back/forward restores the DOM as it was, including a scoping decision made
+// under a session that may since have ended or changed.
+window.addEventListener('pageshow', (e) => {{ if (e.persisted) applyScope(); }});
 
 // Jump-to highlighting: mark the section you are reading in the sidebar.
 const links = [...document.querySelectorAll('#toc a')];
@@ -457,9 +471,11 @@ q.addEventListener('input', () => {{
     a.classList.contains('scoped-out') || !a.textContent.toLowerCase().includes(term)));
   if (!hits && !none) {{
     none = document.createElement('p');
-    none.textContent = 'Nothing in the guide matches “' + q.value + '”.';
+    none.dataset.access = 'general';
     content.appendChild(none);
-  }} else if (hits && none) {{ none.remove(); none = null; }}
+  }}
+  if (none) none.textContent = 'Nothing in the guide matches “' + q.value + '”.';
+  if (hits && none) {{ none.remove(); none = null; }}
 }});
 </script>
 </body>

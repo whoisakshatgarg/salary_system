@@ -289,4 +289,12 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   person opens in a browser. The per-chapter `access` markers stay: they cost
   nothing now (admins hold every grant) and mean the guide can be reopened to
   other roles by relaxing one guard.
+- **The guide's scoping fails CLOSED.** An adversarial pass found the page
+  shipped every chapter unhidden and only hid them once `/api/modules` answered
+  — sub-frame when idle, but ~100 ms with 14 painted frames under load, and
+  *indefinitely* if the call hung. Blocks with an access key are now hidden by
+  CSS until the script marks the page `.scoped`, so a slow or hung answer shows
+  nothing rather than everything. A `pageshow` handler re-runs the decision when
+  the browser restores the page from bfcache, since the restored DOM carries a
+  decision made under a session that may since have ended.
 
