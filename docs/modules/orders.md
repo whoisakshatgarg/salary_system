@@ -22,8 +22,7 @@ and how it shipped.
 
 ## Implemented (file paths)
 `backend/modules/orders.py` (data + `/api/orders/*` routes incl.
-`/api/orders/consignments*`, grant `orders`) · UI `frontend/orders.html` +
-`orders.js` · numbering via `modules/settings.py` (`order_seq` table) · spec
+`/api/orders/consignments*`, grant `orders`) · UI `frontend/orders/index.html` + `orders.js` · numbering via `modules/settings.py` (`order_seq` table) · spec
 `tests/test_workshop.py` (OrdersSpec).
 
 ## Data model

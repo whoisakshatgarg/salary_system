@@ -24,8 +24,7 @@ from purchase to the orders it fed or the rejection that sent it back.
   (data functions + `/api/inventory/*` router; grant `inventory` via
   `core/deps.require_module`). Spec: `tests/test_inventory.py` (33 tests incl.
   race/validation regressions).
-- UI: `frontend/inventory.html` + `frontend/inventory.js` (own page; "back to
-  payroll/home" link when navigated with `?back=1`).
+- UI: `frontend/inventory/index.html` + `inventory.js` (served at `/inventory/`) (own page).
 - Files on disk: `data/inventory_files/` via `core/paths.inventory_files_dir()`;
   included in backup zips (`backend/main.py` `_write_backup_zip`).
 

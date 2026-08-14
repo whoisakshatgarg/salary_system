@@ -12,7 +12,7 @@ and convenience.
   changed a rate/stage); seeds exist (`sync_log`, `pay.published_at`,
   `order_stage_log`).
 - **Self-service password change** (only admin resets today).
-- **Fix payroll.html pre-existing console errors** (convert null-model `x-show`
+- **Fix the payroll page's pre-existing console errors** (convert null-model `x-show`
   bindings to `template x-if` — every other page is already clean).
 
 ## Next

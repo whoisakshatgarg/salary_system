@@ -58,14 +58,15 @@ salary_system/                        repo root
         │       ├── orders.py         orders, stages, consignments, FY numbering
         │       ├── settings.py       config: order format, units, operation rates
         │       └── users.py          /api/modules (tiles) + /api/users* (accounts+grants)
-        ├── frontend/
-        │   ├── index.html + shell.js    login → Home launcher → Users & Access,
-        │   │                            placeholders, update popup
-        │   ├── payroll.html + app.js    Salary & Attendance SPA (incl. Pay Setup)
-        │   ├── employees.html + employees.js  Employee Management page
-        │   ├── inventory.html + inventory.js  Inventory SPA
-        │   ├── customers/parts/orders/settings .html + .js  one page per module
-        │   └── vendor/                  tailwind.js, alpine.js (offline)
+        ├── frontend/                 ONE FOLDER PER MODULE (URL = folder)
+        │   ├── index.html            the shell: login → Home launcher (entry point)
+        │   ├── shell/shell.js        launcher, Users & Access, update popup
+        │   ├── payroll/              index.html + payroll.js   → /payroll/
+        │   ├── employees/            index.html + employees.js → /employees/
+        │   ├── inventory/            index.html + inventory.js → /inventory/
+        │   ├── customers/ · parts/ · orders/ · settings/       → /<module>/
+        │   └── vendor/               tailwind.js, alpine.js (offline, shared:
+        │                             pages load it as /vendor/…)
         ├── config/                   rules.json (payroll policy) · sync.json · update.json
         ├── tests/                    test_payroll / test_inventory / test_users / test_workshop
         ├── data/                     runtime state, gitignored (salary.db, backups,
@@ -76,8 +77,13 @@ salary_system/                        repo root
 
 ## Conventions
 
-- **Module shape:** a module starts as one file under `backend/modules/`, becomes a
-  folder at its second file. Each module owns its routes (`router.py`, included from
+- **Module shape:** backend — a module starts as one file under `backend/modules/`,
+  becomes a folder at its second file. Frontend — every module owns a folder
+  `frontend/<module>/` with `index.html` + `<module>.js`, served at `/<module>/`.
+- **One entry point per module:** a module is reachable only from its launcher
+  tile (`core/registry.py`). Pages never link sideways into another module — the
+  single cross-module link on any page is Home (top-left). This is why the
+  payroll dashboard no longer carries its own Inventory shortcut. Each module owns its routes (`router.py`, included from
   `main.py`) and its SQL (`repo.py`). Newer modules namespace their routes with a
   router prefix (`/api/{inventory,customers,parts,orders,settings}/*`); the
   original payroll/employee routes stay flat (`/api/employees`, `/api/attendance*`,

@@ -57,9 +57,6 @@ function inv() {
     stats: null,
     rows: [],
     loading: false,
-    // Whether this page was opened by same-window navigation (packaged-app
-    // fallback) — then we show a "back to payroll" link in the header.
-    showBack: new URLSearchParams(window.location.search).has("back"),
     _heatsSeq: 0,
     _logSeq: 0,
     f: { q: "", material_class: "", shape: "", status: "", element: "",

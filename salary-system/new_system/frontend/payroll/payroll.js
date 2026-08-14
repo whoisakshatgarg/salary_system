@@ -152,18 +152,6 @@ function app() {
     empName(id) { const e = this.employees.find((x) => x.id === id); return e ? e.name : id; },
 
     // ---- dashboard ------------------------------------------------------- //
-    openInventory() {
-      // Packaged app (pywebview): window.open is dead / loses the session —
-      // ask the native shell for a second window instead (see desktop.py).
-      if (window.pywebview && window.pywebview.api && window.pywebview.api.open_inventory) {
-        window.pywebview.api.open_inventory()
-          .catch(() => { window.location.href = "/inventory.html?back=1"; });
-        return;
-      }
-      // Browser: named window, so clicking again focuses the existing one.
-      const w = window.open("/inventory.html", "apex_inventory");
-      if (!w) window.location.href = "/inventory.html?back=1";  // popup blocked
-    },
     dash: { total: 0, cnc: 0, ot: 0, advance: 0 },
     enter_dashboard() {
       this.dash.total = this.employees.length;

@@ -13,7 +13,7 @@ drawings (otherwise deactivate — history stays).
 
 ## Implemented (file paths)
 `backend/modules/customers.py` (data + `/api/customers/*` routes, grant
-`customers`) · UI `frontend/customers.html` + `customers.js` · spec
+`customers`) · UI `frontend/customers/index.html` + `customers.js` · spec
 `tests/test_workshop.py` (CustomersSpec).
 
 ## Data model

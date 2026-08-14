@@ -32,7 +32,7 @@ sync live there); this module shows the summaries.
 - Deactivate/reactivate (history always kept; no hard delete).
 
 ## Implemented (file paths)
-- UI: `salary-system/new_system/frontend/employees.html` + `frontend/employees.js`.
+- UI: `frontend/employees/index.html` + `employees.js` (served at `/employees/`).
 - Data: `backend/modules/employees/repo.py` (roster, attendance, leave bank +
   `adjust_leave`, documents via shared `backend/core/attachments.py`, sync
   payloads). Routes: `backend/modules/employees/router.py` — gated

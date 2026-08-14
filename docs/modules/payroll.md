@@ -32,7 +32,7 @@ CNC full-attendance bonus ₹200 with name exclusions; PF/ESI manual amounts;
   publish, pay history). Routes: `backend/modules/payroll/router.py`.
 - Excel: `backend/modules/payroll/exporters.py` (`/api/export/{ceo|distribution}/{period}`).
 - Rules config: `backend/core/rules.py` + raw editor in the SPA's Rules tab.
-- UI: `frontend/payroll.html` + `frontend/app.js`. The employee screen here
+- UI: `frontend/payroll/index.html` + `payroll.js` (served at `/payroll/`). The employee screen here
   is **Pay Setup** (base salary, PF/ESI, advance — via `PUT /api/employees/{id}/pay`);
   profiles/documents/leave live in Employee Management. Attendance entry stays
   here (operator flow + sync).

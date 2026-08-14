@@ -19,7 +19,7 @@ builder that rolls up to ₹/piece.
 
 ## Implemented (file paths)
 `backend/modules/parts.py` (data + `/api/parts/*` routes, grant `parts`) ·
-UI `frontend/parts.html` + `parts.js` · files under `data/drawing_files/`
+UI `frontend/parts/index.html` + `parts.js` · files under `data/drawing_files/`
 (`core/paths.drawing_files_dir()`, in backup zips, shared validation in
 `core/attachments.py`) · spec `tests/test_workshop.py` (PartsSpec).
 

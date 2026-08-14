@@ -8,9 +8,9 @@ module their account is granted. The owner manages accounts and grants without
 touching code.
 
 ## User flows
-- Sign in → Home → click a tile → module page (same window; "⌂ All modules"
-  returns). Unbuilt modules open a placeholder page.
-- Operator edition (kiosk laptop): auto sign-in, straight to `/payroll.html` —
+- Sign in → Home → click a tile → module page at `/<module>/` (same window;
+  the ⌂ Home button top-left of every page returns). Unbuilt modules open a placeholder page.
+- Operator edition (kiosk laptop): auto sign-in, straight to `/payroll/` —
   no launcher ceremony.
 - Admin → Users & Access: add account (username, password, admin flag or module
   checkboxes), edit grants, reset password, delete. Last-admin and self-delete
@@ -18,7 +18,7 @@ touching code.
 - Update popup appears on Home when a newer GitHub Release exists.
 
 ## Implemented (file paths)
-- UI: `salary-system/new_system/frontend/index.html` + `frontend/shell.js`.
+- UI: `salary-system/new_system/frontend/index.html` + `frontend/shell/shell.js`.
 - Tiles: `backend/core/registry.py` (single source of truth) served by
   `GET /api/modules` in `backend/modules/users.py`.
 - Accounts: `backend/modules/users.py` (`/api/users` CRUD, guards).
@@ -37,7 +37,7 @@ grants ignored for admins. Seeded accounts: `admin` (all), `operator`
 shell-users, shell-user-form, shell-placeholder.
 
 ## Known bugs
-None known. (Pre-existing console noise belongs to payroll.html, not the shell.)
+None known. (Pre-existing console noise belongs to the payroll page, not the shell.)
 
 ## What's left
 - [ ] Self-service password change (only admin resets today) — ROADMAP Next.

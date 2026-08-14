@@ -18,7 +18,7 @@ Reads need the `settings` grant; every change is admin-only.
 used by Orders). Form reference data for other modules is served by
 grant-gated endpoints in those modules (`/api/orders/refs`, `/api/parts/refs`)
 — pricing never leaks past a module's own grant · UI
-`frontend/settings.html` + `settings.js` · spec `tests/test_workshop.py`
+`frontend/settings/index.html` + `settings.js` · spec `tests/test_workshop.py`
 (SettingsSpec). Departments read/write `config/rules.json` via `core/rules.py`.
 
 ## Data model

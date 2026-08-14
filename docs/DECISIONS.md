@@ -113,3 +113,19 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   displayed and recorded costing totals; BEGIN IMMEDIATE on drawing
   save/delete; consignment order-search hits the server; drawing switch
   replaces the prefyled rate; restore docs cover all *_files folders.
+
+## 2026-08-14 (later) — Frontend reorganised by module; one entry point per module
+- **`frontend/<module>/index.html` + `<module>.js`, served at `/<module>/`** —
+  the flat pile of `*.html`/`*.js` made it hard to see which files belong to
+  which tab. `vendor/` stays shared (pages load `/vendor/…`); the shell keeps
+  `index.html` at the root because it is the entry point, with its script in
+  `shell/`.
+- **A module is reachable ONLY from its launcher tile.** The payroll dashboard
+  still carried a "Raw Material Inventory" card from before the shell existed —
+  a second door into a module that already has a tile. Removed, along with
+  `openInventory()` and the inventory-specific `open_inventory` pywebview hook
+  (the generic `open_path` covers viewing files). An audit of every page found
+  no other sideways link: the only cross-module link anywhere is Home.
+- **Home moved to the top-left of every page**, beside the APEX/module name
+  (it was buried bottom-right in the header, or bottom of the payroll sidebar).
+  `?back=1` and the `showBack` flag are gone — Home is always there.

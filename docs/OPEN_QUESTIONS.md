@@ -14,7 +14,7 @@ to [DECISIONS.md](DECISIONS.md) with the date.
 | 7 | **Repo visibility for self-update** — repo must be public or a token pasted into `config/update.json` on each install. Which will it be? | Assumed public at release time; token path documented in DEPLOY.md. |
 
 ## Known issues (accepted for now)
-- `frontend/payroll.html` logs ~19 harmless console errors on load (null-model
+- `frontend/payroll/index.html` logs ~19 harmless console errors on load (null-model
   bindings that predate the shell; the UI recovers). Fix queued in ROADMAP "Next".
 - Existing installs that still have the old `temp` account keep it until deleted
   in Users & Access (new seeds don't create it).

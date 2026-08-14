@@ -57,7 +57,7 @@ function shell() {
         // Kiosk laptop: no launcher ceremony — straight into attendance.
         try {
           await api("/api/kiosk-login", { method: "POST" });
-          window.location.href = "/payroll.html";
+          window.location.href = "/payroll/";
           return;
         } catch (_) { /* fall through to the Start screen below */ }
       }
@@ -79,7 +79,7 @@ function shell() {
     async kioskRetry() {
       try {
         await api("/api/kiosk-login", { method: "POST" });
-        window.location.href = "/payroll.html";
+        window.location.href = "/payroll/";
       } catch (e) { this.loginError = e.message; }
     },
     homeError: "",
