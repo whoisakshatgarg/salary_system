@@ -17,8 +17,14 @@ touching code.
   are refused.
 - Update popup appears on Home when a newer GitHub Release exists.
 - **📖 User Guide** tile opens `/help/` — the illustrated manual, generated from
-  `docs/USER_GUIDE.md`. Not a module: no registry entry and no grant, so every
-  account sees it, and it can be read without signing in.
+  `docs/USER_GUIDE.md`. Not a module: no registry entry and no grant. It is
+  **scoped to the account**: every chapter declares a grant key in the guide
+  itself (`<!-- access: inventory -->`), the page reads `/api/modules` on load
+  and hides the chapters that account cannot open, with a note saying so.
+  `general` chapters always show, `admin` ones only to admins, and signing out
+  leaves general-only — logging out is not a way to see everything. Note this
+  is PRESENTATIONAL: the HTML holds every chapter, so it declutters rather than
+  enforces. The real boundary is the per-route grant check on the data itself.
 - **Deadlines panel** under the tiles: orders whose delivery date is close, as
   two lists — *next 7 days* and *next month* — with anything already overdue
   called out above them. Each line is customer · order number · quantity still

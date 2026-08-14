@@ -8,12 +8,15 @@ data.)
 tile on Home, or go straight to `/help/`. It has a contents list down the side
 and a search box, and it works with no internet.
 
-*(For whoever maintains this: that page is generated from this file. After
-editing, run `python tools/build_help.py` and commit `frontend/help/`.)*
+It shows **the chapters your account can actually use** — if you only have
+Inventory, you get Getting started, Raw Material Inventory and the
+troubleshooting chapter, and nothing else clutters the list. Ask the owner for
+access in **Users & Access** if you need more.
 
 ---
 
 ## 1. Getting started
+<!-- access: general -->
 
 ### Opening the app
 Double-click **APEX Payroll (Admin).exe** on the main computer, or
@@ -62,6 +65,7 @@ all. It's only visible to accounts that can open Order Tracking.
 ---
 
 ## 2. Accounts — who can open what
+<!-- access: admin -->
 
 *Owner (admin) only.* Open **Users & Access** from Home.
 
@@ -81,6 +85,7 @@ all. It's only visible to accounts that can open Order Tracking.
 ---
 
 ## 3. Salary & Attendance
+<!-- access: salary -->
 
 The monthly rhythm: **operator fills attendance → it syncs to your machine →
 you calculate and publish salaries → print the two Excel sheets.**
@@ -177,6 +182,7 @@ policy file; a friendlier Settings screen is planned.
 ---
 
 ## 4. Employee Management
+<!-- access: employees -->
 
 Everything about your people that isn't money: profiles, documents, the leave
 bank, and attendance summaries. Open the **👥 Employee Management** tile.
@@ -217,6 +223,7 @@ switches the leave scheme, so change it knowingly).
 ---
 
 ## 5. Raw Material Inventory
+<!-- access: inventory -->
 
 Every incoming batch of rods/bars is one **heat** — the number stamped on the
 mill test certificate. The app tracks each heat from arrival to the orders it
@@ -358,6 +365,7 @@ Removing a value never changes heats already recorded with it.
 
 
 ## 6. Customers
+<!-- access: customers -->
 
 Open the **🏢 Customers** tile. One record per customer: GSTIN, billing and
 shipping addresses, payment terms, and the people you talk to.
@@ -411,6 +419,7 @@ can see at a glance what was negotiated.
 ---
 
 ## 7. Parts & Pricing
+<!-- access: parts -->
 
 Open the **📐 Parts & Pricing** tile — one record per customer drawing.
 
@@ -500,6 +509,7 @@ change underneath you.
 ---
 
 ## 8. Order Tracking
+<!-- access: orders -->
 
 Open the **🗂 Order Tracking** tile. It has three tabs: **Orders**,
 **Consignments** and **Shipments**.
@@ -609,6 +619,7 @@ outstanding across the orders shown.
 ---
 
 ## 9. Quotations & Invoices
+<!-- access: quotations -->
 
 Open the **🧾 Quotations & Invoices** tile. Both live here — a quotation is what
 you send before the work, an invoice is what you send after it.
@@ -658,6 +669,7 @@ any past quotation or invoice from there at any time.
 ---
 
 ## 10. Settings
+<!-- access: settings -->
 
 Open the **⚙ Settings** tile (changes are owner/admin only).
 
@@ -673,6 +685,7 @@ Open the **⚙ Settings** tile (changes are owner/admin only).
 ---
 
 ## 11. Keeping your data safe
+<!-- access: admin -->
 
 - **Back up regularly:** Salary & Attendance → Sync/Exchange → **Back up now**.
   Each backup is one `.zip` holding the entire database *and* every
@@ -688,6 +701,7 @@ Open the **⚙ Settings** tile (changes are owner/admin only).
 ---
 
 ## 12. If something goes wrong
+<!-- access: general -->
 
 | Problem | What to do |
 |---|---|

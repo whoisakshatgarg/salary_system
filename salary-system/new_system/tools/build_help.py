@@ -71,12 +71,23 @@ def inline(text: str) -> str:
 # --------------------------------------------------------------------------- #
 # Block conversion
 # --------------------------------------------------------------------------- #
+ACCESS_RE = re.compile(r"^<!--\s*access:\s*([a-z-]+)\s*-->$")
+
+
 def convert(md: str) -> tuple[str, list[dict]]:
+    """Returns (html, contents). Every block carries data-access — the grant key
+    of the chapter it belongs to — so the page can hide what the signed-in
+    account cannot open. 'general' is always shown; 'admin' only to admins."""
     lines = md.splitlines()
     out: list[str] = []
     toc: list[dict] = []
     i = 0
     n = len(lines)
+    access = "general"          # anything before the first chapter
+
+    def emit(block: str) -> None:
+        # closing tags (</ul>) are left alone — _stamp only touches an opener
+        out.append(_stamp(block, access))
 
     def close(tag: str, open_flag: bool) -> bool:
         if open_flag:
@@ -89,6 +100,13 @@ def convert(md: str) -> tuple[str, list[dict]]:
         line = lines[i]
         stripped = line.strip()
 
+        # chapter access marker: <!-- access: salary -->
+        m = ACCESS_RE.match(stripped)
+        if m:
+            access = m.group(1)
+            i += 1
+            continue
+
         # blank
         if not stripped:
             ul_open = close("ul", ul_open)
@@ -100,7 +118,7 @@ def convert(md: str) -> tuple[str, list[dict]]:
         if stripped == "---":
             ul_open = close("ul", ul_open)
             ol_open = close("ol", ol_open)
-            out.append("<hr>")
+            emit("<hr>")
             i += 1
             continue
 
@@ -110,10 +128,21 @@ def convert(md: str) -> tuple[str, list[dict]]:
             ul_open = close("ul", ul_open)
             ol_open = close("ol", ol_open)
             level, text = len(m.group(1)), m.group(2)
+            # the marker follows the heading; adopt it BEFORE emitting, or the
+            # heading (and its contents entry) would carry the previous
+            # chapter's access and stay visible when the chapter is hidden
+            for look in range(i + 1, min(i + 4, n)):
+                if not lines[look].strip():
+                    continue
+                nxt = ACCESS_RE.match(lines[look].strip())
+                if nxt:
+                    access = nxt.group(1)
+                break
             anchor = slug(text)
-            out.append(f'<h{level} id="{anchor}">{inline(text)}</h{level}>')
+            emit(f'<h{level} id="{anchor}">{inline(text)}</h{level}>')
             if level in (2, 3):
-                toc.append({"level": level, "text": text, "anchor": anchor})
+                toc.append({"level": level, "text": text, "anchor": anchor,
+                            "access": access})
             i += 1
             continue
 
@@ -123,7 +152,7 @@ def convert(md: str) -> tuple[str, list[dict]]:
             ul_open = close("ul", ul_open)
             ol_open = close("ol", ol_open)
             alt, src = html.escape(m.group(1)), m.group(2).split("/")[-1]
-            out.append(
+            emit(
                 f'<figure><img src="images/{html.escape(src)}" alt="{alt}" loading="lazy">'
                 + (f"<figcaption>{alt}</figcaption>" if alt else "")
                 + "</figure>"
@@ -143,15 +172,15 @@ def convert(md: str) -> tuple[str, list[dict]]:
                 head, body = rows[0], rows[2:]
             else:
                 head, body = None, rows
-            out.append("<div class='tablewrap'><table>")
+            emit("<div class='tablewrap'><table>")
             if head:
-                out.append("<thead><tr>"
+                emit("<thead><tr>"
                            + "".join(f"<th>{inline(c)}</th>" for c in head)
                            + "</tr></thead>")
-            out.append("<tbody>")
+            emit("<tbody>")
             for r in body:
-                out.append("<tr>" + "".join(f"<td>{inline(c)}</td>" for c in r) + "</tr>")
-            out.append("</tbody></table></div>")
+                emit("<tr>" + "".join(f"<td>{inline(c)}</td>" for c in r) + "</tr>")
+            emit("</tbody></table></div>")
             continue
 
         # blockquote (callout) — consecutive '>' lines join into one
@@ -162,7 +191,7 @@ def convert(md: str) -> tuple[str, list[dict]]:
             while i < n and lines[i].strip().startswith(">"):
                 buf.append(lines[i].strip().lstrip(">").strip())
                 i += 1
-            out.append(f"<blockquote>{inline(' '.join(buf))}</blockquote>")
+            emit(f"<blockquote>{inline(' '.join(buf))}</blockquote>")
             continue
 
         # ordered list
@@ -170,10 +199,10 @@ def convert(md: str) -> tuple[str, list[dict]]:
         if m:
             ul_open = close("ul", ul_open)
             if not ol_open:
-                out.append("<ol>")
+                emit("<ol>")
                 ol_open = True
             item, i = _gather_item(lines, i, m.group(1))
-            out.append(f"<li>{inline(item)}</li>")
+            emit(f"<li>{inline(item)}</li>")
             continue
 
         # bullet list
@@ -181,10 +210,10 @@ def convert(md: str) -> tuple[str, list[dict]]:
         if m:
             ol_open = close("ol", ol_open)
             if not ul_open:
-                out.append("<ul>")
+                emit("<ul>")
                 ul_open = True
             item, i = _gather_item(lines, i, m.group(1))
-            out.append(f"<li>{inline(item)}</li>")
+            emit(f"<li>{inline(item)}</li>")
             continue
 
         # paragraph — join continuation lines
@@ -195,11 +224,16 @@ def convert(md: str) -> tuple[str, list[dict]]:
         while i < n and lines[i].strip() and not _starts_block(lines[i]):
             buf.append(lines[i].strip())
             i += 1
-        out.append(f"<p>{inline(' '.join(buf))}</p>")
+        emit(f"<p>{inline(' '.join(buf))}</p>")
 
     close("ul", ul_open)
     close("ol", ol_open)
     return "\n".join(out), toc
+
+
+def _stamp(html_block: str, access: str) -> str:
+    """Add data-access to the block's opening tag."""
+    return re.sub(r"^<(\w+)", rf'<\1 data-access="{access}"', html_block, count=1)
 
 
 def _starts_block(line: str) -> bool:
@@ -291,6 +325,9 @@ PAGE = """<!DOCTYPE html>
        letter-spacing: .03em; color: #64748b; }}
   mark {{ background: #fef08a; }}
   .hidden {{ display: none; }}
+  .scope {{ background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
+           border-radius: .5rem; padding: .625rem .875rem; font-size: .8125rem;
+           margin-bottom: 1.25rem; }}
 
   @media print {{
     header, nav {{ display: none; }}
@@ -321,11 +358,65 @@ PAGE = """<!DOCTYPE html>
 {toc}
   </nav>
   <main id="content">
+    <div id="scope" class="scope hidden"></div>
 {body}
   </main>
 </div>
 
 <script>
+// ---------------------------------------------------------------------------
+// Show only what this account can actually open.
+//
+// Every block carries data-access — the grant key of its chapter. 'general' is
+// always shown; 'admin' only to admins; everything else needs that grant. Not
+// signed in shows the general chapters only, so signing out is not a way around
+// it. The page still renders if the call fails; it just shows the general parts.
+// ---------------------------------------------------------------------------
+const ALWAYS = new Set(['general']);
+async function applyScope() {{
+  let granted = null, isAdmin = false, who = '';
+  try {{
+    const r = await fetch('/api/modules', {{headers: {{'X-Requested-With': 'apex-payroll'}}}});
+    if (r.ok) {{
+      const d = await r.json();
+      isAdmin = !!d.is_admin;
+      granted = new Set((d.modules || []).filter(m => m.granted).map(m => m.key));
+      who = d.username || '';
+    }}
+  }} catch (_) {{ /* offline or signed out — fall through */ }}
+
+  const allowed = (key) => {{
+    if (ALWAYS.has(key)) return true;
+    if (granted === null) return false;        // not signed in
+    if (isAdmin) return true;                  // admins hold every grant
+    if (key === 'admin') return false;
+    return granted.has(key);
+  }};
+
+  let hidden = 0;
+  for (const el of document.querySelectorAll('[data-access]')) {{
+    const ok = allowed(el.dataset.access);
+    el.classList.toggle('scoped-out', !ok);
+    if (!ok && el.parentElement && el.parentElement.id === 'content') hidden++;
+  }}
+  // hide, but keep them out of search too (see the filter below)
+  document.querySelectorAll('.scoped-out').forEach(el => el.classList.add('hidden'));
+
+  const note = document.getElementById('scope');
+  if (granted === null) {{
+    note.textContent = 'You are not signed in, so this shows the general chapters only. '
+      + 'Sign in and the guide will also show the parts for the sections your account can open.';
+    note.classList.remove('hidden');
+  }} else if (hidden) {{
+    note.textContent = 'This guide is showing the sections your account can open'
+      + (who ? ' (' + who + ')' : '') + '. Other chapters are hidden — ask the owner '
+      + 'for access in Users & Access if you need them.';
+    note.classList.remove('hidden');
+  }}
+  return true;
+}}
+const scopeReady = applyScope();
+
 // Jump-to highlighting: mark the section you are reading in the sidebar.
 const links = [...document.querySelectorAll('#toc a')];
 const targets = links.map(a => document.getElementById(a.hash.slice(1))).filter(Boolean);
@@ -348,20 +439,22 @@ q.addEventListener('input', () => {{
   const term = q.value.trim().toLowerCase();
   document.querySelectorAll('#content mark').forEach(m => m.replaceWith(m.textContent));
   if (!term) {{
-    blocks.forEach(b => b.classList.remove('hidden'));
-    links.forEach(a => a.classList.remove('hidden'));
+    blocks.forEach(b => b.classList.toggle('hidden', b.classList.contains('scoped-out')));
+    links.forEach(a => a.classList.toggle('hidden', a.classList.contains('scoped-out')));
     if (none) {{ none.remove(); none = null; }}
     return;
   }}
   // show a whole chapter when anything inside it matches
   let keep = false, hits = 0;
   for (const b of blocks) {{
+    if (b.classList.contains('scoped-out')) {{ b.classList.add('hidden'); continue; }}
     if (/^H[12]$/.test(b.tagName)) keep = b.textContent.toLowerCase().includes(term);
     const self = b.textContent.toLowerCase().includes(term);
     if (self) {{ keep = true; hits++; }}
     b.classList.toggle('hidden', !(keep || self));
   }}
-  links.forEach(a => a.classList.toggle('hidden', !a.textContent.toLowerCase().includes(term)));
+  links.forEach(a => a.classList.toggle('hidden',
+    a.classList.contains('scoped-out') || !a.textContent.toLowerCase().includes(term)));
   if (!hits && !none) {{
     none = document.createElement('p');
     none.textContent = 'Nothing in the guide matches “' + q.value + '”.';
@@ -381,7 +474,8 @@ def main() -> int:
 
     body, toc = convert(GUIDE.read_text(encoding="utf-8"))
     toc_html = "\n".join(
-        f'    <a class="h{t["level"]}" href="#{t["anchor"]}">{html.escape(t["text"])}</a>'
+        f'    <a class="h{t["level"]}" data-access="{t["access"]}"'
+        f' href="#{t["anchor"]}">{html.escape(t["text"])}</a>'
         for t in toc)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)

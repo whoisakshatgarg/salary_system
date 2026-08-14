@@ -266,4 +266,17 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   order number and customer name are snapshotted too, so the document outlives a
   deleted order. This is the same reasoning as snapshotting rates into a costing,
   applied to a piece of paper that leaves the office.
+- **The in-app guide is scoped to the signed-in account.** An operator who can
+  only open Inventory should not have to scroll past payroll and invoicing to
+  find the chapter they need. Each chapter declares its grant key **in the guide
+  itself** (`<!-- access: salary -->` under the heading) rather than in a table
+  in the generator, so renumbering or reordering chapters cannot silently
+  detach the mapping; a test asserts every chapter has one and that the keys are
+  real grants. `general` always shows, `admin` only to admins, and signed-out
+  falls back to general-only so logging out is not a way around it.
+  Deliberately **presentational, not a security boundary** — the generated HTML
+  still contains every chapter. It declutters the manual; the thing that
+  actually protects data is `require_module` on each route. If the guide ever
+  needs to be a real boundary, the page would have to be assembled server-side
+  per request.
 

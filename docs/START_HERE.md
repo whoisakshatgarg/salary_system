@@ -40,6 +40,10 @@ Tests: `../venv/bin/python -m unittest discover -s tests`.
 6. End-user behaviour reference: [USER_GUIDE.md](USER_GUIDE.md) (illustrated).
    It is also the SOURCE for the in-app guide at `/help/` — after editing it run
    `python tools/build_help.py` and commit the regenerated `frontend/help/`.
+   Every `## ` chapter must be followed by an `<!-- access: KEY -->` marker (a
+   grant key, or `general` / `admin`) — that is what scopes the guide to the
+   signed-in account. `tests/test_help_build.py` fails if one is missing or names
+   a grant that doesn't exist.
 
 **Rules of the road:** code is the source of truth — verify docs against it and fix
 docs when they drift. Every session must end by updating this file's status table,
