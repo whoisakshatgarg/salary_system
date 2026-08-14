@@ -214,16 +214,88 @@ shows **remaining/received** with a bar and a status: **In stock**,
 grade, supplier or rack; filter by material, shape, status — or find steel by
 its chemistry (e.g. Carbon 0.40–0.50%).
 
-### 5.2 Adding a heat
+### 5.2 Adding incoming material
 
-![New heat form](guide-images/inv-new-heat.jpg)
+**+ New heat** opens a **whole screen**, not a small popup — a delivery is
+usually a dozen bars across several heat numbers, and that needs room.
 
-Copy the details straight off the mill certificate: heat number, supplier,
-material/grade/shape (every dropdown has **+ Add new…** if a value is missing),
-size, rods received, weight, price, and the chemistry rows from the
-spectroscopy report. After saving, open the heat and attach photos or PDFs of
-the certificate and purchase invoice — phone photos are compressed
-automatically.
+![Add incoming material](guide-images/inv-add-delivery.jpg)
+
+On the left, the things true of the whole delivery: date received, supplier,
+rack, and the material/grade/shape most of it is. On the right, **one row per
+piece**. Press **+ Add piece** for each one, or the ⧉ button to duplicate the
+row above when only the heat number changes.
+
+Each row carries its **own heat number**, and that matters more than anything
+else on this screen. Two bars can be the same steel, the same diameter, from the
+same lorry, and still be *different metal* — a different heat is a different
+melt with a different composition. So the software never merges them: each heat
+number becomes its own record and stays that way for good.
+
+| Column | What to put in it |
+| --- | --- |
+| **Heat number** | Off the mill certificate. Required. |
+| **Material / Grade** | Leave blank to inherit what you set on the left. |
+| **Length** | The actual length of this bar. Required — it is what makes the material check possible. |
+| **Ø** | Diameter. |
+| **Qty** | How many identical bars of this length. |
+| **Note** | Anything worth remembering, e.g. "short offcuts". |
+
+The header keeps a running tally — *3 heat number(s), 4 piece(s)* — so you can
+check it against the delivery challan before saving. **Save delivery** records
+the whole thing at once: if one heat number turns out to be a duplicate,
+nothing at all is saved and you can fix that row.
+
+Afterwards, open any heat to attach photos or PDFs of the mill certificate and
+purchase invoice — phone photos are compressed automatically. Editing an
+existing heat still opens the familiar popup, where you can also correct the
+piece lengths and diameters.
+
+> If you don't know the lengths, you can still record the heat the old way and
+> leave the pieces out. You just won't be able to check it by dimension —
+> only by counting bars.
+
+### 5.2a Can we actually make it? — the Material Check
+
+The **Material Check** tab answers the question you ask before promising a
+customer anything: *do we have enough steel to make this?*
+
+![Material check](guide-images/inv-material-check.jpg)
+
+Fill in the material, the grade, how many parts you need, and the part's length
+and diameter. Add a **tolerance / margin** if each part needs a little extra for
+parting off and facing. Press **Check availability**.
+
+**How the number is worked out** — this is the important bit. The software
+counts the whole parts that come out of *each individual bar*, then adds those
+up. It does **not** divide total stock by part size, because offcuts can't be
+welded back together.
+
+> Three bars, each 10 long, and you need parts 3 long:
+> each bar gives `10 ÷ 3 = 3` whole parts with 1 left over as scrap.
+> **3 bars × 3 = 9 parts.** Not 10.
+
+The result is broken down **heat by heat**, so you can see exactly which bars
+the job would come off:
+
+| Heat | Length | Pieces | Parts / piece | Parts |
+| --- | ---: | ---: | ---: | ---: |
+| H1001 | 10 | 1 | 3 | 3 |
+| H1002 | 8 | 1 | 2 | 2 |
+| H1003 | 6.5 | 2 | 2 | 4 |
+| | | | **Total** | **9** |
+
+You also get a status — **Available**, **Partially available** or **Not
+available** — with the shortfall if you're short, the leftover on each bar, and
+an honest note against any heat whose dimensions were never recorded ("33 rods
+on the rack, but no piece dimensions recorded") so nothing quietly disappears
+from the answer.
+
+Switch to **By quantity** when the dimensions don't decide it and you just want
+to know how many bars are on the rack.
+
+Nothing is reserved. The check only tells you what's possible right now; stock
+still leaves the rack through the usage log.
 
 ### 5.3 Using stock — the usage log
 
@@ -402,7 +474,8 @@ you send before the work, an invoice is what you send after it.
 
 ![Invoice form](guide-images/ws-invoice-form.jpg)
 
-**+ Quotation** or **+ Invoice** starts one. Choose the customer and their
+**+ Quotation** or **+ Invoice** opens a full screen (editing an existing one
+still opens the popup). Choose the customer and their
 details fill in. Add a line per item: description, quantity, rate — the amount,
 subtotal, GST and grand total all calculate themselves. For an invoice you can
 pick an **order** instead and its items are copied in for you, so you are not
@@ -410,6 +483,23 @@ retyping what you already entered in Order Tracking.
 
 Document numbers are issued automatically per financial year, and quotations and
 invoices are numbered in separate series.
+
+### 9.1 Checking material before you commit
+
+While writing a quotation you can tick **☐ Check material availability**.
+
+![Material check while quoting](guide-images/ws-quote-material-check.jpg)
+
+It is entirely optional and off unless you tick it — the quotation is written
+and saved exactly as before either way. Ticking it opens the same check
+described in [5.2a](#52a-can-we-actually-make-it--the-material-check), with the
+quantity already filled in from your quotation lines. Fill in the part length,
+diameter and any margin, press **Check stock**, and you get the same heat-wise
+answer right there in the form.
+
+The point is to find out you're short *before* you promise a date, not after.
+Nothing is reserved and the check never stops you saving — a shortage is
+information, not a blocker. The same checkbox is on the new-order screen.
 
 ### 9.1 Printing and sending
 
