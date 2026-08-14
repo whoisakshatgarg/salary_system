@@ -185,9 +185,17 @@ def _check_date(value, label: str) -> str:
     return v
 
 
+# Generously above any real figure this shop will ever type (a hundred thousand
+# crore) but ~296 orders of magnitude below the point where the pro-rata
+# multiplication in _decorate() overflows to inf.
+_MAX_NUMBER = 1e12
+
+
 def _check_number(v, label: str) -> float | None:
-    """Optional non-negative FINITE number. Infinity is legal JSON (1e999) and
-    would poison every stats/list response with an unserialisable float."""
+    """Optional non-negative FINITE number, bounded. Infinity is legal JSON
+    (1e999) and would poison every stats/list response with an unserialisable
+    float — and so would a merely-huge value like 1e308, which survives
+    isfinite() but overflows once multiplied by the rod count."""
     if v in (None, ""):
         return None
     try:
@@ -196,6 +204,8 @@ def _check_number(v, label: str) -> float | None:
         raise ValueError(f"{label} must be a number")
     if not math.isfinite(f) or f < 0:
         raise ValueError(f"{label} must be a normal, non-negative number")
+    if f > _MAX_NUMBER:
+        raise ValueError(f"{label} looks wrong — it must be under {_MAX_NUMBER:,.0f}")
     return f
 
 
@@ -301,6 +311,21 @@ def _status(remaining: int, last_type: str | None) -> str:
     return "rejected" if last_type == "reject" else "consumed"
 
 
+def _prorata(price, remaining: int, received: int) -> float | None:
+    """Value of the rods still on the rack.
+
+    Defence in depth: no single stored row may make the whole list or stats
+    endpoint unserialisable. A price that overflows the multiplication (or a
+    zero rod count) yields None rather than inf, so a database that was poisoned
+    before the write-side bound existed still READS, and the bad heat can be
+    opened and corrected from the UI instead of hiding the entire register.
+    """
+    if not price or not received:
+        return None
+    v = price * remaining / received
+    return v if math.isfinite(v) else None
+
+
 def _decorate(heat: dict, mv: dict | None) -> dict:
     mv = mv or {"out": 0, "issued": 0, "rejected": 0, "last_type": None}
     remaining = heat["rods_received"] - mv["out"]
@@ -311,7 +336,7 @@ def _decorate(heat: dict, mv: dict | None) -> dict:
         rejected_rods=mv["rejected"],
         status=_status(remaining, mv["last_type"]),
         # pro-rata value of what's still on the rack
-        stock_value=(price * remaining / heat["rods_received"]) if price else None,
+        stock_value=_prorata(price, remaining, heat["rods_received"]),
     )
     return heat
 
@@ -376,8 +401,9 @@ def overall_stats(conn, totals: dict | None = None) -> dict:
         remaining = h["rods_received"] - mv["out"]
         in_stock += remaining
         issued += mv["issued"]
-        if h["price_total"]:
-            value += h["price_total"] * remaining / h["rods_received"]
+        value += _prorata(h["price_total"], remaining, h["rods_received"]) or 0.0
+    if not math.isfinite(value):   # many merely-large rows can still sum to inf
+        value = 0.0
     return {"total_heats": len(heats), "rods_in_stock": in_stock,
             "rods_issued": issued, "stock_value": round(value)}
 

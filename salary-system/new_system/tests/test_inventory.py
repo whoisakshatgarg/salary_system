@@ -2,6 +2,7 @@
 attachments. Run:  python -m unittest tests.test_inventory
 """
 
+import json
 import os
 import sys
 import tempfile
@@ -320,6 +321,40 @@ class ReviewRegressions(InventoryBase):
         # the list/stats endpoint math must still work
         out = inventory.list_heats(self.conn)
         self.assertEqual(out["stats"]["total_heats"], 1)
+
+    def test_huge_price_rejected(self):
+        """1e308 is finite, so isfinite() lets it through — but multiplied by the
+        rod count it overflows to inf, which is not JSON-serialisable and used to
+        500 every list/detail/stats read, hiding the whole register."""
+        for bad in (1e308, 1e13):
+            with self.assertRaises(ValueError):
+                inventory.create_heat(self.conn, heat_data(price_total=bad))
+        inventory.create_heat(self.conn, heat_data(price_total=1e11))  # large but sane
+
+    def test_poisoned_row_still_reads(self):
+        """A database poisoned before that bound existed must stay READABLE, so
+        the bad heat can be opened and corrected instead of bricking the module."""
+        inventory.create_heat(self.conn, heat_data(heat_number="H-BAD", rods_received=10,
+                                                   price_total=1000))
+        inventory.create_heat(self.conn, heat_data(heat_number="H-OK", rods_received=20,
+                                                   price_total=8000))
+        bad = self.conn.execute(
+            "SELECT id FROM heat WHERE heat_number='H-BAD'").fetchone()["id"]
+        self.conn.execute("UPDATE heat SET price_total=? WHERE id=?", (1e308, bad))
+        self.conn.commit()
+
+        out = inventory.list_heats(self.conn)
+        self.assertEqual(len(out["rows"]), 2)            # neither heat disappears
+        rows = {r["heat_number"]: r for r in out["rows"]}
+        self.assertIsNone(rows["H-BAD"]["stock_value"])   # not inf
+        self.assertEqual(rows["H-OK"]["stock_value"], 8000.0)   # unaffected
+        self.assertEqual(out["stats"]["stock_value"], 8000)
+        self.assertIsNotNone(inventory.get_heat(self.conn, bad))
+        json.dumps(out, default=str)                      # must not raise
+
+        inventory.update_heat(self.conn, bad, heat_data(
+            heat_number="H-BAD", rods_received=10, price_total=1500))
+        self.assertEqual(inventory.get_heat(self.conn, bad)["stock_value"], 1500.0)
 
     def test_impossible_dates_rejected(self):
         with self.assertRaises(ValueError):
