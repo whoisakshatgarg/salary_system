@@ -767,7 +767,7 @@ def open_items(conn, order_id: int) -> list[dict]:
     shipped = _shipped_by_item(conn, order_id)
     out = []
     for r in conn.execute(
-            "SELECT i.*, d.drawing_no FROM order_item i LEFT JOIN drawing d"
+            "SELECT i.*, d.drawing_no, d.revision FROM order_item i LEFT JOIN drawing d"
             " ON d.id=i.drawing_id WHERE i.order_id=? ORDER BY i.id", (order_id,)):
         it = dict(r)
         it["shipped"] = shipped.get(it["id"], 0)

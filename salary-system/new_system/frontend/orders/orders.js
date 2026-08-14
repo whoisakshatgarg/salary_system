@@ -113,6 +113,7 @@ function od() {
     // ---- order detail ------------------------------------------------------ //
     async open(id) {
       this.bom = null;
+      this.oseg = "items";
       try { this.detail = await api(`/api/orders/${id}`); }
       catch (e) { this.fail(e); return; }
       this.loadBom(id);   // not awaited: the record must not wait on the rollup
@@ -170,6 +171,27 @@ function od() {
       this.loadCheckRefs();
     },
     closeForm() { this.form = null; this.addPage = false; this.formError = ""; },
+
+    // ---- order record segments ---------------------------------------------- //
+    oseg: "items",
+    orderSegs: [
+      { k: "items",     label: "Items & delivery plan" },
+      { k: "material",  label: "Material" },
+      { k: "shipments", label: "Shipments & history" },
+    ],
+    segCount(k) {
+      const d = this.detail;
+      if (!d) return 0;
+      if (k === "items") return d.items.length;
+      if (k === "material") return (this.bom?.summary || []).length;
+      if (k === "shipments") return d.consignments.length;
+      return 0;
+    },
+
+    // position of a stage in the pipeline — drives the chain visual
+    stageIndex(key) {
+      return (this.detail?.stages || []).findIndex((s) => s.key === key);
+    },
 
     // ---- shipments view ---------------------------------------------------- //
     openOnly: true,
@@ -434,7 +456,22 @@ function od() {
                         notes: "", lines: [] };
       this.consError = "";
       this.consOrderQ = "";
-      if (fromOrder) await this.pullOrderItems(fromOrder.id, fromOrder.order_no);
+      this.consPick = { order_id: null, order_no: "", items: [], item_id: "", qty: "" };
+      if (fromOrder) {
+        // Load the order into the PICKER rather than pushing every pending item
+        // onto the truck. A long order goes out in instalments, so "which part,
+        // how many" is the question — not "delete the rows you didn't mean".
+        try {
+          const items = (await api(`/api/orders/${fromOrder.id}/open-items`))
+            .filter((i) => i.pending > 0);
+          if (items.length) {
+            this.consPick = { order_id: fromOrder.id, order_no: fromOrder.order_no,
+                              items, item_id: String(items[0].id), qty: items[0].pending };
+          } else {
+            this.flash(`${fromOrder.order_no} has nothing left to send`, "err");
+          }
+        } catch (e) { this.fail(e); }
+      }
     },
     async pullOrderItems(orderId, orderNo) {
       try {
@@ -453,7 +490,61 @@ function od() {
         if (!added) this.flash(`${orderNo}: nothing pending to ship`, "err");
       } catch (e) { this.fail(e); }
     },
+    // Pick ONE part of an order onto this truck. An order split across two
+    // deliveries rarely sends everything at once, so pulling in every pending
+    // item and expecting the user to zero the rest is backwards.
+    consPick: { order_id: null, order_no: "", items: [], item_id: "", qty: "" },
+    get consPickItem() {
+      return (this.consPick.items || []).find(
+        (i) => String(i.id) === String(this.consPick.item_id)) || null;
+    },
+    async findOrderForCons() {
+      const q = this.consOrderQ.trim();
+      if (!q) return;
+      try {
+        const d = await api("/api/orders?q=" + encodeURIComponent(q));
+        const hit = d.rows[0];
+        if (!hit) return this.flash("No order matches that number", "err");
+        const items = await api(`/api/orders/${hit.id}/open-items`);
+        const open = items.filter((i) => i.pending > 0);
+        if (!open.length) return this.flash(`${hit.order_no} has nothing left to send`, "err");
+        this.consPick = { order_id: hit.id, order_no: hit.order_no, items: open,
+                          item_id: String(open[0].id), qty: open[0].pending };
+        this.consOrderQ = "";
+      } catch (e) { this.fail(e); }
+    },
+    pickedPart() {
+      const it = this.consPickItem;
+      if (it) this.consPick.qty = it.pending;   // default to all of that part
+    },
+    addPickedToCons() {
+      const it = this.consPickItem;
+      if (!it) return this.flash("Choose which part is going", "err");
+      const qty = Number(this.consPick.qty);
+      if (!(qty > 0)) return this.flash("Enter how many are going", "err");
+      if (qty > it.pending) return this.flash(`Only ${it.pending} of that part are left to send`, "err");
+      if (this.consForm.lines.some((l) => l.order_item_id === it.id))
+        return this.flash("That part is already on this truck", "err");
+      this.consForm.lines.push({
+        order_item_id: it.id, order_no: this.consPick.order_no,
+        label: it.label ?? (it.drawing_no
+          ? it.drawing_no + (it.revision ? ` rev ${it.revision}` : "")
+          : it.description),
+        pending: it.pending, unit: it.unit, qty,
+      });
+      // move to the next part still to send, or clear
+      const left = this.consPick.items.filter(
+        (x) => !this.consForm.lines.some((l) => l.order_item_id === x.id));
+      if (left.length) { this.consPick.item_id = String(left[0].id); this.pickedPart(); }
+      else this.consPick = { order_id: null, order_no: "", items: [], item_id: "", qty: "" };
+    },
+
     async addOrderToCons() {
+      if (this.consPick.order_id) {          // an order is already on screen
+        await this.pullOrderItems(this.consPick.order_id, this.consPick.order_no);
+        this.consPick = { order_id: null, order_no: "", items: [], item_id: "", qty: "" };
+        return;
+      }
       const q = this.consOrderQ.trim();
       if (!q) return;
       try {   // search server-side so stage filters/search never hide an order

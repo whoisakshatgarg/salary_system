@@ -363,23 +363,83 @@
       <div class="max-w-6xl mx-auto p-6">
         <div class="bg-white rounded-2xl shadow-sm">
 
-      <!-- stage progress -->
-      <div class="px-6 pt-4 flex flex-wrap gap-1.5">
-        <template x-for="(s, i) in detail.stages" :key="s.key">
-          <button @click="setStage(s.key)"
-                  class="px-3 py-1.5 rounded-lg text-xs font-medium border transition"
-                  :class="s.key === detail.stage
-                          ? 'bg-brand-600 text-white border-brand-600'
-                          : (detail.stages.findIndex(x => x.key === detail.stage) > i
-                             ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                             : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50')"
-                  x-text="s.label"></button>
-        </template>
+      <!-- ===================== WHERE THIS ORDER IS =====================
+           The seven stages drawn as a chain: a filled node for every stage the
+           order has passed, a ringed node for where it is now, hollow ahead.
+           The connector between two nodes is coloured only when BOTH are done,
+           so the line itself shows how far it has travelled. -->
+      <div class="px-6 pt-5 pb-1">
+        <div class="flex items-start">
+          <template x-for="(s, i) in detail.stages" :key="s.key">
+            <div class="flex items-start flex-1 last:flex-none">
+              <button @click="setStage(s.key)" :title="'Move to ' + s.label"
+                      class="flex flex-col items-center gap-1.5 group shrink-0 w-[4.5rem]">
+                <span class="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold
+                             border-2 transition"
+                      :class="stageIndex(s.key) < stageIndex(detail.stage)
+                              ? 'bg-emerald-500 border-emerald-500 text-white'
+                              : (s.key === detail.stage
+                                 ? 'bg-brand-600 border-brand-600 text-white ring-4 ring-brand-600/20'
+                                 : 'bg-white border-slate-300 text-slate-400 group-hover:border-brand-400')"
+                      x-text="stageIndex(s.key) < stageIndex(detail.stage) ? '✓' : (i + 1)"></span>
+                <span class="text-[10px] leading-tight text-center transition"
+                      :class="s.key === detail.stage ? 'text-brand-700 font-semibold'
+                              : (stageIndex(s.key) < stageIndex(detail.stage)
+                                 ? 'text-emerald-700' : 'text-slate-400 group-hover:text-slate-600')"
+                      x-text="s.label"></span>
+              </button>
+              <!-- the link between this node and the next -->
+              <span x-show="i < detail.stages.length - 1"
+                    class="h-0.5 flex-1 mt-3.5 rounded-full transition"
+                    :class="stageIndex(s.key) < stageIndex(detail.stage)
+                            ? 'bg-emerald-400' : 'bg-slate-200'"></span>
+            </div>
+          </template>
+        </div>
       </div>
 
-      <div class="p-6 grid grid-cols-2 gap-6">
-        <!-- Left: items + materials -->
-        <div class="space-y-5">
+      <!-- the four numbers you actually want at a glance -->
+      <div class="px-6 pt-4 grid grid-cols-4 gap-3">
+        <div class="bg-slate-50 rounded-xl p-3">
+          <div class="text-[11px] text-slate-500">Order value</div>
+          <div class="text-lg font-bold" x-text="money(detail.amount)"></div>
+        </div>
+        <div class="bg-slate-50 rounded-xl p-3">
+          <div class="text-[11px] text-slate-500">Ordered</div>
+          <div class="text-lg font-bold" x-text="detail.qty_total"></div>
+        </div>
+        <div class="bg-slate-50 rounded-xl p-3">
+          <div class="text-[11px] text-slate-500">Sent</div>
+          <div class="text-lg font-bold text-emerald-700" x-text="detail.qty_shipped"></div>
+        </div>
+        <div class="bg-slate-50 rounded-xl p-3">
+          <div class="text-[11px] text-slate-500">Still to send</div>
+          <div class="text-lg font-bold"
+               :class="detail.qty_pending > 0 ? 'text-amber-700' : 'text-slate-300'"
+               x-text="detail.qty_pending"></div>
+        </div>
+      </div>
+
+      <!-- ONE thing at a time: the record was a two-column wall of five
+           unrelated blocks. Segments keep each answer on its own screen. -->
+      <div class="px-6 pt-5">
+        <div class="flex gap-1 border-b">
+          <template x-for="seg in orderSegs" :key="seg.k">
+            <button @click="oseg = seg.k"
+                    class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition"
+                    :class="oseg === seg.k
+                            ? 'border-brand-600 text-brand-700'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'">
+              <span x-text="seg.label"></span>
+              <span x-show="segCount(seg.k)" class="ml-1 text-xs opacity-60"
+                    x-text="segCount(seg.k)"></span>
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <div class="p-6 grid grid-cols-1 gap-6">
+        <div class="space-y-5" x-show="oseg === 'items'">
           <div>
             <div class="font-semibold text-sm mb-2">Items
               <span class="font-normal text-slate-400" x-text="'· total ' + money(detail.amount)"></span></div>
@@ -422,7 +482,10 @@
               </tbody>
             </table>
           </div>
+        </div>
 
+        <!-- MATERIAL: what the order commits, and what left the rack -->
+        <div class="space-y-5" x-show="oseg === 'material'">
           <div>
             <!-- ============ BILL OF MATERIALS FOR THIS ORDER ============
                  The order has no BOM of its own — its PARTS do. This rolls each
@@ -538,8 +601,8 @@
           </div>
         </div>
 
-        <!-- Right: consignments + history -->
-        <div class="space-y-5">
+        <!-- SHIPMENTS + HISTORY -->
+        <div class="space-y-5" x-show="oseg === 'shipments'">
           <div>
             <div class="font-semibold text-sm mb-2">Consignments</div>
             <template x-for="cn in detail.consignments" :key="cn.id">
@@ -854,12 +917,49 @@
           <p x-show="!consForm.lines.length" class="text-xs text-slate-400 mb-1">
             No items yet — pull in an order below.
           </p>
-          <div class="flex gap-2 mt-2">
-            <input x-model="consOrderQ" @keydown.enter.prevent="addOrderToCons()"
-                   placeholder="Type an order no / PO and press Enter to add its pending items"
-                   class="flex-1 border rounded-lg px-2 py-1.5 text-xs" />
-            <button type="button" @click="addOrderToCons()"
-                    class="bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium">Add order</button>
+          <!-- Add ONE part at a time. An order split across two deliveries
+               almost never sends everything at once, so pick the part and say
+               how many of it are going. -->
+          <div class="mt-3 border rounded-xl p-3 bg-slate-50">
+            <div class="flex gap-2">
+              <input x-model="consOrderQ" @keydown.enter.prevent="findOrderForCons()"
+                     placeholder="Order no or customer PO — press Enter"
+                     class="flex-1 border rounded-lg px-2 py-1.5 text-xs" />
+              <button type="button" @click="findOrderForCons()"
+                      class="bg-white hover:bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-medium">Find</button>
+            </div>
+
+            <template x-if="consPick.items.length">
+              <div class="mt-3 flex flex-wrap items-end gap-2">
+                <div class="flex-1 min-w-[15rem]">
+                  <label class="block text-[11px] text-slate-500 mb-1">
+                    Which part of <span class="font-mono" x-text="consPick.order_no"></span> is going?
+                  </label>
+                  <select x-model="consPick.item_id" @change="pickedPart()"
+                          x-effect="consPick.item_id && $nextTick(() => $el.value = consPick.item_id)"
+                          class="border rounded-lg px-2 py-1.5 w-full text-sm bg-white">
+                    <template x-for="it in consPick.items" :key="it.id">
+                      <option :value="it.id"
+                              x-text="(it.drawing_no ? it.drawing_no + (it.revision ? ' rev ' + it.revision : '') + ' · ' : '')
+                                      + (it.description || '') + '  —  ' + it.pending + ' ' + (it.unit || '') + ' left'"></option>
+                    </template>
+                  </select>
+                </div>
+                <div class="w-28">
+                  <label class="block text-[11px] text-slate-500 mb-1">Going now</label>
+                  <input type="number" min="0" step="0.01" x-model="consPick.qty"
+                         class="border rounded-lg px-2 py-1.5 w-full text-right bg-white" />
+                </div>
+                <button type="button" @click="addPickedToCons()"
+                        class="bg-brand-600 hover:bg-brand-700 text-white rounded-lg px-3 py-2 text-xs font-medium">
+                  Add to truck
+                </button>
+                <button type="button" @click="addOrderToCons()" :title="'Add every pending part of ' + consPick.order_no"
+                        class="text-xs text-slate-500 hover:text-slate-700 underline px-1 pb-2">
+                  or add all of it
+                </button>
+              </div>
+            </template>
           </div>
           <p class="text-[11px] text-slate-400 mt-1">One truck can carry several orders — partial quantities are fine.</p>
         </div>
