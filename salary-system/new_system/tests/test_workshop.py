@@ -843,3 +843,108 @@ class OrderBillOfMaterials(WorkshopBase):
     def test_unknown_order(self):
         with self.assertRaises(ValueError):
             orders.order_bom(self.conn, 999999)
+
+
+class MaterialRequisitions(WorkshopBase):
+    """The BOM issued as a numbered, frozen document."""
+
+    def setUp(self):
+        super().setUp()
+        self.h1 = inventory.create_heat(self.conn, {
+            "heat_number": "MR-1", "date_received": "2026-08-01",
+            "material_class": "Steel", "grade": "EN8", "rods_received": 50,
+            "price_total": 225000})
+        self.did = self.drawing(drawing_no="DRG-MR")
+        parts.save_costing(self.conn, self.did, {"ops": [], "materials": [
+            {"heat_id": self.h1, "heat_number": "MR-1", "material_label": "Steel · EN8",
+             "unit": "rod", "unit_cost": 4500, "qty_per_piece": 1 / 3}]})
+        self.oid = self.order(items=[{"drawing_id": self.did, "description": "shaft",
+                                      "qty": 60, "unit": "Nos", "rate": 300}])
+
+    def test_issue_snapshots_the_rollup(self):
+        doc = orders.issue_material_doc(self.conn, self.oid,
+                                        {"issued_on": "2026-08-15"}, "admin")
+        self.assertTrue(doc["doc_no"].startswith("MRQ-26-27-"))
+        self.assertEqual(doc["issued_by"], "admin")
+        self.assertEqual(len(doc["lines"]), 1)
+        line = doc["lines"][0]
+        self.assertEqual((line["heat_number"], line["required"], line["cost"]),
+                         ("MR-1", 20.0, 90000.0))
+        self.assertEqual(line["from_parts"], "DRG-MR rev A")
+
+    def test_numbering_is_per_financial_year(self):
+        a = orders.issue_material_doc(self.conn, self.oid, {"issued_on": "2026-08-15"})
+        b = orders.issue_material_doc(self.conn, self.oid, {"issued_on": "2026-08-15"})
+        c = orders.issue_material_doc(self.conn, self.oid, {"issued_on": "2027-04-02"})
+        self.assertEqual(a["doc_no"], "MRQ-26-27-001")
+        self.assertEqual(b["doc_no"], "MRQ-26-27-002")
+        self.assertEqual(c["doc_no"], "MRQ-27-28-001")      # new FY restarts
+
+    def test_it_is_frozen(self):
+        """The whole point: paper already on the shop floor must not move."""
+        doc = orders.issue_material_doc(self.conn, self.oid, {"issued_on": "2026-08-15"})
+        parts.save_costing(self.conn, self.did, {"ops": [], "materials": [
+            {"heat_id": self.h1, "heat_number": "MR-1", "material_label": "Steel · EN8",
+             "unit": "rod", "unit_cost": 9999, "qty_per_piece": 1.0}]})
+        live = orders.order_bom(self.conn, self.oid)["summary"][0]
+        frozen = orders.get_material_doc(self.conn, doc["id"])["lines"][0]
+        self.assertEqual(live["required"], 60.0)            # the live view moved
+        self.assertEqual(frozen["required"], 20.0)          # the issued sheet did not
+        self.assertEqual(frozen["cost"], 90000.0)
+
+    def test_records_what_had_already_been_issued(self):
+        order_no = orders.get_order(self.conn, self.oid)["order_no"]
+        inventory.add_movement(self.conn, self.h1,
+                               {"type": "issue", "rods": 12, "order_id": order_no})
+        doc = orders.issue_material_doc(self.conn, self.oid, {"issued_on": "2026-08-15"})
+        self.assertEqual(doc["lines"][0]["already_issued"], 12)
+
+    def test_nothing_to_requisition_is_refused(self):
+        bare = self.order(items=[{"drawing_id": None, "description": "crate",
+                                  "qty": 1, "unit": "Nos", "rate": 1}])
+        with self.assertRaises(ValueError) as cm:
+            orders.issue_material_doc(self.conn, bare, {"issued_on": "2026-08-15"})
+        self.assertIn("Nothing to requisition", str(cm.exception))
+
+    def test_listing_and_filtering(self):
+        orders.issue_material_doc(self.conn, self.oid, {"issued_on": "2026-08-15"})
+        other = self.order(items=[{"drawing_id": self.did, "description": "shaft",
+                                   "qty": 3, "unit": "Nos", "rate": 1}])
+        orders.issue_material_doc(self.conn, other, {"issued_on": "2026-08-15"})
+        self.assertEqual(len(orders.list_material_docs(self.conn)), 2)
+        self.assertEqual(len(orders.list_material_docs(self.conn, order_id=self.oid)), 1)
+        self.assertEqual(len(orders.list_material_docs(self.conn, q="MRQ-26-27-002")), 1)
+
+    def test_printable_sheet(self):
+        doc = orders.issue_material_doc(self.conn, self.oid,
+                                        {"issued_on": "2026-08-15", "notes": "first batch"},
+                                        "admin")
+        page = orders.render_material_doc(self.conn, doc["id"])
+        self.assertIn(doc["doc_no"], page)
+        self.assertIn("Material Requisition", page)
+        self.assertIn("MR-1", page)
+        self.assertIn("first batch", page)
+        self.assertIn("Store keeper", page)
+        self.assertIn("₹90,000.00", page)        # Indian grouping on the sheet
+        self.assertIn("@page", page)             # A4 print styling
+        self.assertNotIn("<script", page)        # nothing to load, works offline
+
+    def test_print_escapes_user_text(self):
+        doc = orders.issue_material_doc(
+            self.conn, self.oid,
+            {"issued_on": "2026-08-15", "notes": "<script>alert(1)</script>"})
+        page = orders.render_material_doc(self.conn, doc["id"])
+        self.assertNotIn("<script>alert", page)
+        self.assertIn("&lt;script&gt;", page)
+
+    def test_survives_the_order_being_deleted(self):
+        doc = orders.issue_material_doc(self.conn, self.oid, {"issued_on": "2026-08-15"})
+        order_no = orders.get_order(self.conn, self.oid)["order_no"]
+        orders.delete_order(self.conn, self.oid)
+        kept = orders.get_material_doc(self.conn, doc["id"])
+        self.assertEqual(kept["order_no"], order_no)   # snapshot, not a join
+        self.assertIsNone(kept["order_id"])
+
+    def test_unknown_doc(self):
+        with self.assertRaises(ValueError):
+            orders.get_material_doc(self.conn, 999999)

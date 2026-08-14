@@ -62,6 +62,8 @@ function od() {
     addPage: false,      // the order form fills the screen for add AND edit
     plan: null,          // delivery-plan editor for one order item
     bom: null,           // what the open order commits, rolled up by heat
+    reqs: [],            // requisitions already issued against it
+    reqBusy: false,
     planError: "",
     checkOn: false,      // optional material check, off by default
     chk: { method: "dimension", material_class: "", grade: "",
@@ -120,8 +122,23 @@ function od() {
       // it just doesn't see the section rather than seeing an error.
       try { this.bom = await api(`/api/orders/${id}/bom`); }
       catch (_) { this.bom = null; }
+      try { this.reqs = (await api(`/api/orders/requisitions`))
+              .rows.filter((r) => r.order_id === id); }
+      catch (_) { this.reqs = []; }
     },
-    closeDetail() { this.detail = null; this.bom = null; this.load(); },
+    async issueReq() {
+      const id = this.detail.id;
+      this.reqBusy = true;
+      try {
+        const doc = await api(`/api/orders/${id}/bom/issue`, {
+          method: "POST", body: { issued_on: today(), notes: "" } });
+        await this.loadBom(id);
+        this.flash(`Requisition ${doc.doc_no} issued`);
+        // straight to the printable sheet — that is the point of issuing one
+        window.open(`/api/orders/requisitions/${doc.id}/print`, "_blank");
+      } catch (e) { this.fail(e); } finally { this.reqBusy = false; }
+    },
+    closeDetail() { this.detail = null; this.bom = null; this.reqs = []; this.load(); },
     async setStage(stage) {
       if (stage === this.detail.stage) return;
       const note = window.prompt(`Moving to "${this.stageLabel(stage)}" — note (optional):`, "");

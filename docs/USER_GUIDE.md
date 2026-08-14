@@ -555,6 +555,25 @@ typed in by hand instead of picked from stock. It says which, so you know what t
 fix rather than wondering why a number looks low. If a heat was issued to this
 order that no part on it calls for, that's flagged in amber.
 
+#### Issuing it to the store
+
+**📄 Issue requisition** turns that list into a real document — its own number
+(MRQ-26-27-001, restarting each financial year), and it opens ready to print.
+
+![Material requisition](guide-images/ws-requisition.jpg)
+
+It shows each heat with **Required**, **Already issued** and **To issue now**,
+the committed value, and lines to sign: issued by, store keeper, received by.
+Print it or Save as PDF — no internet, nothing to install.
+
+> The figures are **frozen** the moment you issue it. If someone re-costs the
+> drawing tomorrow, this sheet does not change — you issue a new one. That is
+> deliberate: paper already on the shop floor must mean what it said when it
+> was handed over.
+
+Every requisition you've issued for an order is listed underneath it, so you can
+reprint any of them later.
+
 ### 8.2 Planning a long order
 
 Some orders run for months and go out in instalments. Press **Plan** on any item

@@ -384,6 +384,41 @@ CREATE TABLE IF NOT EXISTS order_stage_log (
 -- the rest before the deadline". Lines hang off the ITEM, because a quantity
 -- only means something against the item it is a quantity OF. Whatever is left
 -- unplanned is derived (item qty - sum of lines), never stored.
+-- A MATERIAL REQUISITION: the bill of materials for an order, issued as a
+-- numbered document and FROZEN. Everything here is a snapshot — re-costing a
+-- drawing afterwards must not change a sheet that is already on the shop floor;
+-- you issue a new one instead. Numbered from doc_seq with kind='material',
+-- the same per-financial-year machinery as quotations and invoices.
+CREATE TABLE IF NOT EXISTS material_doc (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    doc_no        TEXT NOT NULL UNIQUE,
+    order_id      INTEGER REFERENCES customer_order(id) ON DELETE SET NULL,
+    order_no      TEXT NOT NULL,                 -- snapshot: survives order delete
+    customer_name TEXT,                          -- snapshot
+    issued_on     TEXT NOT NULL,                 -- 'YYYY-MM-DD'
+    issued_by     TEXT,
+    notes         TEXT,
+    total_cost    REAL NOT NULL DEFAULT 0,
+    created_at    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS material_doc_line (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    material_doc_id INTEGER NOT NULL REFERENCES material_doc(id) ON DELETE CASCADE,
+    heat_id         INTEGER REFERENCES heat(id) ON DELETE SET NULL,
+    heat_number     TEXT,
+    material_label  TEXT,
+    unit            TEXT,
+    required        REAL NOT NULL,
+    already_issued  REAL NOT NULL DEFAULT 0,     -- what the log showed AT ISSUE time
+    unit_cost       REAL NOT NULL DEFAULT 0,
+    cost            REAL NOT NULL DEFAULT 0,
+    from_parts      TEXT                         -- which drawings called for it
+);
+
+CREATE INDEX IF NOT EXISTS idx_material_doc_order ON material_doc(order_id);
+CREATE INDEX IF NOT EXISTS idx_material_doc_line  ON material_doc_line(material_doc_id);
+
 CREATE TABLE IF NOT EXISTS order_schedule (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     order_item_id INTEGER NOT NULL REFERENCES order_item(id) ON DELETE CASCADE,

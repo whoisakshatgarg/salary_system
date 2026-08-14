@@ -56,6 +56,24 @@ a BOM that quietly under-reports is worse than none.
 (not awaited) and fails closed, so an account without the `parts` grant sees the
 order without the section rather than an error.
 
+### Issuing it as a document
+**📄 Issue requisition** freezes that rollup into a numbered document
+(`material_doc` + `material_doc_line`, numbered from `doc_seq` with
+kind='material', format `material_number_format`, default `MRQ-{FY}-{SEQ}`).
+
+Everything is SNAPSHOTTED — heat, quantity, what had already been issued, the
+value, and which drawings called for it — because a requisition handed to the
+store keeper must not change when someone re-costs a drawing an hour later. You
+issue another one instead. `order_no` and `customer_name` are copied too, so the
+document survives its order being deleted (`order_id` goes NULL, the paper
+record stands).
+
+`POST /api/orders/{id}/bom/issue` · `GET /api/orders/requisitions[/{id}[/print]]`.
+The print view is the same dependency-free A4 HTML as quotations and invoices —
+the browser's Save-as-PDF is the PDF engine — with Required / Already issued /
+To issue now, the committed value, and three signature lines (issued by, store
+keeper, received by).
+
 ## Deadlines, delivery plans and shipment progress
 - **Deadline** (`customer_order.due_date`) is a column on the list, tinted amber
   inside a week and rose once overdue, and a chip on the order record.

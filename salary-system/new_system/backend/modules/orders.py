@@ -15,15 +15,19 @@ work. Over-shipping an item is refused.
 
 from __future__ import annotations
 
+import html
 import math
+import re
 import sqlite3
 from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from ..core.db import row_to_dict
-from ..core.deps import get_db, require_module
+from ..core.deps import current_user, get_db, require_module
+from ..core.rules import get_rules
 from . import settings as settings_mod
 
 router = APIRouter(prefix="/api/orders",
@@ -507,6 +511,214 @@ def set_schedule(conn, order_item_id: int, rows: list[dict]) -> dict:
             "unplanned": round(item["qty"] - total, 3)}
 
 
+def issue_material_doc(conn, order_id: int, data: dict, issued_by: str = "") -> dict:
+    """Issue the order's bill of materials as a NUMBERED, FROZEN document.
+
+    The on-screen rollup is live — it changes the moment anyone re-costs a
+    drawing. A requisition handed to the store keeper must not, so every figure
+    is copied in here at issue time. Re-costing later does not touch a sheet
+    that is already out; you issue another one.
+
+    Numbered from `doc_seq` with kind='material', the same per-financial-year
+    machinery as quotations and invoices.
+    """
+    bom = order_bom(conn, order_id)
+    if not bom["summary"]:
+        raise ValueError(
+            "Nothing to requisition — no part on this order prices its material "
+            "from stock yet")
+
+    issued_on = _check_date(data.get("issued_on"), "Issue date", required=True)
+    notes = _s(data.get("notes"))
+    cust = conn.execute(
+        "SELECT c.name FROM customer_order o JOIN customer c ON c.id=o.customer_id"
+        " WHERE o.id=?", (order_id,)).fetchone()
+
+    doc_no = _next_material_no(conn, date.fromisoformat(issued_on))
+
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        cur = conn.execute(
+            "INSERT INTO material_doc (doc_no, order_id, order_no, customer_name,"
+            " issued_on, issued_by, notes, total_cost, created_at)"
+            " VALUES (?,?,?,?,?,?,?,?,?)",
+            (doc_no, order_id, bom["order_no"], cust["name"] if cust else "",
+             issued_on, _s(issued_by), notes, bom["total_cost"], _now()))
+        doc_id = cur.lastrowid
+        for m in bom["summary"]:
+            conn.execute(
+                "INSERT INTO material_doc_line (material_doc_id, heat_id, heat_number,"
+                " material_label, unit, required, already_issued, unit_cost, cost,"
+                " from_parts) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (doc_id, m["heat_id"], m["heat_number"], m["material_label"],
+                 m["unit"], m["required"], m["issued"],
+                 round(m["cost"] / m["required"], 4) if m["required"] else 0,
+                 m["cost"], ", ".join(dict.fromkeys(m["from_items"]))))
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    return get_material_doc(conn, doc_id)
+
+
+def _next_material_no(conn, on: date) -> str:
+    """Per-FY sequence for material requisitions (doc_seq kind='material')."""
+    fmt = settings_mod.get_setting(conn, "material_number_format", "MRQ-{FY}-{SEQ}")
+    fy = settings_mod.fy_label(on)
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        row = conn.execute("SELECT seq FROM doc_seq WHERE kind='material' AND fy=?",
+                           (fy,)).fetchone()
+        seq = (row["seq"] if row else 0) + 1
+        conn.execute("INSERT INTO doc_seq (kind, fy, seq) VALUES ('material',?,?)"
+                     " ON CONFLICT(kind, fy) DO UPDATE SET seq=excluded.seq",
+                     (fy, seq))
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    return settings_mod.render_order_no(fmt, on, seq)
+
+
+def get_material_doc(conn, doc_id: int) -> dict:
+    row = conn.execute("SELECT * FROM material_doc WHERE id=?", (doc_id,)).fetchone()
+    if not row:
+        raise ValueError("Requisition not found")
+    d = dict(row)
+    d["lines"] = [dict(r) for r in conn.execute(
+        "SELECT * FROM material_doc_line WHERE material_doc_id=? ORDER BY id",
+        (doc_id,))]
+    return d
+
+
+def list_material_docs(conn, order_id: int | None = None, q: str = "") -> list[dict]:
+    sql = ("SELECT d.*, (SELECT COUNT(*) FROM material_doc_line l"
+           "   WHERE l.material_doc_id=d.id) AS lines"
+           " FROM material_doc d WHERE 1=1")
+    args: list = []
+    if order_id:
+        sql += " AND d.order_id=?"
+        args.append(order_id)
+    if _s(q):
+        like = f"%{_s(q)}%"
+        sql += " AND (d.doc_no LIKE ? OR d.order_no LIKE ? OR d.customer_name LIKE ?)"
+        args += [like] * 3
+    sql += " ORDER BY d.id DESC"
+    return [dict(r) for r in conn.execute(sql, args)]
+
+
+def render_material_doc(conn, doc_id: int) -> str:
+    """A4 requisition for the store keeper. Dependency-free HTML: the browser's
+    own Save-as-PDF is the PDF engine, exactly like quotations and invoices."""
+    d = get_material_doc(conn, doc_id)
+    rules = get_rules()
+    company = rules.get("company_name") or "APEX THERMOCON"
+
+    rows = []
+    for L in d["lines"]:
+        balance = round(max(L["required"] - L["already_issued"], 0), 4)
+        rows.append(
+            f"<tr><td class='mono'>{_esc(L['heat_number'])}</td>"
+            f"<td>{_esc(L['material_label'])}</td>"
+            f"<td class='r'>{_num(L['required'])} {_esc(L['unit'])}</td>"
+            f"<td class='r'>{_num(L['already_issued'])}</td>"
+            f"<td class='r b'>{_num(balance)}</td>"
+            f"<td class='r'>{_money(L['cost'])}</td></tr>"
+            f"<tr class='src'><td></td><td colspan='5'>for {_esc(L['from_parts'])}</td></tr>")
+
+    notes_block = (f"<div class='notes'><b>Notes</b><br>{_esc(d['notes'])}</div>"
+                   if d["notes"] else "")
+    issued_by = f" by {_esc(d['issued_by'])}" if d["issued_by"] else ""
+
+    return f"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<title>{_esc(d['doc_no'])} — Material Requisition</title>
+<style>
+  @page {{ size: A4; margin: 14mm; }}
+  body {{ font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+         color: #111; font-size: 12px; margin: 0; }}
+  .head {{ display: flex; justify-content: space-between; align-items: flex-start;
+          border-bottom: 2px solid #111; padding-bottom: 10px; }}
+  .co {{ font-size: 20px; font-weight: 800; letter-spacing: .01em; }}
+  .kind {{ font-size: 15px; font-weight: 700; text-transform: uppercase;
+          letter-spacing: .08em; }}
+  .no {{ font-family: ui-monospace, Menlo, monospace; font-size: 15px; font-weight: 700; }}
+  .meta {{ text-align: right; line-height: 1.5; }}
+  .for {{ margin: 14px 0 10px; line-height: 1.5; }}
+  .lbl {{ font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: #666; }}
+  table {{ width: 100%; border-collapse: collapse; margin-top: 6px; }}
+  th {{ text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: .06em;
+       color: #444; border-bottom: 1px solid #111; padding: 6px 6px; }}
+  td {{ padding: 6px; border-bottom: 1px solid #e5e5e5; vertical-align: top; }}
+  td.r, th.r {{ text-align: right; }}
+  td.b {{ font-weight: 700; }}
+  td.mono {{ font-family: ui-monospace, Menlo, monospace; font-weight: 700; }}
+  tr.src td {{ border-bottom: 1px solid #e5e5e5; font-size: 10px; color: #777;
+              padding-top: 0; }}
+  .tot {{ margin-top: 10px; text-align: right; font-size: 13px; }}
+  .notes {{ margin-top: 14px; font-size: 11px; line-height: 1.5; }}
+  .sign {{ margin-top: 34px; display: flex; gap: 40px; }}
+  .sign div {{ flex: 1; border-top: 1px solid #111; padding-top: 5px; font-size: 10px;
+              color: #444; }}
+  .frozen {{ margin-top: 18px; font-size: 10px; color: #666; border-top: 1px dashed #bbb;
+            padding-top: 8px; }}
+  @media screen {{ body {{ max-width: 820px; margin: 24px auto; padding: 0 16px; }} }}
+</style></head><body>
+<div class="head">
+  <div><div class="co">{_esc(company)}</div>
+       <div class="kind">Material Requisition</div></div>
+  <div class="meta"><div class="no">{_esc(d['doc_no'])}</div>
+       <div>Issued {_esc(d['issued_on'])}{issued_by}</div></div>
+</div>
+
+<div class="for">
+  <span class="lbl">Against order</span><br>
+  <b class="no">{_esc(d['order_no'])}</b> &nbsp; {_esc(d['customer_name'] or '')}
+</div>
+
+<table>
+  <thead><tr>
+    <th>Heat</th><th>Material</th><th class="r">Required</th>
+    <th class="r">Already issued</th><th class="r">To issue now</th><th class="r">Value</th>
+  </tr></thead>
+  <tbody>{''.join(rows)}</tbody>
+</table>
+
+<div class="tot">Committed value <b>{_money(d['total_cost'])}</b></div>
+{notes_block}
+
+<div class="sign">
+  <div>Issued by</div><div>Store keeper</div><div>Received by</div>
+</div>
+
+<div class="frozen">
+  These figures were frozen when this requisition was issued. Re-costing a
+  drawing afterwards does not change this sheet — a new requisition is issued
+  instead.
+</div>
+</body></html>"""
+
+
+def _esc(v) -> str:
+    return html.escape(str(v or ""), quote=False)
+
+
+def _num(v) -> str:
+    f = float(v or 0)
+    return f"{f:.4f}".rstrip("0").rstrip(".") or "0"
+
+
+def _money(v) -> str:
+    """Indian grouping, e.g. 12,34,567.89 — the printed sheet must read locally."""
+    f = float(v or 0)
+    whole, dec = f"{abs(f):.2f}".split(".")
+    if len(whole) > 3:
+        head, tail = whole[:-3], whole[-3:]
+        head = re.sub(r"(\d)(?=(\d\d)+$)", r"\1,", head)
+        whole = f"{head},{tail}"
+    return ("-" if f < 0 else "") + "\u20b9" + whole + "." + dec
+
+
 def deadlines(conn, today: str = "") -> dict:
     """Orders whose delivery date is close, for the Home warning panel.
 
@@ -716,6 +928,11 @@ class ScheduleIn(BaseModel):
     lines: list[ScheduleLine] = []
 
 
+class RequisitionIn(BaseModel):
+    issued_on: str = ""          # blank = today
+    notes: str = ""
+
+
 def _400(fn, *args, **kw):
     try:
         return fn(*args, **kw)
@@ -790,6 +1007,34 @@ def order_deadlines(conn=Depends(get_db)):
 def item_schedule(order_item_id: int, body: ScheduleIn, conn=Depends(get_db)):
     return _400(set_schedule, conn, order_item_id,
                 [r.model_dump() for r in body.lines])
+
+
+@router.get("/requisitions")
+def requisitions(q: str = "", conn=Depends(get_db)):
+    """Every material requisition issued, newest first."""
+    return {"rows": list_material_docs(conn, q=q)}
+
+
+@router.get("/requisitions/{doc_id}")
+def requisition_detail(doc_id: int, conn=Depends(get_db)):
+    return _400(get_material_doc, conn, doc_id)
+
+
+@router.get("/requisitions/{doc_id}/print", response_class=HTMLResponse)
+def requisition_print(doc_id: int, conn=Depends(get_db)):
+    """A4 sheet for the store keeper — print or Save as PDF from the browser."""
+    try:
+        return HTMLResponse(render_material_doc(conn, doc_id))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/{order_id}/bom/issue")
+def order_bom_issue(order_id: int, body: RequisitionIn,
+                    user: dict = Depends(current_user), conn=Depends(get_db)):
+    """Freeze the order's bill of materials into a numbered requisition."""
+    return _400(issue_material_doc, conn, order_id, body.model_dump(),
+                user.get("username", ""))
 
 
 @router.get("/{order_id}/bom")

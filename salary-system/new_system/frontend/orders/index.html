@@ -496,6 +496,33 @@
               </div>
             </template>
 
+            <!-- issue it as a numbered, frozen document -->
+            <div class="flex items-center gap-2 mb-4" x-show="bom && bom.summary.length">
+              <button @click="issueReq()" :disabled="reqBusy"
+                      class="bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+                      x-text="reqBusy ? 'Issuing…' : '📄 Issue requisition'"></button>
+              <span class="text-[11px] text-slate-400">
+                Numbered and frozen — hand it to the store keeper.
+              </span>
+            </div>
+
+            <template x-if="reqs.length">
+              <div class="mb-4">
+                <div class="font-semibold text-sm mb-1.5">Requisitions issued</div>
+                <template x-for="r in reqs" :key="r.id">
+                  <div class="flex items-center gap-2 text-sm py-1.5 border-b last:border-0">
+                    <span class="font-mono text-xs font-semibold text-brand-700" x-text="r.doc_no"></span>
+                    <span class="text-xs text-slate-500" x-text="fmtDate(r.issued_on)"></span>
+                    <span class="text-xs text-slate-400" x-text="r.lines + ' line(s)'"></span>
+                    <span class="text-xs text-slate-400" x-show="r.issued_by" x-text="'by ' + r.issued_by"></span>
+                    <span class="ml-auto text-xs" x-text="money(r.total_cost)"></span>
+                    <a :href="'/api/orders/requisitions/' + r.id + '/print'" target="_blank"
+                       class="text-brand-700 hover:underline text-xs">Print</a>
+                  </div>
+                </template>
+              </div>
+            </template>
+
             <div class="font-semibold text-sm mb-2">Material actually issued (usage log)</div>
             <template x-for="(h, i) in detail.heats" :key="i">
               <div class="flex items-center gap-2 text-sm py-1 border-b last:border-0">

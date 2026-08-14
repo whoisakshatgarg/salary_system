@@ -258,4 +258,12 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   is named so it can be traced. Items that cannot contribute (no drawing, no
   costing, hand-typed material cost) are listed with the reason — a rollup that
   silently under-reports material is worse than no rollup.
+- **A material requisition is issued and frozen, not rendered live.** The
+  on-screen rollup is derived and moves whenever a drawing is re-costed; a sheet
+  in the store keeper's hand must not. So issuing copies every figure into
+  `material_doc`/`material_doc_line` under its own per-FY number, and re-costing
+  afterwards produces a NEW requisition rather than altering the old one. The
+  order number and customer name are snapshotted too, so the document outlives a
+  deleted order. This is the same reasoning as snapshotting rates into a costing,
+  applied to a piece of paper that leaves the office.
 
