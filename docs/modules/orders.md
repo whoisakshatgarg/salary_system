@@ -83,7 +83,15 @@ keeper, received by).
   something against the item it is a quantity OF. **What is left unplanned is
   derived** (`item qty − Σ lines`), never stored, so the two cannot drift; the
   plan is refused if it adds up to more than the item.
-- **Shipments tab** — per-order fulfilment: ordered / sent / remaining with a
+- **Deliveries** (on the order record) — one card per planned drop with its own
+  progress bar and its own **Ship this** button, which opens the consignment
+  form with that part chosen and that drop's outstanding quantity filled in.
+  What has actually shipped is poured into the drops in due-date order
+  (`_allocate_drops`), so over-shipping one closes it and rolls the surplus into
+  the next — **the later drops need less without anyone editing the plan**.
+  Anything left after every drop is full is reported as `over_delivered`. An
+  item with no plan appears as a single card for its whole quantity.
+- **Shipments tab** (the module-level list) — per-order fulfilment: ordered / sent / remaining with a
   progress bar, filtered by default to orders that still owe something. `sent`
   sums `consignment_line` across every consignment, so an order delivered in six
   instalments over four months reads correctly.

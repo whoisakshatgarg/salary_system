@@ -297,4 +297,12 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   nothing rather than everything. A `pageshow` handler re-runs the decision when
   the browser restores the page from bfcache, since the restored DOM carries a
   decision made under a session that may since have ended.
+- **Deliveries are matched to planned drops by allocation, not by a link.** A
+  consignment line records a quantity, not an intention, and asking the user
+  which drop a lorry was "for" would invite a lie. So an item's shipped total is
+  poured into its drops earliest-first. That is what makes over-shipping behave:
+  send 300 against a 250 drop and the first closes while 50 lands on the second,
+  which now needs 100 instead of 150 — the later plans update themselves rather
+  than the user rewriting them. No `order_schedule_id` on consignment_line, and
+  nothing to keep in step.
 

@@ -303,6 +303,7 @@ def get_order(conn, order_id: int) -> dict:
         it["planned"] = round(planned, 3)
         # what no delivery date has been promised for yet
         it["unplanned"] = round(it["qty"] - planned, 3)
+        it["over_delivered"] = _allocate_drops(it["schedule"], it["shipped"])
         o["items"].append(it)
     o["amount"] = round(sum(i["amount"] for i in o["items"]), 2)
     o["qty_total"] = round(sum(i["qty"] for i in o["items"]), 3)
@@ -463,6 +464,33 @@ def order_bom(conn, order_id: int) -> dict:
         "total_cost": round(sum(a["cost"] for a in summary), 2),
         "items_without_bom": sum(1 for i in items_out if i["reason"]),
     }
+
+
+def _allocate_drops(schedule: list[dict], shipped: float) -> float:
+    """Spread what has ACTUALLY shipped across the planned drops, earliest first.
+
+    Nothing records which drop a consignment was meant for, and asking would be
+    a lie anyway — a lorry leaves with a quantity, not with an intention. So the
+    order's shipped total is poured into the drops in due-date order: fill the
+    first, overflow into the second, and so on.
+
+    That is also what makes an over-delivery behave sensibly. Ship 300 against a
+    250 drop and the first drop closes while the extra 50 lands on the next one,
+    which now needs 50 fewer — the later plans update themselves instead of the
+    user having to rewrite them. Anything left after every drop is full is
+    returned as over_delivered.
+
+    Mutates each row in place, adding delivered / remaining / pct.
+    """
+    left = max(shipped or 0, 0)
+    for s in schedule:
+        take = min(left, s["qty"])
+        left = round(left - take, 6)
+        s["delivered"] = round(take, 3)
+        s["remaining"] = round(s["qty"] - take, 3)
+        s["pct"] = round(take / s["qty"] * 100) if s["qty"] else 0
+        s["done"] = s["remaining"] <= 0
+    return round(left, 3)
 
 
 def set_schedule(conn, order_item_id: int, rows: list[dict]) -> dict:

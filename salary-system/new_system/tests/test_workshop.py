@@ -948,3 +948,60 @@ class MaterialRequisitions(WorkshopBase):
     def test_unknown_doc(self):
         with self.assertRaises(ValueError):
             orders.get_material_doc(self.conn, 999999)
+
+
+class DropAllocation(WorkshopBase):
+    """What has shipped is poured into the planned drops, earliest first."""
+
+    def _plan(self, *drops):
+        return [{"qty": q, "due_date": d} for d, q in drops]
+
+    def test_fills_in_date_order(self):
+        rows = self._plan(("2026-09-05", 250), ("2026-09-19", 150), ("2026-11-30", 200))
+        over = orders._allocate_drops(rows, 300)
+        self.assertEqual([r["delivered"] for r in rows], [250.0, 50.0, 0.0])
+        self.assertEqual([r["remaining"] for r in rows], [0.0, 100.0, 200.0])
+        self.assertEqual([r["pct"] for r in rows], [100, 33, 0])
+        self.assertEqual([r["done"] for r in rows], [True, False, False])
+        self.assertEqual(over, 0)
+
+    def test_over_shipping_one_drop_reduces_the_next(self):
+        """The behaviour the owner asked for: a bigger delivery than planned
+        updates the later plans instead of needing them rewritten."""
+        rows = self._plan(("2026-09-05", 250), ("2026-09-19", 150))
+        orders._allocate_drops(rows, 300)
+        self.assertEqual(rows[1]["remaining"], 100.0)   # was 150 to go, now 100
+
+    def test_surplus_beyond_every_drop_is_reported(self):
+        rows = self._plan(("2026-09-05", 250), ("2026-09-19", 150))
+        self.assertEqual(orders._allocate_drops(rows, 700), 300.0)
+        self.assertTrue(all(r["done"] for r in rows))
+
+    def test_nothing_shipped(self):
+        rows = self._plan(("2026-09-05", 250))
+        self.assertEqual(orders._allocate_drops(rows, 0), 0)
+        self.assertEqual(rows[0]["delivered"], 0)
+        self.assertEqual(rows[0]["pct"], 0)
+
+    def test_no_plan_at_all(self):
+        self.assertEqual(orders._allocate_drops([], 120), 120.0)
+
+    def test_a_zero_quantity_drop_does_not_divide_by_zero(self):
+        rows = [{"qty": 0, "due_date": "2026-09-05"}]
+        orders._allocate_drops(rows, 10)
+        self.assertEqual(rows[0]["pct"], 0)
+
+    def test_it_reaches_the_order_record(self):
+        oid = self.order(items=[{"description": "Flange", "qty": 600,
+                                 "unit": "Nos", "rate": 1}])
+        item = orders.get_order(self.conn, oid)["items"][0]
+        orders.set_schedule(self.conn, item["id"], [
+            {"due_date": "2026-09-05", "qty": 250},
+            {"due_date": "2026-09-19", "qty": 150},
+            {"due_date": "2026-11-30", "qty": 200}])
+        orders.create_consignment(self.conn, {
+            "consign_date": "2026-09-01", "lr_no": "LR-1",
+            "lines": [{"order_item_id": item["id"], "qty": 300}]})
+        it = orders.get_order(self.conn, oid)["items"][0]
+        self.assertEqual([s["delivered"] for s in it["schedule"]], [250.0, 50.0, 0.0])
+        self.assertEqual(it["over_delivered"], 0)

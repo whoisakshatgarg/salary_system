@@ -188,6 +188,50 @@ function od() {
       return 0;
     },
 
+    // ---- deliveries ---------------------------------------------------------- //
+    // One row per planned drop, flattened across items. An item with no plan
+    // shows as a single row for the whole quantity, so every order has
+    // something to ship against.
+    shipRows() {
+      const out = [];
+      for (const it of (this.detail?.items || [])) {
+        const part = it.drawing_no
+          ? it.drawing_no + (it.revision ? ` rev ${it.revision}` : "")
+          : (it.description || "item");
+        if (!it.schedule.length) {
+          out.push({
+            key: `i${it.id}`, item: it, drop: null, title: part,
+            subtitle: it.description && it.drawing_no ? it.description : "no delivery plan",
+            qty: it.qty, delivered: it.shipped, remaining: it.pending,
+            pct: it.qty ? Math.round(it.shipped / it.qty * 100) : 0,
+            done: it.pending <= 0,
+          });
+          continue;
+        }
+        it.schedule.forEach((s, n) => out.push({
+          key: `s${s.id}`, item: it, drop: s,
+          title: `${part} · drop ${n + 1} of ${it.schedule.length}`,
+          subtitle: [s.note, "by " + this.fmtDate(s.due_date)].filter(Boolean).join(" · "),
+          qty: s.qty, delivered: s.delivered, remaining: s.remaining,
+          pct: s.pct, done: s.done,
+        }));
+      }
+      return out;
+    },
+    overDelivered() {
+      return (this.detail?.items || [])
+        .reduce((n, i) => n + (i.over_delivered || 0), 0) || 0;
+    },
+    // Ship exactly this drop: the form opens with that part chosen and the
+    // drop's outstanding quantity filled in.
+    async shipDrop(row) {
+      await this.newCons(this.detail);
+      const it = (this.consPick.items || []).find((x) => x.id === row.item.id);
+      if (!it) return this.flash("That part has nothing left to send", "err");
+      this.consPick.item_id = String(it.id);
+      this.consPick.qty = Math.min(row.remaining, it.pending);
+    },
+
     // position of a stage in the pipeline — drives the chain visual
     stageIndex(key) {
       return (this.detail?.stages || []).findIndex((s) => s.key === key);

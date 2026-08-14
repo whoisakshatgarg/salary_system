@@ -353,8 +353,6 @@
               :class="dueChipClass(detail.due_date)"
               x-text="dueLabel(detail.due_date)"></span>
         <div class="ml-auto flex gap-2">
-          <button @click="newCons(detail); tab = 'orders'"
-                  class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm">🚚 Ship</button>
           <button @click="editOrder()" class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm">Edit</button>
           <button @click="removeOrder()" class="border border-rose-400/60 text-rose-300 hover:bg-rose-900/40 px-3 py-1.5 rounded-lg text-sm">Delete</button>
         </div>
@@ -492,47 +490,49 @@
                  item's costing up by heat: what the order commits us to, what
                  has actually been issued, and what is still to come off the
                  rack. -->
-            <div class="flex items-center mb-2">
-              <div class="font-semibold text-sm">Bill of materials — what this order commits</div>
-              <span class="ml-auto text-xs text-slate-400" x-show="bom"
+            <div class="flex items-baseline gap-3 mb-3">
+              <div class="font-semibold text-sm">Bill of materials</div>
+              <span class="text-[11px] text-slate-400">what this order commits</span>
+              <span class="ml-auto text-sm font-bold" x-show="bom"
                     x-text="money(bom?.total_cost ?? 0)"></span>
             </div>
             <template x-if="bom && bom.summary.length">
               <div class="overflow-auto mb-2">
                 <table class="w-full text-sm">
-                  <thead class="text-slate-500 text-xs uppercase tracking-wide border-b">
+                  <thead class="text-slate-400 text-[10px] uppercase tracking-wide border-b">
                     <tr>
-                      <th class="text-left pb-1.5">Heat</th>
-                      <th class="text-left pb-1.5">Material</th>
-                      <th class="text-right pb-1.5 pr-3">Needs</th>
-                      <th class="text-right pb-1.5 pr-3">Issued</th>
-                      <th class="text-right pb-1.5 pr-3">Still to issue</th>
-                      <th class="text-right pb-1.5">Value</th>
+                      <th class="text-left pb-2">Material</th>
+                      <th class="text-right pb-2 pr-4">Needs</th>
+                      <th class="text-right pb-2 pr-4">Issued</th>
+                      <th class="text-right pb-2 pr-4">To issue</th>
+                      <th class="text-right pb-2">Value</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody class="divide-y divide-slate-100">
                     <template x-for="m in bom.summary" :key="m.heat_number + m.unit">
-                      <tr class="border-b last:border-0">
-                        <td class="py-1.5 font-mono text-xs font-semibold text-brand-700"
-                            x-text="m.heat_number"></td>
-                        <td class="py-1.5 text-xs text-slate-500" x-text="m.material_label"></td>
-                        <td class="py-1.5 text-right pr-3 whitespace-nowrap"
-                            x-text="m.required + ' ' + m.unit"></td>
-                        <td class="py-1.5 text-right pr-3 text-emerald-700" x-text="m.issued"></td>
-                        <td class="py-1.5 text-right pr-3 font-semibold"
+                      <tr>
+                        <td class="py-2.5">
+                          <div class="font-mono text-xs font-semibold text-brand-700"
+                               x-text="m.heat_number"></div>
+                          <div class="text-[11px] text-slate-400" x-text="m.material_label"></div>
+                        </td>
+                        <td class="py-2.5 text-right pr-4 whitespace-nowrap tabular-nums">
+                          <span class="font-medium" x-text="m.required"></span>
+                          <span class="text-slate-400 text-xs" x-text="m.unit"></span>
+                        </td>
+                        <td class="py-2.5 text-right pr-4 tabular-nums"
+                            :class="m.issued ? 'text-emerald-700' : 'text-slate-300'"
+                            x-text="m.issued"></td>
+                        <td class="py-2.5 text-right pr-4 tabular-nums font-semibold"
                             :class="m.outstanding > 0 ? 'text-amber-700' : 'text-slate-300'"
                             x-text="m.outstanding"></td>
-                        <td class="py-1.5 text-right" x-text="money(m.cost)"></td>
+                        <td class="py-2.5 text-right tabular-nums" x-text="money(m.cost)"></td>
                       </tr>
                     </template>
                   </tbody>
                 </table>
-                <p class="text-[11px] text-slate-400 mt-1.5">
-                  Worked out from each part's latest costing × the quantity ordered.
-                  <span x-show="bom.items_without_bom">
-                    <b x-text="bom.items_without_bom"></b> item(s) contribute nothing —
-                    see below.
-                  </span>
+                <p class="text-[11px] text-slate-400 mt-2">
+                  From each part's latest costing × the quantity ordered.
                 </p>
               </div>
             </template>
@@ -542,18 +542,18 @@
                 of materials to a drawing's costing in Parts &amp; Pricing.
               </p>
             </template>
-            <template x-if="bom">
-              <div class="mb-4">
+            <template x-if="bom && (bom.items_without_bom || bom.unexpected_issues.length)">
+              <div class="mb-4 mt-2 rounded-lg bg-slate-50 px-3 py-2 space-y-0.5">
                 <template x-for="it in bom.items.filter(i => i.reason)" :key="it.item_id">
-                  <div class="text-[11px] text-slate-400 py-0.5">
-                    <span class="font-medium" x-text="it.label"></span> —
-                    <span x-text="it.reason"></span>
+                  <div class="text-[11px] text-slate-500">
+                    <span class="font-medium text-slate-600" x-text="it.label"></span>
+                    <span x-text="' — ' + it.reason"></span>
                   </div>
                 </template>
                 <template x-for="u in bom.unexpected_issues" :key="u.heat_number">
-                  <div class="text-[11px] text-amber-700 py-0.5">
-                    <span class="font-mono" x-text="u.heat_number"></span> was issued to this
-                    order but no part on it calls for that heat.
+                  <div class="text-[11px] text-amber-700">
+                    <span class="font-mono" x-text="u.heat_number"></span>
+                    was issued here but no part calls for it
                   </div>
                 </template>
               </div>
@@ -603,6 +603,73 @@
 
         <!-- SHIPMENTS + HISTORY -->
         <div class="space-y-5" x-show="oseg === 'shipments'">
+
+          <!-- ================= THE DELIVERIES THIS ORDER IS SPLIT INTO ==========
+               One card per planned drop, each with its own progress and its own
+               Ship button. What has actually shipped is poured into the drops in
+               date order, so over-shipping one closes it and rolls the surplus
+               into the next — the later drops need less without anyone editing
+               the plan. An item with no plan appears as a single card. -->
+          <div>
+            <div class="flex items-center mb-2">
+              <div class="font-semibold text-sm">Deliveries</div>
+              <span class="ml-auto text-xs text-slate-400"
+                    x-text="detail.qty_shipped + ' of ' + detail.qty_total + ' sent'"></span>
+            </div>
+
+            <div class="space-y-2">
+              <template x-for="r in shipRows()" :key="r.key">
+                <div class="border rounded-xl p-3"
+                     :class="r.done ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200'">
+                  <div class="flex items-center gap-3">
+                    <div class="min-w-0">
+                      <div class="text-sm font-medium truncate" x-text="r.title"></div>
+                      <div class="text-[11px] text-slate-500" x-text="r.subtitle"></div>
+                    </div>
+                    <div class="ml-auto text-right shrink-0">
+                      <div class="text-sm">
+                        <span class="font-bold" :class="r.done ? 'text-emerald-700' : ''"
+                              x-text="r.delivered"></span>
+                        <span class="text-slate-400" x-text="' / ' + r.qty"></span>
+                      </div>
+                      <div class="text-[11px]"
+                           :class="r.remaining > 0 ? 'text-amber-700' : 'text-slate-400'"
+                           x-text="r.remaining > 0 ? (r.remaining + ' to go') : 'complete'"></div>
+                    </div>
+                    <button x-show="r.remaining > 0" @click="shipDrop(r)"
+                            class="shrink-0 bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium">
+                      🚚 Ship this
+                    </button>
+                  </div>
+                  <div class="h-1.5 rounded-full bg-slate-100 overflow-hidden mt-2.5">
+                    <div class="h-full rounded-full transition-all"
+                         :class="r.done ? 'bg-emerald-500' : 'bg-brand-600'"
+                         :style="'width:' + Math.min(r.pct, 100) + '%'"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <p x-show="!shipRows().length" class="text-xs text-slate-400">
+              Nothing on this order yet.
+            </p>
+            <template x-if="overDelivered()">
+              <p class="text-[11px] text-amber-700 mt-2">
+                <b x-text="overDelivered()"></b> sent beyond everything planned — the
+                plan may need another line.
+              </p>
+            </template>
+            <div class="mt-3">
+              <button @click="newCons(detail)"
+                      class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-medium">
+                🚚 Ship something else
+              </button>
+              <span class="text-[11px] text-slate-400 ml-2">
+                a mixed truck, or a part with no plan
+              </span>
+            </div>
+          </div>
+
           <div>
             <div class="font-semibold text-sm mb-2">Consignments</div>
             <template x-for="cn in detail.consignments" :key="cn.id">
@@ -616,7 +683,7 @@
               </div>
             </template>
             <p x-show="!detail.consignments.length" class="text-xs text-slate-400">
-              Nothing shipped yet — the 🚚 Ship button starts a consignment.
+              Nothing shipped yet — use a Ship button above.
             </p>
           </div>
 

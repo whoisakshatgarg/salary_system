@@ -602,7 +602,23 @@ than the item quantity; the app will say so.
 The button on the item row then shows how many drops are planned, so you can see
 at a glance which items have a schedule and which don't.
 
-### 8.3 Shipments — what do we still owe?
+### 8.3 Sending it out, drop by drop
+
+The **Shipments & history** tab shows the order broken into the deliveries you
+planned, each with its own progress bar and its own **🚚 Ship this** button.
+
+Press it and the consignment form opens with that part already chosen and that
+drop's outstanding quantity filled in — you only have to add the lorry details.
+
+> **Sending more than planned is fine.** If a drop was for 250 and you send 300,
+> that drop closes and the extra 50 counts towards the next one, which now needs
+> 100 instead of 150. You never have to go back and rewrite the plan.
+
+A completed drop turns green and loses its button. If you send more than the
+whole plan accounts for, a note tells you so. **Ship something else** is there
+for a mixed lorry carrying several orders, or a part with no plan at all.
+
+### 8.4 Shipments — what do we still owe?
 
 The **Shipments** tab is the answer to *"how much of this order is still to go?"*
 
