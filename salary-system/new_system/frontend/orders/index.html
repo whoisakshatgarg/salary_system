@@ -150,32 +150,55 @@
                 <th class="text-right px-3 py-3">Ordered</th>
                 <th class="text-right px-3 py-3">Sent</th>
                 <th class="text-right px-3 py-3">Remaining</th>
-                <th class="px-3 py-3 w-40">Progress</th>
+                <th class="px-3 py-3 w-56">Deliveries</th>
                 <th class="text-left px-3 py-3">Deadline</th>
                 <th class="text-left px-3 py-3">Stage</th>
               </tr>
             </thead>
-            <tbody class="divide-y">
-              <template x-for="o in shipmentRows()" :key="o.id">
+
+            <!-- ============ ONE BAR PER DELIVERY, NOT ONE PER ORDER ==========
+                 An order that ships in three drops is three separate jobs, so
+                 the Progress column is a strip of separate bars — each segment
+                 as wide as the quantity it covers, filled by its own progress.
+                 A single averaged bar hides that drop 1 closed while drop 3 has
+                 not started. The chevron expands the row into the same drops
+                 written out with their dates.
+                 A tbody per order: two sibling <tr>s cannot share one x-for. -->
+            <template x-for="o in shipmentRows()" :key="o.id">
+              <tbody class="border-t">
                 <tr @click="open(o.id)" class="hover:bg-brand-600/5 cursor-pointer">
-                  <td class="px-4 py-2.5 font-semibold text-brand-700 font-mono text-xs" x-text="o.order_no"></td>
-                  <td class="px-3 py-2.5">
+                  <td class="px-4 py-2.5 font-semibold text-brand-700 font-mono text-xs whitespace-nowrap">
+                    <button @click.stop="toggleRow(o.id)"
+                            class="text-slate-300 hover:text-slate-600 mr-1 w-4 inline-block text-center"
+                            :class="expanded[o.id] ? 'text-slate-600' : ''"
+                            :title="expanded[o.id] ? 'Hide deliveries' : 'Show each delivery'"
+                            x-text="expanded[o.id] ? '▾' : '▸'"></button>
+                    <span x-text="o.order_no"></span>
+                  </td>
+                  <td class="px-3 py-2.5 whitespace-nowrap">
                     <span class="font-mono text-slate-400 text-xs mr-1" x-text="o.customer_code"></span>
                     <span x-text="o.customer_name"></span>
                   </td>
-                  <td class="px-3 py-2.5 text-slate-500" x-text="o.customer_po || '—'"></td>
-                  <td class="px-3 py-2.5 text-right" x-text="o.qty_total"></td>
-                  <td class="px-3 py-2.5 text-right text-emerald-700 font-medium" x-text="o.qty_shipped"></td>
-                  <td class="px-3 py-2.5 text-right font-bold"
+                  <td class="px-3 py-2.5 text-slate-500 whitespace-nowrap" x-text="o.customer_po || '—'"></td>
+                  <td class="px-3 py-2.5 text-right tabular-nums" x-text="o.qty_total"></td>
+                  <td class="px-3 py-2.5 text-right text-emerald-700 font-medium tabular-nums" x-text="o.qty_shipped"></td>
+                  <td class="px-3 py-2.5 text-right font-bold tabular-nums"
                       :class="o.qty_pending > 0 ? 'text-amber-700' : 'text-slate-300'"
                       x-text="o.qty_pending"></td>
                   <td class="px-3 py-2.5">
-                    <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
-                      <div class="h-full rounded-full"
-                           :class="o.pct_shipped >= 100 ? 'bg-emerald-500' : 'bg-brand-600'"
-                           :style="'width:' + Math.min(o.pct_shipped, 100) + '%'"></div>
+                    <div class="flex items-center gap-0.5">
+                      <template x-for="(d, i) in o.drops" :key="i">
+                        <div class="h-2 rounded-full bg-slate-100 overflow-hidden shrink-0"
+                             :style="'width:calc(' + segWidth(o, d) + '% - 2px)'"
+                             :title="d.label + ' — ' + d.delivered + ' of ' + d.qty
+                                     + (d.due_date ? ', by ' + fmtDate(d.due_date) : '')">
+                          <div class="h-full rounded-full" :class="segFill(d)"
+                               :style="'width:' + Math.min(d.pct, 100) + '%'"></div>
+                        </div>
+                      </template>
                     </div>
-                    <div class="text-[11px] text-slate-400 mt-0.5" x-text="o.pct_shipped + '%'"></div>
+                    <div class="text-[11px] text-slate-400 mt-0.5 whitespace-nowrap"
+                         x-text="o.pct_shipped + '%' + dropNote(o)"></div>
                   </td>
                   <td class="px-3 py-2.5 whitespace-nowrap">
                     <span :class="dueClass(o.due_date)" class="px-2 py-0.5 rounded"
@@ -186,7 +209,37 @@
                           :class="stageClass(o.stage)" x-text="stageLabel(o.stage)"></span>
                   </td>
                 </tr>
-              </template>
+                <tr x-show="expanded[o.id]" class="bg-slate-50/70">
+                  <td colspan="9" class="px-4 pb-3 pt-1">
+                    <template x-for="(d, i) in o.drops" :key="i">
+                      <div class="flex items-center gap-3 py-1.5">
+                        <div class="w-64 shrink-0 text-xs">
+                          <span class="font-medium" x-text="d.label"></span>
+                          <span class="text-slate-400" x-text="' · ' + d.part"></span>
+                          <div class="text-[11px] text-slate-400"
+                               x-text="(d.due_date ? 'by ' + fmtDate(d.due_date) : 'no date promised')
+                                       + (d.note ? ' · ' + d.note : '')"></div>
+                        </div>
+                        <div class="flex-1 h-2 rounded-full bg-slate-200/70 overflow-hidden">
+                          <div class="h-full rounded-full" :class="segFill(d)"
+                               :style="'width:' + Math.min(d.pct, 100) + '%'"></div>
+                        </div>
+                        <div class="w-32 shrink-0 text-right text-xs tabular-nums">
+                          <span class="font-semibold"
+                                :class="d.done ? 'text-emerald-700' : ''" x-text="d.delivered"></span>
+                          <span class="text-slate-400" x-text="' / ' + d.qty"></span>
+                          <span class="ml-1 text-[11px]"
+                                :class="d.remaining > 0 ? 'text-amber-700' : 'text-slate-300'"
+                                x-text="d.remaining > 0 ? '(' + d.remaining + ' left)' : '✓'"></span>
+                        </div>
+                      </div>
+                    </template>
+                  </td>
+                </tr>
+              </tbody>
+            </template>
+
+            <tbody>
               <tr x-show="!shipmentRows().length">
                 <td colspan="9" class="px-4 py-10 text-center text-slate-400">
                   Nothing outstanding — every order has been sent in full.
@@ -453,31 +506,60 @@
                   <th class="py-2 text-right">Plan</th>
                 </tr>
               </thead>
-              <tbody>
-                <template x-for="it in detail.items" :key="it.id">
-                  <tr class="border-b last:border-0">
+              <!-- A tbody per item so the item's row and its delivery bars can
+                   sit together: sibling <tr>s cannot share one x-for. -->
+              <template x-for="it in detail.items" :key="it.id">
+                <tbody class="border-b last:border-0">
+                  <tr>
                     <td class="py-2 pr-2">
                       <div class="font-medium" x-text="it.drawing_no ? (it.drawing_no + ' rev ' + it.revision) : it.description"></div>
                       <div x-show="it.drawing_no && it.description" class="text-xs text-slate-400" x-text="it.description"></div>
                     </td>
-                    <td class="py-2 pr-2 text-right whitespace-nowrap" x-text="it.qty + ' ' + it.unit"></td>
-                    <td class="py-2 pr-2 text-right"
+                    <td class="py-2 pr-2 text-right whitespace-nowrap tabular-nums" x-text="it.qty + ' ' + it.unit"></td>
+                    <td class="py-2 pr-2 text-right tabular-nums"
                         :class="it.shipped >= it.qty ? 'text-emerald-600 font-medium' : 'text-slate-500'"
                         x-text="it.shipped"></td>
-                    <td class="py-2 pr-2 text-right font-medium"
+                    <td class="py-2 pr-2 text-right font-medium tabular-nums"
                         :class="it.pending > 0 ? 'text-amber-700' : 'text-slate-300'"
                         x-text="it.pending"></td>
-                    <td class="py-2 pr-2 text-right" x-text="money(it.rate)"></td>
-                    <td class="py-2 pr-2 text-right font-medium" x-text="money(it.amount)"></td>
+                    <td class="py-2 pr-2 text-right tabular-nums" x-text="money(it.rate)"></td>
+                    <td class="py-2 pr-2 text-right font-medium tabular-nums" x-text="money(it.amount)"></td>
                     <td class="py-2 text-right">
                       <button @click="openPlan(it)"
                               class="px-2 py-1 rounded-lg text-xs font-medium border"
                               :class="it.schedule.length ? 'border-brand-600 text-brand-700 bg-brand-50' : 'border-slate-300 text-slate-500 hover:bg-slate-50'"
-                              x-text="it.schedule.length ? (it.schedule.length + ' drop(s)') : 'Plan'"></button>
+                              x-text="it.schedule.length ? ('Edit ' + it.schedule.length + ' drop(s)') : 'Plan deliveries'"></button>
                     </td>
                   </tr>
-                </template>
-              </tbody>
+                  <!-- the plan itself: one bar per delivery this item is split
+                       into, so the split is visible where it is edited -->
+                  <tr>
+                    <td colspan="7" class="pb-3">
+                      <template x-for="r in shipRows(it)" :key="r.key">
+                        <div class="flex items-center gap-3 py-1">
+                          <div class="w-56 shrink-0 text-xs">
+                            <span class="font-medium" x-text="r.label"></span>
+                            <div class="text-[11px] text-slate-400" x-text="r.subtitle"></div>
+                          </div>
+                          <div class="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                            <div class="h-full rounded-full transition-all"
+                                 :class="segFill(r.drop)"
+                                 :style="'width:' + Math.min(r.pct, 100) + '%'"></div>
+                          </div>
+                          <div class="w-36 shrink-0 text-right text-xs tabular-nums">
+                            <span class="font-semibold" :class="r.done ? 'text-emerald-700' : ''"
+                                  x-text="r.delivered"></span>
+                            <span class="text-slate-400" x-text="' / ' + r.qty"></span>
+                            <span class="ml-1 text-[11px]"
+                                  :class="r.remaining > 0 ? 'text-amber-700' : 'text-slate-300'"
+                                  x-text="r.remaining > 0 ? '(' + r.remaining + ' left)' : '✓'"></span>
+                          </div>
+                        </div>
+                      </template>
+                    </td>
+                  </tr>
+                </tbody>
+              </template>
             </table>
           </div>
         </div>
@@ -642,8 +724,7 @@
                     </button>
                   </div>
                   <div class="h-1.5 rounded-full bg-slate-100 overflow-hidden mt-2.5">
-                    <div class="h-full rounded-full transition-all"
-                         :class="r.done ? 'bg-emerald-500' : 'bg-brand-600'"
+                    <div class="h-full rounded-full transition-all" :class="segFill(r.drop)"
                          :style="'width:' + Math.min(r.pct, 100) + '%'"></div>
                   </div>
                 </div>
@@ -655,8 +736,8 @@
             </p>
             <template x-if="overDelivered()">
               <p class="text-[11px] text-amber-700 mt-2">
-                <b x-text="overDelivered()"></b> sent beyond everything planned — the
-                plan may need another line.
+                <b x-text="overDelivered()"></b> sent beyond the whole ordered
+                quantity — worth checking against the customer's PO.
               </p>
             </template>
             <div class="mt-3">

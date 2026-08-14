@@ -305,4 +305,20 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   which now needs 100 instead of 150 — the later plans update themselves rather
   than the user rewriting them. No `order_schedule_id` on consignment_line, and
   nothing to keep in step.
+- **A progress bar per delivery, never one averaged per order.** An order that
+  ships in three drops is three separate jobs with three separate dates; a
+  single 62% bar says the order is going well while hiding that the last
+  delivery hasn't started. So every place an order's progress appears — the
+  delivery-plan tab, the order's Shipments section, and the tracking list —
+  draws one bar per segment, sized by the quantity it covers. In the list they
+  sit side by side as one strip, so the row still reads at a glance and expands
+  into the drops written out with their dates.
+- **The unpromised balance is a segment too** (`_segments`). An item for 600
+  planned as 250 + 150 still owes 200, and if that quantity had no bar the
+  segments would not add up to the order — a strip that silently omits a third
+  of the job is worse than no strip. It is drawn in a softened colour: progress,
+  but not a commitment anyone made. The same rule gives an unplanned item ONE
+  segment for its whole quantity, so every order has something to draw and
+  something to ship against, and `over_delivered` now means *beyond the order*
+  rather than *beyond the plan*.
 

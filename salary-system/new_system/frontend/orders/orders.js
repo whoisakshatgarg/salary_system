@@ -189,32 +189,31 @@ function od() {
     },
 
     // ---- deliveries ---------------------------------------------------------- //
-    // One row per planned drop, flattened across items. An item with no plan
-    // shows as a single row for the whole quantity, so every order has
-    // something to ship against.
-    shipRows() {
+    // One row per delivery segment, flattened across items. The backend already
+    // splits each item into its planned drops plus any quantity with no date
+    // yet, so an item with no plan arrives as a single segment and every order
+    // has something to ship against.
+    shipRows(item) {
       const out = [];
       for (const it of (this.detail?.items || [])) {
+        if (item && it.id !== item.id) continue;
         const part = it.drawing_no
           ? it.drawing_no + (it.revision ? ` rev ${it.revision}` : "")
           : (it.description || "item");
-        if (!it.schedule.length) {
+        const drops = it.segments.filter((s) => s.planned);
+        it.segments.forEach((s, n) => {
+          const nth = s.planned ? drops.indexOf(s) + 1 : 0;
           out.push({
-            key: `i${it.id}`, item: it, drop: null, title: part,
-            subtitle: it.description && it.drawing_no ? it.description : "no delivery plan",
-            qty: it.qty, delivered: it.shipped, remaining: it.pending,
-            pct: it.qty ? Math.round(it.shipped / it.qty * 100) : 0,
-            done: it.pending <= 0,
+            key: s.id ? `s${s.id}` : `i${it.id}`, item: it, drop: s,
+            title: s.planned ? `${part} · drop ${nth} of ${drops.length}` : part,
+            subtitle: s.planned
+              ? [s.note, "by " + this.fmtDate(s.due_date)].filter(Boolean).join(" · ")
+              : (drops.length ? "no delivery date promised yet" : "no delivery plan"),
+            label: s.planned ? `Drop ${nth} of ${drops.length}` : "Not yet scheduled",
+            qty: s.qty, delivered: s.delivered, remaining: s.remaining,
+            pct: s.pct, done: s.done,
           });
-          continue;
-        }
-        it.schedule.forEach((s, n) => out.push({
-          key: `s${s.id}`, item: it, drop: s,
-          title: `${part} · drop ${n + 1} of ${it.schedule.length}`,
-          subtitle: [s.note, "by " + this.fmtDate(s.due_date)].filter(Boolean).join(" · "),
-          qty: s.qty, delivered: s.delivered, remaining: s.remaining,
-          pct: s.pct, done: s.done,
-        }));
+        });
       }
       return out;
     },
@@ -239,6 +238,26 @@ function od() {
 
     // ---- shipments view ---------------------------------------------------- //
     openOnly: true,
+    expanded: {},
+    toggleRow(id) { this.expanded[id] = !this.expanded[id]; },
+    // Each delivery gets its own share of the strip, proportional to the
+    // quantity it covers: a 250-piece drop draws wider than a 150-piece one, so
+    // the segments together still read as the whole order.
+    segWidth(o, d) { return o.qty_total ? (d.qty / o.qty_total * 100) : 0; },
+    // Complete is green; a promised drop is solid; quantity with no promised
+    // date is the same colour softened, so it still reads as progress but never
+    // looks like a commitment that was made.
+    segFill(d) {
+      return d.done ? "bg-emerald-500" : (d.planned ? "bg-brand-600" : "bg-brand-600/60");
+    },
+    // An order with two parts and no plan also draws two bars, but calling
+    // those "deliveries" would report a promise nobody made — so the caption
+    // counts planned drops, and says so plainly when there is no plan.
+    dropNote(o) {
+      const planned = o.drops.filter((d) => d.planned).length;
+      if (planned) return ` · ${planned} planned deliver${planned > 1 ? "ies" : "y"}`;
+      return o.drops.length > 1 ? ` · ${o.drops.length} parts, no plan yet` : " · no plan yet";
+    },
     shipmentRows() {
       const rows = this.data?.rows || [];
       return this.openOnly ? rows.filter((o) => o.qty_pending > 0) : rows;

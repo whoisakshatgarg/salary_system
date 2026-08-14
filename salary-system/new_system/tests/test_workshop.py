@@ -1005,3 +1005,74 @@ class DropAllocation(WorkshopBase):
         it = orders.get_order(self.conn, oid)["items"][0]
         self.assertEqual([s["delivered"] for s in it["schedule"]], [250.0, 50.0, 0.0])
         self.assertEqual(it["over_delivered"], 0)
+
+
+class DeliverySegments(WorkshopBase):
+    """The stretches an order is split into — one progress bar each."""
+
+    def test_the_unpromised_balance_becomes_its_own_segment(self):
+        """A 600 item planned as 250 + 150 still owes 200; if that never
+        appeared, the bars would not add up to the order."""
+        segs, over = orders._segments(
+            [{"qty": 250, "due_date": "2026-09-05"},
+             {"qty": 150, "due_date": "2026-09-19"}], 600, 0)
+        self.assertEqual([s["qty"] for s in segs], [250, 150, 200])
+        self.assertEqual([s["planned"] for s in segs], [True, True, False])
+        self.assertEqual(over, 0)
+
+    def test_no_plan_is_one_segment_for_the_whole_item(self):
+        segs, over = orders._segments([], 120, 30)
+        self.assertEqual(len(segs), 1)
+        self.assertEqual((segs[0]["qty"], segs[0]["delivered"], segs[0]["pct"]), (120, 30.0, 25))
+        self.assertFalse(segs[0]["planned"])
+        self.assertEqual(over, 0)
+
+    def test_a_full_plan_adds_no_balance_segment(self):
+        segs, _ = orders._segments([{"qty": 600, "due_date": "2026-09-05"}], 600, 0)
+        self.assertEqual(len(segs), 1)
+        self.assertTrue(segs[0]["planned"])
+
+    def test_shipping_past_the_plan_fills_the_balance_before_over_delivering(self):
+        segs, over = orders._segments(
+            [{"qty": 250, "due_date": "2026-09-05"}], 400, 400)
+        self.assertTrue(all(s["done"] for s in segs))
+        self.assertEqual(over, 0)                       # 400 of 400 is not a surplus
+        segs, over = orders._segments(
+            [{"qty": 250, "due_date": "2026-09-05"}], 400, 450)
+        self.assertEqual(over, 50.0)                    # past the ORDER, though
+
+    def test_the_list_carries_one_drop_per_delivery(self):
+        oid = self.order(items=[{"description": "Flange", "qty": 600,
+                                 "unit": "Nos", "rate": 1}])
+        item = orders.get_order(self.conn, oid)["items"][0]
+        orders.set_schedule(self.conn, item["id"], [
+            {"due_date": "2026-09-05", "qty": 250},
+            {"due_date": "2026-09-19", "qty": 150},
+            {"due_date": "2026-11-30", "qty": 200}])
+        orders.create_consignment(self.conn, {
+            "consign_date": "2026-09-01", "lr_no": "LR-2",
+            "lines": [{"order_item_id": item["id"], "qty": 300}]})
+        row = next(r for r in orders.list_orders(self.conn)["rows"] if r["id"] == oid)
+        self.assertEqual([d["label"] for d in row["drops"]],
+                         ["Drop 1 of 3", "Drop 2 of 3", "Drop 3 of 3"])
+        self.assertEqual([d["pct"] for d in row["drops"]], [100, 33, 0])
+        self.assertEqual(sum(d["qty"] for d in row["drops"]), row["qty_total"])
+
+    def test_an_unplanned_order_still_gets_a_segment_to_draw(self):
+        oid = self.order(items=[{"description": "Flange", "qty": 90,
+                                 "unit": "Nos", "rate": 1}])
+        row = next(r for r in orders.list_orders(self.conn)["rows"] if r["id"] == oid)
+        self.assertEqual(len(row["drops"]), 1)
+        self.assertEqual(row["drops"][0]["qty"], 90)
+        self.assertFalse(row["drops"][0]["planned"])
+
+    def test_drops_are_labelled_with_their_part(self):
+        oid = self.order(items=[{"description": "Flange", "qty": 10,
+                                 "unit": "Nos", "rate": 1},
+                                {"description": "Cover", "qty": 20,
+                                 "unit": "Nos", "rate": 1}])
+        row = next(r for r in orders.list_orders(self.conn)["rows"] if r["id"] == oid)
+        self.assertEqual(sorted(d["part"] for d in row["drops"]), ["Cover", "Flange"])
+
+    def test_no_orders_means_no_queries(self):
+        self.assertEqual(orders._order_drops(self.conn, []), {})

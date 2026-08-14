@@ -599,8 +599,13 @@ in view — **Ordered**, **Planned** and **Not planned yet** — and the last on
 worked out for you, so it can never disagree with the others. You can't plan more
 than the item quantity; the app will say so.
 
-The button on the item row then shows how many drops are planned, so you can see
-at a glance which items have a schedule and which don't.
+Once the plan is saved, the **Items & delivery plan** tab draws it: under the
+item, one bar per drop with its date, how much of it has gone and how much is
+left. The button on the row turns into **Edit N drop(s)**.
+
+The last bar is often **Not yet scheduled** — the quantity you haven't promised a
+date for. It is shown in a softer colour, because it is quantity you still owe
+but haven't committed to a day for.
 
 ### 8.3 Sending it out, drop by drop
 
@@ -624,11 +629,22 @@ The **Shipments** tab is the answer to *"how much of this order is still to go?"
 
 ![Shipments](guide-images/ws-shipments.jpg)
 
-One row per order: how much was **ordered**, how much has been **sent**, how much
-**remains**, and a progress bar. "Sent" counts every consignment ever raised
-against that order, so an order delivered in six lorries over four months adds up
-correctly. By default you only see orders that still owe something — untick the
-box to include the finished ones. The figure at the bottom is everything still
+One row per order: how much was **ordered**, how much has been **sent** and how
+much **remains**. "Sent" counts every consignment ever raised against that order,
+so an order delivered in six lorries over four months adds up correctly.
+
+The **Deliveries** column is not one bar — it is one bar *per drop*, each as wide
+as the quantity it covers. An order for 600 sent as 200 + 250 + 150 draws three
+bars: the first full and green, the second part filled, the third empty. One
+averaged bar would say "62%" and hide the fact that the last delivery hasn't
+started.
+
+Click the **▸** beside the order number to write those deliveries out in full,
+with their dates, their notes and how much each still owes. Click anywhere else
+on the row to open the order.
+
+By default you only see orders that still owe something — untick the box to
+include the finished ones. The figure at the bottom is everything still
 outstanding across the orders shown.
 
 ---

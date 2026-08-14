@@ -274,6 +274,11 @@ def list_orders(conn, q: str = "", stage: str = "") -> dict:
         o["pct_shipped"] = (round(o["qty_shipped"] / o["qty_total"] * 100)
                             if o["qty_total"] else 0)
         rows.append(o)
+    # the deliveries each order is split into, so the list can draw one bar per
+    # segment rather than one averaged bar per order
+    drops = _order_drops(conn, [o["id"] for o in rows])
+    for o in rows:
+        o["drops"] = drops.get(o["id"], [])
     counts = {r["stage"]: r["n"] for r in conn.execute(
         "SELECT stage, COUNT(*) AS n FROM customer_order GROUP BY stage")}
     return {"rows": rows, "stage_counts": counts,
@@ -303,7 +308,10 @@ def get_order(conn, order_id: int) -> dict:
         it["planned"] = round(planned, 3)
         # what no delivery date has been promised for yet
         it["unplanned"] = round(it["qty"] - planned, 3)
-        it["over_delivered"] = _allocate_drops(it["schedule"], it["shipped"])
+        # segments = the drops plus that unpromised balance; the schedule rows
+        # are the same objects, so both carry the allocation
+        it["segments"], it["over_delivered"] = _segments(
+            it["schedule"], it["qty"], it["shipped"])
         o["items"].append(it)
     o["amount"] = round(sum(i["amount"] for i in o["items"]), 2)
     o["qty_total"] = round(sum(i["qty"] for i in o["items"]), 3)
@@ -491,6 +499,79 @@ def _allocate_drops(schedule: list[dict], shipped: float) -> float:
         s["pct"] = round(take / s["qty"] * 100) if s["qty"] else 0
         s["done"] = s["remaining"] <= 0
     return round(left, 3)
+
+
+def _segments(schedule: list[dict], qty: float, shipped: float) -> tuple[list[dict], float]:
+    """Every stretch of an item's quantity that can be shipped against.
+
+    The planned drops, in date order, and then whatever quantity carries no
+    promised date yet — a 600-piece item planned as 250 + 150 still owes 200
+    that has to appear somewhere, or the segments would not add up to the order
+    and a bar drawn from them would lie.
+
+    An item with no plan at all comes back as ONE segment for the whole
+    quantity, so every order has something to draw and something to ship
+    against. Returns the segments and anything shipped beyond all of them.
+    """
+    segs = list(schedule)
+    for s in segs:
+        s["planned"] = True
+    balance = round((qty or 0) - sum(s["qty"] for s in segs), 3)
+    if balance > 0:
+        segs.append({"id": None, "due_date": None, "qty": balance,
+                     "note": None, "planned": False})
+    return segs, _allocate_drops(segs, shipped)
+
+
+def _order_drops(conn, order_ids: list[int]) -> dict[int, list[dict]]:
+    """The delivery segments of every listed order, keyed by order id.
+
+    Bulk on purpose: the tracking list draws a bar per segment on every row,
+    and doing it per order would be three queries for each line of a page whose
+    whole job is to be scanned at once.
+    """
+    if not order_ids:
+        return {}
+    marks = ",".join("?" * len(order_ids))
+    items: dict[int, dict] = {}
+    for r in conn.execute(
+            f"""SELECT i.id, i.order_id, i.qty, i.description,
+                       d.drawing_no, d.revision
+                FROM order_item i LEFT JOIN drawing d ON d.id=i.drawing_id
+                WHERE i.order_id IN ({marks}) ORDER BY i.id""", order_ids):
+        items[r["id"]] = dict(r, shipped=0.0, schedule=[])
+    if not items:
+        return {}
+    ids = list(items)
+    imarks = ",".join("?" * len(ids))
+    for r in conn.execute(
+            f"""SELECT order_item_id, COALESCE(SUM(qty),0) AS qty
+                FROM consignment_line WHERE order_item_id IN ({imarks})
+                GROUP BY order_item_id""", ids):
+        items[r["order_item_id"]]["shipped"] = r["qty"]
+    for r in conn.execute(
+            f"""SELECT id, order_item_id, due_date, qty, note FROM order_schedule
+                WHERE order_item_id IN ({imarks}) ORDER BY due_date, id""", ids):
+        items[r["order_item_id"]]["schedule"].append(dict(r))
+
+    out: dict[int, list[dict]] = {}
+    for it in items.values():
+        segs, _ = _segments(it["schedule"], it["qty"], it["shipped"])
+        part = (f"{it['drawing_no']} rev {it['revision']}" if it["drawing_no"]
+                else (it["description"] or "item"))
+        planned = [s for s in segs if s["planned"]]
+        for s in segs:
+            n = planned.index(s) + 1 if s["planned"] else 0
+            out.setdefault(it["order_id"], []).append({
+                "id": s["id"], "item_id": it["id"], "part": part,
+                "label": (f"Drop {n} of {len(planned)}" if s["planned"]
+                          else "Not yet scheduled"),
+                "due_date": s["due_date"], "note": s["note"],
+                "planned": s["planned"], "qty": s["qty"],
+                "delivered": s["delivered"], "remaining": s["remaining"],
+                "pct": s["pct"], "done": s["done"],
+            })
+    return out
 
 
 def set_schedule(conn, order_item_id: int, rows: list[dict]) -> dict:

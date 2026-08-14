@@ -83,18 +83,42 @@ keeper, received by).
   something against the item it is a quantity OF. **What is left unplanned is
   derived** (`item qty − Σ lines`), never stored, so the two cannot drift; the
   plan is refused if it adds up to more than the item.
-- **Deliveries** (on the order record) — one card per planned drop with its own
-  progress bar and its own **Ship this** button, which opens the consignment
-  form with that part chosen and that drop's outstanding quantity filled in.
-  What has actually shipped is poured into the drops in due-date order
+- **Segments** (`_segments`) — the stretches of an item that can be shipped
+  against: its planned drops in date order, then whatever quantity carries no
+  promised date yet. That trailing balance matters — a 600-piece item planned as
+  250 + 150 still owes 200, and without it the bars would not add up to the
+  order. An item with no plan at all comes back as ONE segment for the whole
+  quantity, so **every order has something to draw and something to ship
+  against**. `_order_drops` does the same for a whole page of the list in three
+  queries rather than three per row.
+- **A progress bar per delivery, never one averaged per order.** An order that
+  ships in three drops is three separate jobs; a single bar hides that drop 1
+  closed while drop 3 has not started. So the split is drawn in all three places
+  the order appears:
+  - *Items & delivery plan* — under each item, one bar per drop, where the plan
+    is edited.
+  - *Shipments & history* — one card per drop with its own **Ship this** button,
+    which opens the consignment form with that part chosen and that drop's
+    outstanding quantity filled in.
+  - *Shipments tab* — the Deliveries column is a strip of separate bars, each
+    segment as wide as the quantity it covers; the chevron expands the row into
+    the same drops written out with their dates.
+  Colour carries state: complete is green, a promised drop solid brand, quantity
+  with no promised date the same colour softened — progress, but never a
+  commitment that was made.
+- What has actually shipped is poured into the segments in due-date order
   (`_allocate_drops`), so over-shipping one closes it and rolls the surplus into
   the next — **the later drops need less without anyone editing the plan**.
-  Anything left after every drop is full is reported as `over_delivered`. An
-  item with no plan appears as a single card for its whole quantity.
-- **Shipments tab** (the module-level list) — per-order fulfilment: ordered / sent / remaining with a
-  progress bar, filtered by default to orders that still owe something. `sent`
-  sums `consignment_line` across every consignment, so an order delivered in six
-  instalments over four months reads correctly.
+  Nothing records which drop a consignment was *for*, and asking would be a lie:
+  a lorry leaves with a quantity, not an intention. Anything left after every
+  segment is full is reported as `over_delivered` — that now means beyond the
+  whole ordered quantity, since the unpromised balance is a segment too.
+- **Shipments tab** (the module-level list) — per-order fulfilment: ordered /
+  sent / remaining, filtered by default to orders that still owe something.
+  `sent` sums `consignment_line` across every consignment, so an order delivered
+  in six instalments over four months reads correctly. The caption counts
+  *planned* drops only: two parts with no plan draw two bars, but calling those
+  "deliveries" would report a promise nobody made.
 - **Home warning panel** — `GET /api/orders/deadlines` buckets open orders into
   overdue / next 7 days / next 31 days, each with the customer, order number and
   quantity still to send. Two kinds of order drop out — those fully shipped, and
