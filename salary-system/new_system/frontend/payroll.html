@@ -868,7 +868,7 @@
         <!-- database backup (CEO) -->
         <div x-show="isAdmin" class="bg-white rounded-xl shadow-sm p-5 mt-5">
           <h2 class="font-semibold mb-1">Database backup</h2>
-          <p class="text-xs text-slate-500 mb-3">This machine holds the master payroll data — back it up regularly. Each backup is a timestamped <code>.zip</code> holding the database <em>and</em> all inventory attachments, saved in <code>data/backups/</code>; "Download a copy" also saves one wherever you choose (e.g. the shared folder).</p>
+          <p class="text-xs text-slate-500 mb-3">This machine holds the master payroll data — back it up regularly. Each backup is a timestamped <code>.zip</code> holding the database <em>and</em> every attached file (mill certificates, employee documents, drawings), saved in <code>data/backups/</code>; "Download a copy" also saves one wherever you choose (e.g. the shared folder).</p>
           <div class="flex flex-wrap items-center gap-3">
             <button @click="backupNow()" :disabled="backup.busy"
                     class="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium"

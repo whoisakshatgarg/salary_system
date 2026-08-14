@@ -56,7 +56,7 @@ salary_system/                        repo root
         │       ├── customers.py      customer master + contacts
         │       ├── parts.py          drawing master, rate history, costing builder
         │       ├── orders.py         orders, stages, consignments, FY numbering
-        │       ├── settings.py       config: order format, units, op rates (+ /api/lists)
+        │       ├── settings.py       config: order format, units, operation rates
         │       └── users.py          /api/modules (tiles) + /api/users* (accounts+grants)
         ├── frontend/
         │   ├── index.html + shell.js    login → Home launcher → Users & Access,
@@ -78,8 +78,10 @@ salary_system/                        repo root
 
 - **Module shape:** a module starts as one file under `backend/modules/`, becomes a
   folder at its second file. Each module owns its routes (`router.py`, included from
-  `main.py`) and its SQL (`repo.py`); URLs are flat `/api/...` (no per-module prefix
-  except inventory's `/api/inventory/*`).
+  `main.py`) and its SQL (`repo.py`). Newer modules namespace their routes with a
+  router prefix (`/api/{inventory,customers,parts,orders,settings}/*`); the
+  original payroll/employee routes stay flat (`/api/employees`, `/api/attendance*`,
+  …) because moving them would break installed clients.
 - **Dependency directions:** `core` never imports from `modules`. `payroll → employees`
   (payroll reads the master). The single allowed reverse import is
   `employees → payroll.engine` (pure functions, no I/O). New modules must not create
@@ -88,7 +90,10 @@ salary_system/                        repo root
   `core/deps.py`: `current_user` (any signed-in account), `require_admin`
   (admin role; also dead in Operator edition), `require_module(key)` (per-account
   grants; admins pass everything). Grants are a JSON list on `app_user.grants`;
-  tiles come from `core/registry.py` via `/api/modules`.
+  tiles come from `core/registry.py` via `/api/modules`. Cross-module reference
+  data (customer/drawing/unit pickers) is served per consumer behind that
+  consumer's own grant — `/api/orders/refs`, `/api/parts/refs` — never from one
+  shared open endpoint, so pricing can't leak past a module's grant.
 - **Data:** every table is defined in `core/db.py` `SCHEMA` (CREATE IF NOT EXISTS —
   new tables apply on startup); post-ship column additions go in `_MIGRATIONS`.
   Derived values (stock remaining, attendance %) are computed on read, never stored

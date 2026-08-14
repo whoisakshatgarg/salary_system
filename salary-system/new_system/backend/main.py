@@ -4,6 +4,11 @@ and the static frontend mount. All business routes live in their modules:
     modules/employees   employee master, attendance, leave, offline sync
     modules/payroll     rules config, advances, salary pipeline, exports
     modules/inventory   raw-material heat register
+    modules/customers   customer master + contacts
+    modules/parts       drawing master, rate history, costing builder
+    modules/orders      orders, stages, consignments, FY numbering
+    modules/settings    order format, units, operation rates, departments
+    modules/users       accounts, module grants, the launcher's tile list
 
 Run:  ../venv/bin/uvicorn backend.main:app --reload
 """
