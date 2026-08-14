@@ -41,7 +41,7 @@ email, role)` (cascade) · `customer_operation_rate(customer_id, operation,
 rate_per_hour, extra_rate, note, UNIQUE(customer_id, operation))` (cascade).
 
 ## Screens
-guide-images: ws-customer.
+guide-images: ws-customer, ws-customer-business, ws-customer-rates.
 
 ## What's left
 - [ ] Receivables (invoiced vs paid) once invoice payments are tracked.

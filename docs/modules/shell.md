@@ -43,13 +43,11 @@ grants ignored for admins. Seeded accounts: `admin` (all), `operator`
 (`["salary"]`) — `backend/modules/employees/seed.py`.
 
 ## Screens
-`docs/guide-images/`: shell-login, shell-home, shell-home-restricted,
-shell-users, shell-user-form, shell-placeholder.
+guide-images: shell-login, shell-home (now includes the deadlines panel),
+shell-home-restricted, shell-users, shell-user-form, shell-placeholder.
 
 ## Known bugs
-None known. (The payroll page's long-standing console errors were fixed on
-2026-08-14 — `x-show` on elements whose `x-text`/`x-model` read through a null
-model. That page is clean now too.)
+None known.
 
 ## What's left
 - [ ] Self-service password change (only admin resets today) — ROADMAP Next.

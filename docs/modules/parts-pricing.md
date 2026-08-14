@@ -43,6 +43,10 @@ material class and supplier (`GET /api/material/search`), which returns each
 heat with its derived unit costs — `₹/rod = price_total ÷ rods_received`,
 `₹/kg = price_rate_per_kg` (or `price_total ÷ total_weight_kg`).
 
+That search lives on inventory's shared `/api/material` router, gated on ANY
+of `inventory | quotations | orders | parts` — it returns derived PURCHASE
+cost, so that grant set is the boundary on who can see what stock cost.
+
 A BOM line is *material · ₹ per unit · parts obtained from one · ₹ per piece*.
 The estimator enters **parts from one rod**, not a fraction: `qty_per_piece` is
 derived as `1/N`, kept to 8 decimals and multiplied out only at the end. That
@@ -74,6 +78,6 @@ Rates and margins are SNAPSHOTTED into `costing_op` on save, so re-reading an
 old costing never silently reprices it when Settings or a customer rate changes.
 
 ## Screens
-guide-images: ws-part-detail.
+guide-images: ws-part-detail, ws-costing-workspace, ws-bom.
 
 ## What's left

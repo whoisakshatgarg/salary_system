@@ -50,6 +50,9 @@ Deliberately dependency-free: `/api/quotations/{id}/print` returns styled HTML
 with a Print button; the browser's "Save as PDF" does the rest. No PDF library
 to install, works offline, and the layout is editable by anyone who reads HTML.
 
+## Screens
+guide-images: ws-invoice-form, ws-quote-material-check, ws-invoice-print.
+
 ## What's left
 - [ ] Company address/GSTIN on the printout come from settings keys
       (`company_address`, `company_gstin`) that Settings doesn't expose yet.

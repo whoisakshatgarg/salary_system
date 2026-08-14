@@ -392,8 +392,8 @@ part you price for that customer uses them automatically.
 Pick the **Operation**, type **Their ₹/hour** (what this customer pays for it),
 optionally an **Additional ₹/hour** on top, add a note like *"agreed Apr 2026"*
 so you remember when it was settled, and press **Save**. The standard shop rate
-from Settings is shown alongside, struck through, so you can see at a glance
-what was negotiated.
+from Settings sits greyed out in the **Standard ₹/hr** column beside it, so you
+can see at a glance what was negotiated.
 
 - The **effective rate** is *their ₹/hour + additional ₹/hour*. In the picture,
   ₹520 + ₹30 = **₹550/hour**.

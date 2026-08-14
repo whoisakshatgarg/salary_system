@@ -41,12 +41,18 @@ from ..core.deps import get_db, require_module
 # can use it (admins always can). Operator edition stays excluded (deps.py).
 router = APIRouter(prefix="/api/inventory", dependencies=[Depends(require_module("inventory"))])
 
-# The feasibility check is READ-ONLY and is offered from three places — the
-# inventory page, quotation creation and order creation — so it must not demand
-# the inventory grant. Separate router, mounted alongside in main.py.
+# READ-ONLY material surface, offered from FOUR screens — the inventory page, a
+# quotation, an order, and the costing bill of materials in Parts & Pricing — so
+# it must not demand the inventory grant. Separate router, mounted alongside in
+# main.py.
+#
+# NOTE this grant set is a real boundary: /search returns derived PURCHASE cost
+# (₹/rod, ₹/kg). Anyone holding any of these four grants can read what the stock
+# cost. That is intended — you cannot price a job without it — but do not widen
+# the list without meaning to.
 check_router = APIRouter(
     prefix="/api/material",
-    dependencies=[Depends(require_module("inventory", "quotations", "orders"))],
+    dependencies=[Depends(require_module("inventory", "quotations", "orders", "parts"))],
 )
 
 OPTION_KINDS = ("material_class", "shape", "grade", "element", "supplier")

@@ -48,11 +48,6 @@ guide-images: pay-dashboard, pay-salary-table, pay-history, pay-exports,
 pay-rules, pay-advances.
 
 ## Known bugs
-- ~~Console errors on page load~~ — **fixed 2026-08-14.** `x-show` only toggles
-  display, so the `x-text`/`x-model` on those elements still evaluated and threw
-  through a null model. The Pay Setup modal is a `template x-if` now, the CEO
-  attendance panel gates on `att.summary` as well as `isAdmin`, and the banner
-  bindings use optional chaining. Page is clean (0 errors).
 - Excel layouts never byte-matched against a real office sample
   (OPEN_QUESTIONS #3).
 - From the QA sweep ([QA-FINDINGS.md](../QA-FINDINGS.md)), still open: the salary

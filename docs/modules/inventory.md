@@ -92,7 +92,8 @@ Exposed at `POST /api/material/check` on its own router with
 screens offer the same check, and their users don't hold the inventory grant.
 
 ## Screens
-guide-images: inv-stock, inv-heat-detail, inv-new-heat, inv-usage-log, inv-lists.
+guide-images: inv-stock, inv-heat-detail, inv-add-delivery, inv-material-check,
+inv-usage-log, inv-lists. (inv-new-heat predates the full-screen add page.)
 
 ## Known bugs
 None known.

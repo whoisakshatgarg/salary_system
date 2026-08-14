@@ -49,8 +49,9 @@ committing to it.
   instalments over four months reads correctly.
 - **Home warning panel** — `GET /api/orders/deadlines` buckets open orders into
   overdue / next 7 days / next 31 days, each with the customer, order number and
-  quantity still to send. Fully-shipped orders drop out: they are not deadlines
-  any more. The shell fetches it fail-closed, so an account without the orders
+  quantity still to send. Two kinds of order drop out — those fully shipped, and
+  those already at **Payment received** (`stage NOT IN ('payment')`); neither is
+  a deadline any more. The shell fetches it fail-closed, so an account without the orders
   grant simply sees no panel.
 
 ## Implemented (file paths)
@@ -66,7 +67,7 @@ committing to it.
 always derived.
 
 ## Screens
-guide-images: ws-order-detail, ws-consignment.
+guide-images: ws-order-detail, ws-consignment, ws-delivery-plan, ws-shipments.
 
 ## What's left
 - [ ] Delivery-challan / order printouts (ROADMAP Next).

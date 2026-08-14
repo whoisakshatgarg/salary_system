@@ -33,7 +33,7 @@ salary_system/                        repo root
         │   │   ├── attachments.py    shared file validation (mime allowlist, size caps)
         │   │   ├── auth.py           PBKDF2 hashing + HMAC-signed session cookie
         │   │   ├── deps.py           get_db / current_user / require_admin /
-        │   │   │                     require_module(key)  ← grant enforcement
+        │   │   │                     require_module(*keys) ← grant enforcement (ANY of the keys)
         │   │   ├── registry.py       module registry (launcher tiles) — add modules here
         │   │   ├── rules.py          config/rules.json load/save (cached)
         │   │   ├── paths.py          dev vs frozen paths (data dir, config, files)
@@ -59,11 +59,12 @@ salary_system/                        repo root
         │       ├── orders.py         orders, stages, consignments, delivery plans,
         │       │                     deadlines, FY numbering
         │       ├── quotations.py     quotations + invoices (one table, a `kind`) + print view
-        │       ├── settings.py       config: order format, units, operation rates
+        │       ├── settings.py       config: order format, units, operation rates, departments
         │       └── users.py          /api/modules (tiles) + /api/users* (accounts+grants)
         ├── frontend/                 ONE FOLDER PER MODULE (URL = folder)
         │   ├── index.html            the shell: login → Home launcher (entry point)
-        │   ├── shell/shell.js        launcher, Users & Access, update popup
+        │   ├── shell/shell.js        launcher, Users & Access, update popup,
+        │   │                          order-deadline panel on Home
         │   ├── payroll/              index.html + payroll.js   → /payroll/
         │   ├── employees/            index.html + employees.js → /employees/
         │   ├── inventory/            index.html + inventory.js → /inventory/
@@ -102,14 +103,18 @@ salary_system/                        repo root
   cycles; when two modules need the same pure logic, it lives in an `engine.py`.
 - **Auth & access:** stateless signed cookie (`core/auth.py`). Three gates in
   `core/deps.py`: `current_user` (any signed-in account), `require_admin`
-  (admin role; also dead in Operator edition), `require_module(key)` (per-account
-  grants; admins pass everything). Grants are a JSON list on `app_user.grants`;
+  (admin role; also dead in Operator edition), `require_module(*keys)` (per-account grants; admins pass
+  everything; SEVERAL keys means a route shared between modules and the account
+  needs any ONE of them — unknown keys fail at import, and the Operator edition
+  refuses every key except `salary` regardless). Grants are a JSON list on `app_user.grants`;
   tiles come from `core/registry.py` via `/api/modules`. Cross-module reference
   data (customer/drawing/unit pickers) is served per consumer behind that
   consumer's own grant — `/api/orders/refs`, `/api/parts/refs` — never from one
   shared open endpoint, so pricing can't leak past a module's grant.
 - **Data:** every table is defined in `core/db.py` `SCHEMA` (CREATE IF NOT EXISTS —
-  new tables apply on startup); post-ship column additions go in `_MIGRATIONS`.
+  new tables apply on startup); post-ship column additions go in `_MIGRATIONS`,
+  and a column that shipped and was then withdrawn goes in `_RETIRED`, which
+  `_migrate()` best-effort DROPs (older SQLite just keeps it — harmless).
   Derived values are computed on read, never stored as truth: stock remaining,
   attendance %, an order's shipped/pending quantities (summed from consignment
   lines), and the unplanned balance of a delivery plan (item qty − Σ planned).
