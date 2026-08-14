@@ -19,12 +19,12 @@ Tests: `../venv/bin/python -m unittest discover -s tests`.
 |---|---|---|---|
 | App shell (login, launcher, Users & Access) | — | ✅ built | [modules/shell.md](modules/shell.md) |
 | Salary & Attendance (payroll) | ₹ | ✅ built | [modules/payroll.md](modules/payroll.md) |
-| Raw Material Inventory (heat register) | ⛭ | ✅ built | [modules/inventory.md](modules/inventory.md) |
+| Raw Material Inventory (heats, piece-level stock, feasibility check) | ⛭ | ✅ built | [modules/inventory.md](modules/inventory.md) |
 | Employee Management (people, documents, leave bank) | 👥 | ✅ built | [modules/employees.md](modules/employees.md) |
-| Order Tracking (stages, heats link, consignments) | 🗂 | ✅ built | [modules/orders.md](modules/orders.md) |
-| Parts & Pricing (drawings, rate history, costing) | 📐 | ✅ built | [modules/parts-pricing.md](modules/parts-pricing.md) |
+| Order Tracking (stages, consignments, delivery plans, deadlines) | 🗂 | ✅ built | [modules/orders.md](modules/orders.md) |
+| Parts & Pricing (drawings, rate history, costing, bill of materials) | 📐 | ✅ built | [modules/parts-pricing.md](modules/parts-pricing.md) |
 | Quotations & Invoices (printable copies) | 🧾 | ✅ built | [modules/quotations.md](modules/quotations.md) |
-| Customers (codes, order history, growth) | 🏢 | ✅ built | [modules/customers.md](modules/customers.md) |
+| Customers (codes, order history, growth, agreed rates) | 🏢 | ✅ built | [modules/customers.md](modules/customers.md) |
 | Settings (order format, units, op rates, departments) | ⚙ | ✅ built | [modules/settings.md](modules/settings.md) |
 | Self-update / backups / two-machine sync | — | ✅ built (shared services) | [ARCHITECTURE.md](ARCHITECTURE.md) |
 
@@ -33,7 +33,8 @@ Tests: `../venv/bin/python -m unittest discover -s tests`.
 1. This file.
 2. [ARCHITECTURE.md](ARCHITECTURE.md) — folder tree, conventions, how things talk.
 3. [DECISIONS.md](DECISIONS.md) + [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) — what's settled vs defaulted.
-4. [ROADMAP.md](ROADMAP.md) — what to build next (Now / Next / Later).
+4. [ROADMAP.md](ROADMAP.md) — what to build next (Now / Next / Later) and the
+   known-but-unfixed defects ([QA-FINDINGS.md](QA-FINDINGS.md) is the full sweep).
 5. The module doc for whatever you're touching (`modules/<name>.md`).
 6. End-user behaviour reference: [USER_GUIDE.md](USER_GUIDE.md) (illustrated).
 

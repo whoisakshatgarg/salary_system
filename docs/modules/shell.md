@@ -16,6 +16,14 @@ touching code.
   checkboxes), edit grants, reset password, delete. Last-admin and self-delete
   are refused.
 - Update popup appears on Home when a newer GitHub Release exists.
+- **Deadlines panel** under the tiles: orders whose delivery date is close, as
+  two lists — *next 7 days* and *next month* — with anything already overdue
+  called out above them. Each line is customer · order number · quantity still
+  to send. Fed by `GET /api/orders/deadlines`, fetched **fail-closed**
+  (`shell.js loadDueSoon()` swallows the error), so an account without the
+  `orders` grant simply sees no panel instead of an error. Orders that are fully
+  shipped drop out — nothing left to send is not a deadline. The panel is hidden
+  entirely when all three buckets are empty.
 
 ## Implemented (file paths)
 - UI: `salary-system/new_system/frontend/index.html` + `frontend/shell/shell.js`.
@@ -26,6 +34,8 @@ touching code.
   Operator edition locked to `salary`. Inventory routes use it; payroll admin
   routes still use `require_admin` (financial = admin-only by design).
 - Session/auth routes stay in `backend/main.py` (login, kiosk, logout, me, meta).
+- Deadlines: `orders.deadlines()` + `GET /api/orders/deadlines`
+  (`backend/modules/orders.py`), rendered in `frontend/index.html`.
 
 ## Data model
 `app_user(id, username, password_hash, role 'admin'|'operator', grants JSON)` —
@@ -37,9 +47,12 @@ grants ignored for admins. Seeded accounts: `admin` (all), `operator`
 shell-users, shell-user-form, shell-placeholder.
 
 ## Known bugs
-None known. (Pre-existing console noise belongs to the payroll page, not the shell.)
+None known. (The payroll page's long-standing console errors were fixed on
+2026-08-14 — `x-show` on elements whose `x-text`/`x-model` read through a null
+model. That page is clean now too.)
 
 ## What's left
 - [ ] Self-service password change (only admin resets today) — ROADMAP Next.
 - [ ] Audit trail of account/grant changes — ROADMAP Next.
 - [ ] Tiles for new modules as they ship (one registry entry each).
+      All nine currently in `registry.py` are built.

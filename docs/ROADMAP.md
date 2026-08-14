@@ -3,8 +3,10 @@
 Everything left to build, grouped by priority. Each item also appears in its
 module doc's "What's left". Update both when shipping.
 
-**All seven module tiles are built** (2026-08-14). What remains is hardening
-and convenience.
+**Every module tile is built** — Salary, Inventory, Employee Management, Order
+Tracking, Parts & Pricing, Quotations & Invoices, Customers and Settings, plus
+the admin-only Users & Access (2026-08-14). What remains is hardening and
+convenience.
 
 ## Now (next sessions)
 
@@ -16,7 +18,9 @@ and convenience.
 ## Next
 
 - Invoice payment tracking (part-payments, outstanding) → customer receivables.
-- Company address/GSTIN fields in Settings for the printed documents.
+- Company address/GSTIN fields in Settings for the printed documents — the print
+  template already reads `company_address` / `company_gstin`, but nothing writes
+  them, so a TAX INVOICE currently goes out with no supplier address.
 - Cross-module dashboard/reports (orders by stage, stock value, salary
   outflow, receivables) — the data all exists now.
 - Friendlier payroll-rules editor inside Settings (raw JSON today).
@@ -32,4 +36,22 @@ and convenience.
 - Per-employee `bonus_eligible` flag (retire hardcoded name exclusions in
   `config/rules.json`).
 - LAN multi-user mode if a third machine appears.
-- Material-cost link from Inventory heat rates into the Parts costing builder.
+
+## Known, not yet fixed
+
+From the 2026-08-14 QA sweep — full list in [QA-FINDINGS.md](QA-FINDINGS.md).
+The ones worth picking up first:
+
+- **Double-click creates duplicates** on Save order, Create consignment and Save
+  costing — no in-flight guard on the submit buttons. Two FY order numbers get
+  burned; a double-clicked consignment doubles the dispatched quantity.
+- **Printed quantities go through `%g`** in the document template, so 1200000
+  prints as `1.2e+06` and 12345.67 as `12345.7` while the amount column uses the
+  true figure — the document contradicts itself.
+- **An invoice can carry another customer's order number**: pick an order, then
+  change the customer, and `_check_refs` only verifies the order exists.
+- **Payroll accepts impossible paid-day counts** (999 days, or negative) and will
+  offer the result for publishing with no warning.
+- **Settings "Add" on an existing operation name silently overwrites its rate**
+  (`INSERT … ON CONFLICT DO UPDATE`), repricing every costing built afterwards.
+

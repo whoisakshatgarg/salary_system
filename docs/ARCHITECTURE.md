@@ -52,10 +52,13 @@ salary_system/                        repo root
         │       │   ├── router.py     /api/rules, /api/advances*, /api/payroll/*, /api/pay,
         │       │   │                 /api/export/*
         │       │   └── exporters.py  CEO + Distribution .xlsx (legacy layouts)
-        │       ├── inventory.py      heat register (single file until it grows)
-        │       ├── customers.py      customer master + contacts
-        │       ├── parts.py          drawing master, rate history, costing builder
-        │       ├── orders.py         orders, stages, consignments, FY numbering
+        │       ├── inventory.py      heat register + piece-level stock + the
+        │       │                     manufacturability check (2nd router: /api/material/*)
+        │       ├── customers.py      customer master + contacts + agreed operation rates
+        │       ├── parts.py          drawing master, rate history, costing + bill of materials
+        │       ├── orders.py         orders, stages, consignments, delivery plans,
+        │       │                     deadlines, FY numbering
+        │       ├── quotations.py     quotations + invoices (one table, a `kind`) + print view
         │       ├── settings.py       config: order format, units, operation rates
         │       └── users.py          /api/modules (tiles) + /api/users* (accounts+grants)
         ├── frontend/                 ONE FOLDER PER MODULE (URL = folder)
@@ -64,7 +67,7 @@ salary_system/                        repo root
         │   ├── payroll/              index.html + payroll.js   → /payroll/
         │   ├── employees/            index.html + employees.js → /employees/
         │   ├── inventory/            index.html + inventory.js → /inventory/
-        │   ├── customers/ · parts/ · orders/ · settings/       → /<module>/
+        │   ├── customers/ · parts/ · orders/ · quotations/ · settings/  → /<module>/
         │   └── vendor/               tailwind.js, alpine.js (offline, shared:
         │                             pages load it as /vendor/…)
         ├── config/                   rules.json (payroll policy) · sync.json · update.json
@@ -88,6 +91,11 @@ salary_system/                        repo root
   router prefix (`/api/{inventory,customers,parts,orders,settings}/*`); the
   original payroll/employee routes stay flat (`/api/employees`, `/api/attendance*`,
   …) because moving them would break installed clients.
+  **One documented exception to one-router-per-module:** `inventory.py` also
+  exports `check_router` (`/api/material/*`) gated on
+  `require_module("inventory", "quotations", "orders")`, because the material
+  availability check and the bill-of-materials stock search are offered from
+  three screens whose users do not all hold the inventory grant.
 - **Dependency directions:** `core` never imports from `modules`. `payroll → employees`
   (payroll reads the master). The single allowed reverse import is
   `employees → payroll.engine` (pure functions, no I/O). New modules must not create
@@ -102,14 +110,26 @@ salary_system/                        repo root
   shared open endpoint, so pricing can't leak past a module's grant.
 - **Data:** every table is defined in `core/db.py` `SCHEMA` (CREATE IF NOT EXISTS —
   new tables apply on startup); post-ship column additions go in `_MIGRATIONS`.
-  Derived values (stock remaining, attendance %) are computed on read, never stored
-  as truth. Dropdown/select values are stored denormalized on records.
+  Derived values are computed on read, never stored as truth: stock remaining,
+  attendance %, an order's shipped/pending quantities (summed from consignment
+  lines), and the unplanned balance of a delivery plan (item qty − Σ planned).
+  Snapshots are the deliberate opposite and are marked as such — operation rates,
+  agreed customer rates and bill-of-materials unit costs are COPIED into the
+  costing at save time so reopening an old quote never silently reprices it. Dropdown/select values are stored denormalized on records.
 - **Errors:** data-layer functions raise `ValueError` for user mistakes; routers map
   them to HTTP 400. 401 = not signed in, 403 = no grant / wrong role.
 - **Frontend:** one Alpine `x-data` object per page; `api()` helper always sends
   `X-Requested-With: apex-payroll`; modals that bind nullable models use
-  `template x-if` (never `x-show`); money renders via `toLocaleString("en-IN")`;
-  dates are local (never `toISOString`).
+  `template x-if` (never `x-show`); a `<select>` prefilled from saved data needs
+  `x-effect="v && $nextTick(() => $el.value = v)"` or it renders blank while
+  holding the right value (Alpine applies `x-model` before `x-for` has made the
+  options); money renders via `toLocaleString("en-IN")`; dates are local (never
+  `toISOString`).
+- **Adding vs editing:** ADDING opens a full screen (`fixed inset-0 z-[60]`, the
+  costing-workspace pattern) in Inventory, Quotations and Orders; EDITING keeps
+  the modal — except Orders, where the same form fills the screen either way.
+  Customer and order RECORDS are full windows too. z-index ladder: detail 40,
+  form modal 50, full-screen view 60, toast 70.
 - **State-changing external actions** (publish payroll, update apply) confirm first
   and report outcomes via toasts.
 

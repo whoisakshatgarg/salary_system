@@ -33,13 +33,24 @@ accounts:
 ![Home launcher](guide-images/shell-home.jpg)
 
 After signing in you land on **Home**. Every box (tile) is one part of the
-business — all seven modules are live. Click a tile to open it; the
-**⌂ All modules** link inside any module brings you back.
+business — all of them are live. Click a tile to open it; the **⌂ Home**
+button at the top-left of any module brings you back.
 
 You only see the tiles your account is allowed to use. Here is what a staff
 account with two permissions sees:
 
 ![Restricted account's home](guide-images/shell-home-restricted.jpg)
+
+### Deadlines coming up
+
+Under the tiles you'll find a panel of orders whose delivery dates are close,
+split into **Next 7 days** and **Next month**, with anything already **overdue**
+called out in red above them. Each line names the customer, the order number and
+how much of it still has to go out.
+
+An order disappears from the panel once it has been fully sent — nothing left to
+deliver is not a deadline. If you have nothing due, the panel doesn't appear at
+all. It's only visible to accounts that can open Order Tracking.
 
 ---
 
@@ -267,7 +278,7 @@ piece lengths and diameters.
 > leave the pieces out. You just won't be able to check it by dimension —
 > only by counting bars.
 
-### 5.2a Can we actually make it? — the Material Check
+### 5.3 Can we actually make it? — the Material Check
 
 The **Material Check** tab answers the question you ask before promising a
 customer anything: *do we have enough steel to make this?*
@@ -309,7 +320,7 @@ to know how many bars are on the rack.
 Nothing is reserved. The check only tells you what's possible right now; stock
 still leaves the rack through the usage log.
 
-### 5.3 Using stock — the usage log
+### 5.4 Using stock — the usage log
 
 ![Heat detail](guide-images/inv-heat-detail.jpg)
 
@@ -321,7 +332,7 @@ Open any heat to see its full story. To take rods out:
 The app refuses to issue more rods than remain. Deleting a log entry (✕) puts
 the rods back — that's also how you undo a rejection.
 
-### 5.4 Tracing an order
+### 5.5 Tracing an order
 
 ![Usage log](guide-images/inv-usage-log.jpg)
 
@@ -329,7 +340,7 @@ The **Usage Log** tab searches every movement by order number — type a PO
 number and see exactly which heats (and therefore which mill certificates) fed
 that order. That's your traceability answer when a customer asks.
 
-### 5.5 Lists
+### 5.6 Lists
 
 ![Lists](guide-images/inv-lists.jpg)
 
@@ -452,17 +463,53 @@ you can then push it into the rate history with **→ quote** or **→ agreed**.
 A saved costing keeps the rates it was saved with. Changing a rate in Settings
 or on the customer later will never quietly change a price you already quoted.
 
+### 7.2 Bill of materials — pricing the steel from stock
+
+You no longer have to remember what the bar cost. **+ Add material** in the
+costing workspace searches your inventory:
+
+![Bill of materials](guide-images/ws-bom.jpg)
+
+Type a **heat number**, a **grade** (EN8), a **material** (Stainless Steel) or a
+**supplier** — one box searches all of them. Each result shows what's left on the
+rack and what that steel cost per rod (or per kg), worked out from the purchase
+price you recorded when it came in.
+
+Pick one and it becomes a line in the bill of materials. Then fill in the one
+number only you know: **how many parts come out of one rod**. The cost per piece
+follows:
+
+> A rod cost ₹4,500 and yields 3 parts → **₹1,500 of material in every piece.**
+
+Add as many lines as the part needs. The **Material per piece** total feeds
+straight into the costing, and while a bill of materials exists the manual
+"Material cost" box is greyed out — one number, one source, so the two can never
+disagree.
+
+Like the operation rates, the prices are **frozen into the costing when you
+save**. If that steel costs more next month, the quote you already sent doesn't
+change underneath you.
+
 ---
 
 ## 8. Order Tracking
 
-Open the **🗂 Order Tracking** tile.
+Open the **🗂 Order Tracking** tile. It has three tabs: **Orders**,
+**Consignments** and **Shipments**.
+
+Clicking an order opens it as a **full window** with a Back button — an order
+carries its items, its delivery plan, its shipments and its stage history, which
+is more than a popup can hold. **New order** and **Edit** both fill the screen
+the same way.
 
 ![Order record](guide-images/ws-order-detail.jpg)
 
 - **New order** — pick the customer, note their PO number, add items (picking
   a drawing fills the unit and its latest rate). The order number is automatic
   (format set in Settings) and restarts every financial year.
+- **Deadline** — the date the whole order must be with the customer. It shows as
+  a column on the list, turning **amber inside a week** and **red once overdue**,
+  and it drives the warning panel on Home.
 - **Stages** — Enquiry → Quote → PO received → Production → QC → Dispatch →
   Payment received. Click any stage to move there (skipping is fine); every
   move is logged with a note.
@@ -479,6 +526,38 @@ Open the **🗂 Order Tracking** tile.
   orders** (type another order number and press *Add order*). The app refuses
   to ship more than an item has left. The **Consignments** tab lists every
   shipment — mark them **Delivered ✓** when confirmed.
+
+### 8.1 Planning a long order
+
+Some orders run for months and go out in instalments. Press **Plan** on any item
+to say when each part of it is due:
+
+![Delivery plan](guide-images/ws-delivery-plan.jpg)
+
+> An order for 600 pieces: 250 by 15 September, 100 by 15 October, and the
+> remaining 250 before the deadline.
+
+Add a line per drop. The **+ Remaining (N) by the deadline** button writes that
+last line for you, using the order's own deadline. The panel keeps three figures
+in view — **Ordered**, **Planned** and **Not planned yet** — and the last one is
+worked out for you, so it can never disagree with the others. You can't plan more
+than the item quantity; the app will say so.
+
+The button on the item row then shows how many drops are planned, so you can see
+at a glance which items have a schedule and which don't.
+
+### 8.2 Shipments — what do we still owe?
+
+The **Shipments** tab is the answer to *"how much of this order is still to go?"*
+
+![Shipments](guide-images/ws-shipments.jpg)
+
+One row per order: how much was **ordered**, how much has been **sent**, how much
+**remains**, and a progress bar. "Sent" counts every consignment ever raised
+against that order, so an order delivered in six lorries over four months adds up
+correctly. By default you only see orders that still owe something — untick the
+box to include the finished ones. The figure at the bottom is everything still
+outstanding across the orders shown.
 
 ---
 
@@ -507,7 +586,7 @@ While writing a quotation you can tick **☐ Check material availability**.
 
 It is entirely optional and off unless you tick it — the quotation is written
 and saved exactly as before either way. Ticking it opens the same check
-described in [5.2a](#52a-can-we-actually-make-it--the-material-check), with the
+described in [5.3](#53-can-we-actually-make-it--the-material-check), with the
 quantity already filled in from your quotation lines. Fill in the part length,
 diameter and any margin, press **Check stock**, and you get the same heat-wise
 answer right there in the form.
@@ -516,7 +595,7 @@ The point is to find out you're short *before* you promise a date, not after.
 Nothing is reserved and the check never stops you saving — a shortage is
 information, not a blocker. The same checkbox is on the new-order screen.
 
-### 9.1 Printing and sending
+### 9.2 Printing and sending
 
 **Print** opens a clean A4 copy in a new tab.
 

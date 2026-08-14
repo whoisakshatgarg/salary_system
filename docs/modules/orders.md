@@ -70,4 +70,9 @@ guide-images: ws-order-detail, ws-consignment.
 
 ## What's left
 - [ ] Delivery-challan / order printouts (ROADMAP Next).
+- [ ] A consignment is recorded against the ORDER, not against a planned drop, so
+      the delivery plan and the actual shipments sit side by side rather than
+      ticking each other off.
+- [ ] Double-clicking Save order / Create consignment submits twice
+      ([QA-FINDINGS.md](../QA-FINDINGS.md)).
 - [ ] Stage-change audit belongs to the app-wide audit trail (ROADMAP Now).

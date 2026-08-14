@@ -98,6 +98,9 @@ guide-images: inv-stock, inv-heat-detail, inv-new-heat, inv-usage-log, inv-lists
 None known.
 
 ## What's left
-- [ ] Link `heat_movement.order_id` to real orders when Order Tracking ships
-      (free text today by decision).
+- [ ] `heat_movement.order_id` is still free text even though Order Tracking has
+      shipped — traceability works by matching the order NUMBER, so a typo breaks
+      the link silently. A real FK is the fix.
+- [ ] Issuing stock is not connected to the bill of materials: costing a part
+      from heat H1001 prices it but does not reserve or consume those rods.
 - [ ] Optional: low-stock indicators / reorder hints (not requested yet).
