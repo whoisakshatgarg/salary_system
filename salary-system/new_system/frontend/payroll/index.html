@@ -182,9 +182,9 @@
         <div class="text-sm" :class="reminder && reminder.daysLeft < 0 ? 'text-rose-800' : 'text-amber-800'">
           ⏰ <b x-text="'Fill ' + periodName(reminder?.period) + ' attendance'"></b>
           — <span x-text="(reminder?.filled||0) + '/' + (reminder?.total_active||0) + ' employees done'"></span>.
-          <span x-show="reminder && reminder.daysLeft > 0" x-text="'Due by the 7th — ' + reminder.daysLeft + ' day' + (reminder.daysLeft===1?'':'s') + ' left.'"></span>
+          <span x-show="reminder && reminder.daysLeft > 0" x-text="'Due by the 7th — ' + reminder?.daysLeft + ' day' + (reminder?.daysLeft===1?'':'s') + ' left.'"></span>
           <span x-show="reminder && reminder.daysLeft === 0"><b>Due today (the 7th).</b></span>
-          <span x-show="reminder && reminder.daysLeft < 0" x-text="'Overdue by ' + (-reminder.daysLeft) + ' day' + ((-reminder.daysLeft)===1?'':'s') + '.'"></span>
+          <span x-show="reminder && reminder.daysLeft < 0" x-text="'Overdue by ' + (-reminder?.daysLeft) + ' day' + ((-reminder?.daysLeft)===1?'':'s') + '.'"></span>
         </div>
         <button @click="go('attendance')" class="px-3 py-1.5 rounded-lg text-xs font-medium text-white"
                 :class="reminder && reminder.daysLeft < 0 ? 'bg-rose-600 hover:bg-rose-700' : 'bg-amber-600 hover:bg-amber-700'">Fill now</button>
@@ -552,8 +552,10 @@
             </ul>
           </div>
 
-          <!-- CEO: editable metrics -->
-          <template x-if="isAdmin">
+          <!-- CEO: editable metrics. The x-if must also gate on att.summary —
+               the inputs below x-model into it, and x-model still evaluates
+               when the surrounding markup is merely hidden. -->
+          <template x-if="isAdmin && att.summary">
             <div>
               <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                 <div>
@@ -869,7 +871,7 @@
             <button @click="downloadBackup()"
                     class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium">Download a copy</button>
             <span class="text-xs text-slate-400" x-show="backup.recent.length"
-                  x-text="'Latest: ' + backup.recent[0].file + ' (' + backup.recent[0].size_kb + ' KB) · ' + backup.recent.length + ' kept'"></span>
+                  x-text="'Latest: ' + backup.recent[0]?.file + ' (' + backup.recent[0]?.size_kb + ' KB) · ' + backup.recent.length + ' kept'"></span>
           </div>
         </div>
       </section>
@@ -881,7 +883,10 @@
   <!-- PAY-SETUP FORM: financial fields only. Everything else (name, dept,
        shift, joining date, OT scheme, leave bank) is edited in Employee
        Management; unchanged fields pass through the save untouched. -->
-  <div x-show="empForm" x-cloak class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-40">
+  <!-- x-if, not x-show: the inputs below x-model into empForm, which is null
+       while the modal is closed, and x-model evaluates even when hidden. -->
+  <template x-if="empForm">
+  <div class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-40">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6" @click.outside="empForm=null">
       <h2 class="text-lg font-bold mb-1" x-text="'Pay setup — ' + (empForm?.name || '')"></h2>
       <p class="text-xs text-slate-400 mb-4">Profile details are edited in Employee Management (Home → 👥).</p>
@@ -899,6 +904,7 @@
       </div>
     </div>
   </div>
+  </template>
 
   <!-- EMPLOYEE PROFILE MODAL -->
   <div x-show="profileOpen" x-cloak class="fixed inset-0 bg-black/40 flex items-start justify-center p-4 z-50 overflow-auto">
