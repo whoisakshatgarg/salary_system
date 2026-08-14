@@ -252,3 +252,48 @@ class EmployeeModule(UsersBase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class GuideIsOwnerOnly(unittest.TestCase):
+    """The user guide at /help/ is the owner's — everyone else is refused.
+
+    Tested at the route layer rather than through a browser: the point is that
+    the SERVER refuses, not that a tile is hidden. Hiding the tile is courtesy;
+    this is the boundary.
+    """
+
+    def setUp(self):
+        from backend.main import _help_guard
+        self._guard = _help_guard
+
+    def test_admin_passes(self):
+        self._guard({"username": "admin", "role": "admin"})   # no raise
+
+    def test_operator_is_refused(self):
+        with self.assertRaises(HTTPException) as cm:
+            self._guard({"username": "someone", "role": "operator"})
+        self.assertEqual(cm.exception.status_code, 403)
+
+    def test_a_missing_role_is_refused(self):
+        """Fail closed: an unexpected shape must not be treated as an admin."""
+        for who in ({}, {"username": "x"}, {"role": None}, {"role": "Admin"}):
+            with self.assertRaises(HTTPException):
+                self._guard(who)
+
+    def test_the_routes_are_declared_before_the_static_mount(self):
+        """If /help ever fell through to StaticFiles it would be served to
+        anyone, which is exactly what this feature exists to prevent."""
+        from backend.main import app
+        from starlette.routing import Mount
+        paths = [getattr(r, "path", "") for r in app.routes]
+        help_at = min(i for i, p in enumerate(paths) if p.startswith("/help"))
+        # the SPA is a Mount whose path is "" — it catches everything left over
+        mount_at = max(i for i, r in enumerate(app.routes) if isinstance(r, Mount))
+        self.assertLess(help_at, mount_at,
+                        "the /help routes must be registered before the SPA mount")
+
+    def test_assets_are_gated_too(self):
+        """The screenshots must not be readable by URL when the page is not."""
+        from backend.main import app
+        paths = {getattr(r, "path", "") for r in app.routes}
+        self.assertIn("/help/{asset:path}", paths)

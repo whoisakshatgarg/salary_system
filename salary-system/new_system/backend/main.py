@@ -22,6 +22,7 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -235,6 +236,95 @@ def backup_download(user: dict = Depends(require_admin)):
     fname = f"salary-{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip"
     return Response(content=data, media_type="application/zip",
                     headers={"Content-Disposition": f'attachment; filename="{fname}"'})
+
+
+# --------------------------------------------------------------------------- #
+# The user guide (/help/) — OWNER ONLY.
+#
+# It has to be a real route, not part of the static mount: StaticFiles serves
+# whatever it holds to anyone who asks, and the whole point here is that the
+# manual is the owner's. Declared BEFORE the mount so it wins.
+#
+# A refusal renders as a small page rather than raw JSON, because this is
+# something a person opens in a browser, not an API a script calls.
+# --------------------------------------------------------------------------- #
+HELP_DIR = FRONTEND / "help"
+
+_HELP_DENIED = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>User Guide — APEX THERMOCON</title>
+<style>
+ body {font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+       background:#f1f5f9; color:#1e293b; display:flex; align-items:center;
+       justify-content:center; min-height:100vh; margin:0;}
+ .card {background:#fff; border-radius:1rem; box-shadow:0 1px 3px rgba(0,0,0,.1);
+        padding:2.5rem; max-width:30rem; text-align:center;}
+ h1 {font-size:1.25rem; margin:0 0 .5rem;}
+ p {color:#475569; line-height:1.6; font-size:.9375rem;}
+ a {display:inline-block; margin-top:1.25rem; background:#1d4ed8; color:#fff;
+    text-decoration:none; padding:.625rem 1.25rem; border-radius:.5rem;
+    font-weight:600; font-size:.875rem;}
+</style></head><body><div class="card">
+ <h1>{{title}}</h1>
+ <p>{{body}}</p>
+ <a href="/">Back to Home</a>
+</div></body></html>"""
+
+
+def _help_guard(user: dict) -> None:
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="The user guide is owner-only")
+
+
+@app.get("/help/", response_class=HTMLResponse)
+@app.get("/help", response_class=HTMLResponse)
+def help_index(user: dict = Depends(current_user)):
+    _help_guard(user)
+    page = HELP_DIR / "index.html"
+    if not page.is_file():
+        raise HTTPException(status_code=404, detail="The guide has not been built yet")
+    return HTMLResponse(page.read_text(encoding="utf-8"))
+
+
+@app.get("/help/{asset:path}")
+def help_asset(asset: str, user: dict = Depends(current_user)):
+    """Screenshots and anything else under help/ — gated with the page itself,
+    otherwise the pictures would be readable by anyone who guessed the URL."""
+    _help_guard(user)
+    target = (HELP_DIR / asset).resolve()
+    # containment check: a crafted '../..' must not escape the folder
+    if not str(target).startswith(str(HELP_DIR.resolve()) + "/") or not target.is_file():
+        raise HTTPException(status_code=404, detail="Not found")
+    return FileResponse(target)
+
+
+def _help_page(title: str, body: str, status: int) -> HTMLResponse:
+    return HTMLResponse(_HELP_DENIED.replace("{{title}}", title).replace("{{body}}", body),
+                        status_code=status)
+
+
+@app.exception_handler(401)
+async def _unauthorised(request: Request, exc: HTTPException):
+    """Someone who typed /help/ while signed out gets a page telling them so —
+    a raw JSON body in the browser window helps nobody."""
+    if request.url.path.startswith("/help"):
+        return _help_page(
+            "Sign in first",
+            "The user guide is only available to the owner&rsquo;s account. "
+            "Sign in from the Home screen.", 401)
+    return JSONResponse({"detail": exc.detail}, status_code=401)
+
+
+@app.exception_handler(403)
+async def _forbidden(request: Request, exc: HTTPException):
+    """A person who opened /help/ in a browser gets a page; everything else keeps
+    the JSON body the UI's api() helper expects."""
+    if request.url.path.startswith("/help"):
+        return _help_page(
+            "The user guide is the owner&rsquo;s",
+            "This manual is only available to the owner&rsquo;s account. If you "
+            "need to know how something works, ask them &mdash; they can look it "
+            "up for you.", 403)
+    return JSONResponse({"detail": exc.detail}, status_code=403)
 
 
 # --------------------------------------------------------------------------- #

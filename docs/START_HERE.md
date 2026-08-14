@@ -27,7 +27,7 @@ Tests: `../venv/bin/python -m unittest discover -s tests`.
 | Customers (codes, order history, growth, agreed per-operation rates) | 🏢 | ✅ built | [modules/customers.md](modules/customers.md) |
 | Settings (order format, units, op rates, departments) | ⚙ | ✅ built | [modules/settings.md](modules/settings.md) |
 | Self-update / backups / two-machine sync | — | ✅ built (shared services) | [ARCHITECTURE.md](ARCHITECTURE.md) |
-| In-app User Guide (`/help/`, generated from USER_GUIDE.md) | 📖 | ✅ built | [USER_GUIDE.md](USER_GUIDE.md) |
+| In-app User Guide (`/help/`, generated, **owner-only**) | 📖 | ✅ built | [USER_GUIDE.md](USER_GUIDE.md) |
 
 ## Reading order for a new session
 

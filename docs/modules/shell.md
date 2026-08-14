@@ -17,14 +17,16 @@ touching code.
   are refused.
 - Update popup appears on Home when a newer GitHub Release exists.
 - **📖 User Guide** tile opens `/help/` — the illustrated manual, generated from
-  `docs/USER_GUIDE.md`. Not a module: no registry entry and no grant. It is
-  **scoped to the account**: every chapter declares a grant key in the guide
-  itself (`<!-- access: inventory -->`), the page reads `/api/modules` on load
-  and hides the chapters that account cannot open, with a note saying so.
-  `general` chapters always show, `admin` ones only to admins, and signing out
-  leaves general-only — logging out is not a way to see everything. Note this
-  is PRESENTATIONAL: the HTML holds every chapter, so it declutters rather than
-  enforces. The real boundary is the per-route grant check on the data itself.
+  `docs/USER_GUIDE.md`. **Owner-only.** It is not part of the static mount: it
+  has real routes in `main.py` (`/help`, `/help/`, `/help/{asset:path}`)
+  declared BEFORE the SPA mount and gated on `role == 'admin'`, so the page AND
+  its screenshots are refused to everyone else — 403 for a signed-in non-admin,
+  401 signed out, both rendered as a small page rather than raw JSON because a
+  person opened it in a browser. The tile is hidden for non-admins to match,
+  but hiding it is courtesy; the server refusing is the boundary.
+  Chapters still carry `<!-- access: KEY -->` markers and the page still scopes
+  itself on load — currently moot (admins hold every grant), kept so the guide
+  can be opened up to other roles without redoing the work.
 - **Deadlines panel** under the tiles: orders whose delivery date is close, as
   two lists — *next 7 days* and *next month* — with anything already overdue
   called out above them. Each line is customer · order number · quantity still

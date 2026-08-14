@@ -8,10 +8,9 @@ data.)
 tile on Home, or go straight to `/help/`. It has a contents list down the side
 and a search box, and it works with no internet.
 
-It shows **the chapters your account can actually use** — if you only have
-Inventory, you get Getting started, Raw Material Inventory and the
-troubleshooting chapter, and nothing else clutters the list. Ask the owner for
-access in **Users & Access** if you need more.
+The guide is **only available to the owner's account**. If you use the software
+day to day and need to know how something works, ask them — they can look it up
+for you.
 
 ---
 

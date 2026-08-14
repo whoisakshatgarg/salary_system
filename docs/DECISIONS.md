@@ -279,4 +279,14 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   actually protects data is `require_module` on each route. If the guide ever
   needs to be a real boundary, the page would have to be assembled server-side
   per request.
+- **The user guide is owner-only, enforced server-side.** Scoping it per grant
+  was the first ask; the owner then narrowed it to their account alone. Hiding
+  the tile would not have been enough — `/help/` was part of the StaticFiles
+  mount, which serves whatever it holds to anyone who guesses a URL. So it has
+  real routes declared before the mount and gated on the admin role, covering
+  the screenshots as well as the page: a picture readable by URL would leak the
+  same content. Refusals render as a page, not JSON, because this is something a
+  person opens in a browser. The per-chapter `access` markers stay: they cost
+  nothing now (admins hold every grant) and mean the guide can be reopened to
+  other roles by relaxing one guard.
 
