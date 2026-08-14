@@ -40,6 +40,23 @@ def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
 
+def op_cost(minutes: float, rate_per_hour: float, weightage: float = 1,
+            extra_margin_pct: float = 0) -> float:
+    """Cost of ONE operation row, in the order the columns read:
+
+        time cost   = minutes / 60 * ₹per hour
+        weighted    = time cost * weightage        (weighted addition)
+        row total   = weighted * (1 + extra margin % / 100)
+
+    Weightage covers "this operation counts more/less than its clock time"
+    (setup spread over a batch, a second spindle, scrap allowance); the extra
+    margin is a mark-up on this operation alone, on top of the costing's
+    overall margin.
+    """
+    return round(minutes / 60 * rate_per_hour * weightage
+                 * (1 + extra_margin_pct / 100), 2)
+
+
 def costing_total(ops_total: float, material_cost: float, margin_pct: float) -> float:
     """THE rollup — display and costing_to_rate must always agree."""
     return round((ops_total + material_cost) * (1 + margin_pct / 100), 2)
@@ -240,15 +257,20 @@ def save_costing(conn, drawing_id: int, data: dict) -> dict:
             raise ValueError("Every row needs an operation")
         minutes = _check_money(o.get("minutes"), f"{name}: minutes", allow_zero=False)
         rate = _check_money(o.get("rate_per_hour"), f"{name}: ₹/hour")
-        checked.append((name, minutes, rate, round(minutes / 60 * rate, 2)))
+        weightage = _check_money(o.get("weightage") if o.get("weightage") not in (None, "") else 1,
+                                 f"{name}: weightage", allow_zero=False)
+        extra = _check_money(o.get("extra_margin_pct") or 0, f"{name}: additional margin %")
+        checked.append((name, minutes, rate, weightage, extra,
+                        op_cost(minutes, rate, weightage, extra)))
     cur = conn.execute(
         "INSERT INTO costing (drawing_id, material_cost, margin_pct, notes, created_at)"
         " VALUES (?,?,?,?,?)",
         (drawing_id, material, margin, _s(data.get("notes")), _now()))
-    for name, minutes, rate, cost in checked:
+    for name, minutes, rate, weightage, extra, cost in checked:
         conn.execute(
-            "INSERT INTO costing_op (costing_id, operation, minutes, rate_per_hour, cost)"
-            " VALUES (?,?,?,?,?)", (cur.lastrowid, name, minutes, rate, cost))
+            "INSERT INTO costing_op (costing_id, operation, minutes, rate_per_hour,"
+            " weightage, extra_margin_pct, cost) VALUES (?,?,?,?,?,?,?)",
+            (cur.lastrowid, name, minutes, rate, weightage, extra, cost))
     conn.commit()
     return get_drawing(conn, drawing_id)
 
@@ -343,6 +365,8 @@ class CostingOpIn(BaseModel):
     operation: str
     minutes: float
     rate_per_hour: float
+    weightage: float = 1
+    extra_margin_pct: float = 0
 
 
 class CostingIn(BaseModel):

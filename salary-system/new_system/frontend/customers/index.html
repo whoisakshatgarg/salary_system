@@ -57,7 +57,8 @@
         <table class="w-full text-sm">
           <thead>
             <tr class="text-left text-xs text-slate-500 border-b bg-slate-50">
-              <th class="px-4 py-3">Name</th>
+              <th class="px-4 py-3">Code</th>
+              <th class="px-3 py-3">Name</th>
               <th class="px-3 py-3">GSTIN</th>
               <th class="px-3 py-3">Payment terms</th>
               <th class="px-3 py-3 text-right">Contacts</th>
@@ -70,7 +71,8 @@
             <template x-for="c in rows" :key="c.id">
               <tr @click="open(c.id)" class="border-b last:border-0 hover:bg-brand-600/5 cursor-pointer"
                   :class="!c.active && 'opacity-50'">
-                <td class="px-4 py-2.5 font-semibold text-brand-700" x-text="c.name"></td>
+                <td class="px-4 py-2.5 font-mono text-xs font-bold text-slate-500" x-text="c.code || '—'"></td>
+                <td class="px-3 py-2.5 font-semibold text-brand-700" x-text="c.name"></td>
                 <td class="px-3 py-2.5 font-mono text-xs" x-text="c.gstin || '—'"></td>
                 <td class="px-3 py-2.5" x-text="c.payment_terms || '—'"></td>
                 <td class="px-3 py-2.5 text-right" x-text="c.contacts"></td>
@@ -84,7 +86,7 @@
               </tr>
             </template>
             <tr x-show="!rows.length">
-              <td colspan="7" class="px-4 py-10 text-center text-slate-400">
+              <td colspan="8" class="px-4 py-10 text-center text-slate-400">
                 No customers yet — add the first with “+ Add customer”.
               </td>
             </tr>
@@ -100,8 +102,17 @@
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-4">
       <div class="flex items-center gap-3 px-6 py-4 border-b">
         <div>
-          <div class="text-xl font-bold" x-text="detail.name"></div>
+          <div class="text-xl font-bold">
+            <span class="font-mono text-slate-400 text-base" x-text="detail.code"></span>
+            <span x-text="detail.name"></span>
+          </div>
           <div class="text-xs text-slate-500 font-mono" x-text="detail.gstin || 'no GSTIN'"></div>
+        </div>
+        <div class="flex gap-1 ml-2">
+          <button @click="tab = 'profile'" class="px-3 py-1.5 rounded-lg text-xs font-medium"
+                  :class="tab === 'profile' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-100'">Profile</button>
+          <button @click="tab = 'business'" class="px-3 py-1.5 rounded-lg text-xs font-medium"
+                  :class="tab === 'business' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-100'">Business</button>
         </div>
         <span class="px-2.5 py-1 rounded-full text-xs font-medium"
               :class="detail.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
@@ -114,7 +125,7 @@
           <button @click="closeDetail()" class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
         </div>
       </div>
-      <div class="p-6 grid grid-cols-2 gap-6">
+      <div x-show="tab === 'profile'" class="p-6 grid grid-cols-2 gap-6">
         <div class="space-y-3 text-sm">
           <div><div class="text-xs text-slate-500 mb-0.5">Billing address</div>
             <div class="whitespace-pre-line" x-text="detail.address_billing || '—'"></div></div>
@@ -147,6 +158,83 @@
                   class="mt-2 bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium">+ Add contact</button>
         </div>
       </div>
+
+      <!-- ============ BUSINESS: totals, growth, orders, documents ============ -->
+      <div x-show="tab === 'business'" class="p-6">
+        <template x-if="biz">
+        <div>
+          <div class="grid grid-cols-4 gap-3 mb-5">
+            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Total business</div>
+              <div class="text-xl font-bold" x-text="money(biz.stats.total_business)"></div></div>
+            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Orders</div>
+              <div class="text-xl font-bold" x-text="biz.stats.order_count"></div></div>
+            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Average order</div>
+              <div class="text-xl font-bold" x-text="money(biz.stats.avg_order)"></div></div>
+            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Still open</div>
+              <div class="text-xl font-bold" x-text="money(biz.stats.open_value)"></div></div>
+          </div>
+
+          <div class="mb-5">
+            <div class="font-semibold text-sm mb-2">Business by month
+              <span class="font-normal text-xs text-slate-400">· bar = that month, line above = running total</span></div>
+            <div x-show="biz.series.length" class="flex items-end gap-2 h-40 border-b border-slate-200 pb-1">
+              <template x-for="s in biz.series" :key="s.month">
+                <div class="flex-1 flex flex-col items-center justify-end h-full group">
+                  <div class="text-[10px] text-slate-500 mb-1" x-text="money(s.amount)"></div>
+                  <div class="w-full bg-brand-600/80 group-hover:bg-brand-600 rounded-t transition-all"
+                       :style="`height:${barPct(s.amount)}%`"
+                       :title="`${s.orders} order(s) · running total ${money(s.cumulative)}`"></div>
+                </div>
+              </template>
+            </div>
+            <div x-show="biz.series.length" class="flex gap-2 mt-1">
+              <template x-for="s in biz.series" :key="s.month">
+                <div class="flex-1 text-center text-[10px] text-slate-400" x-text="monthLabel(s.month)"></div>
+              </template>
+            </div>
+            <p x-show="!biz.series.length" class="text-xs text-slate-400">No orders yet.</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <div class="font-semibold text-sm mb-2">Orders, newest first</div>
+              <table class="w-full text-sm">
+                <thead><tr class="text-left text-xs text-slate-500 border-b">
+                  <th class="py-2">Order</th><th class="py-2">Date</th>
+                  <th class="py-2 text-right">Amount</th><th class="py-2">Stage</th></tr></thead>
+                <tbody>
+                  <template x-for="o in biz.orders" :key="o.id">
+                    <tr class="border-b last:border-0">
+                      <td class="py-2 font-mono text-xs text-brand-700" x-text="o.order_no"></td>
+                      <td class="py-2 whitespace-nowrap" x-text="fmtDate(o.order_date)"></td>
+                      <td class="py-2 text-right font-medium" x-text="money(o.amount)"></td>
+                      <td class="py-2"><span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                            :class="stageClass(o.stage)" x-text="o.stage"></span></td>
+                    </tr>
+                  </template>
+                  <tr x-show="!biz.orders.length"><td colspan="4" class="py-6 text-center text-slate-400 text-sm">No orders yet.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <div class="font-semibold text-sm mb-2">Quotations &amp; invoices</div>
+              <template x-for="d in biz.documents" :key="d.id">
+                <div class="flex items-center gap-2 text-sm py-1.5 border-b last:border-0">
+                  <span class="font-mono text-xs text-brand-700" x-text="d.doc_no"></span>
+                  <span class="text-xs text-slate-400 capitalize" x-text="d.kind"></span>
+                  <span class="text-xs text-slate-400" x-text="fmtDate(d.doc_date)"></span>
+                  <span class="ml-auto font-medium" x-text="money(d.total)"></span>
+                  <button @click="printDoc(d)" class="text-brand-700 hover:underline text-xs">Print</button>
+                </div>
+              </template>
+              <p x-show="!biz.documents.length" class="text-xs text-slate-400">
+                None yet — raise one from the Quotations &amp; Invoices tile.
+              </p>
+            </div>
+          </div>
+        </div>
+        </template>
+      </div>
     </div>
   </div>
   </template>
@@ -162,6 +250,15 @@
       <form @submit.prevent="saveCust()" class="p-6 space-y-3 text-sm">
         <div><label class="block text-xs text-slate-500 mb-1">Name *</label>
           <input x-model="form.name" class="border rounded-lg px-3 py-2 w-full" /></div>
+        <div x-show="!form.id"><label class="block text-xs text-slate-500 mb-1">
+            Customer code <span class="text-slate-400">— leave blank to use the initials</span></label>
+          <div class="flex items-center gap-2">
+            <input x-model="form.abbr" placeholder="auto" maxlength="6"
+                   class="border rounded-lg px-3 py-2 w-28 font-mono uppercase" />
+            <span class="text-xs text-slate-500">will become
+              <b class="font-mono" x-text="codePreview || '—'"></b>
+              <span class="text-slate-400">(nn = next free number)</span></span>
+          </div></div>
         <div><label class="block text-xs text-slate-500 mb-1">GSTIN</label>
           <input x-model="form.gstin" class="border rounded-lg px-3 py-2 w-full font-mono" /></div>
         <div class="grid grid-cols-2 gap-3">

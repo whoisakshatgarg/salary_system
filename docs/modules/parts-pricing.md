@@ -15,6 +15,15 @@ builder that rolls up to ₹/piece.
   (₹/hr prefilled from Settings, snapshot on save), minutes per piece,
   material cost, margin %, live rollup — then **→ quote / → agreed** records
   the total into the rate history.
+- **Costing workspace** (own full screen, opened from the drawing): the part and
+  its rate history on the left with a revision switcher and the customer
+  assignment; the operations table on the right with columns
+  *operation · minutes · ₹/hour · time ₹ · weightage · additional margin % · row ₹*.
+  Every figure recalculates as you type. Row cost is
+  `minutes ÷ 60 × ₹/hr × weightage × (1 + additional margin %)` — weightage is
+  the "counts more than its clock time" factor (setup spread over a batch, a
+  second spindle, scrap allowance); the additional margin marks up that one
+  operation on top of the costing's overall margin.
 - Delete only while the drawing is on no order (else deactivate).
 
 ## Implemented (file paths)
@@ -28,7 +37,8 @@ UI `frontend/parts/index.html` + `parts.js` · files under `data/drawing_files/`
 grade, unit, active, UNIQUE(drawing_no, revision))` · `drawing_file` ·
 `drawing_rate(drawing_id, kind, rate, rate_date, note)` ·
 `costing(drawing_id, material_cost, margin_pct)` +
-`costing_op(costing_id, operation, minutes, rate_per_hour, cost)` — rollup
+`costing_op(costing_id, operation, minutes, rate_per_hour, weightage,
+extra_margin_pct, cost)` — rollup
 totals derived on read.
 
 ## Screens

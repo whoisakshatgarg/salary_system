@@ -130,8 +130,8 @@
         <div class="text-white font-bold text-lg leading-tight" x-text="meta.company_name"></div>
         <div class="text-xs mt-0.5">
           <span class="inline-block px-1.5 py-0.5 rounded font-medium"
-                :class="isOperatorEdition ? 'bg-amber-500/20 text-amber-300' : 'bg-brand-600/30 text-brand-200'"
-                x-text="isOperatorEdition ? 'Operator' : 'CEO / Admin'"></span>
+                :class="isAdmin ? 'bg-brand-600/30 text-brand-200' : 'bg-amber-500/20 text-amber-300'"
+                x-text="isAdmin ? 'CEO / Admin' : 'Operator'"></span>
         </div>
         </div>
       </div>

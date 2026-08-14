@@ -7,9 +7,17 @@ The thin master Orders, Parts & Pricing and consignments reference: name,
 GSTIN, addresses, contact persons, payment terms.
 
 ## User flows
-List with search + active filter → record with contacts (add/delete), edit,
-deactivate/reactivate. Delete works only while the customer has no orders or
-drawings (otherwise deactivate — history stays).
+- List (searchable by name, GSTIN **or code**) → record with two tabs.
+- **Profile**: addresses, terms, contact persons.
+- **Business**: lifetime totals (total, orders, average, still-open), a
+  month-by-month bar chart of business won (hover shows the running total),
+  every order newest-first with its stage, and their quotations/invoices with a
+  Print button — any past document can be reprinted here.
+- Each customer gets a **code** on creation: an abbreviation of the name plus a
+  serial within it (Acme Castings → AC01, the next AC… → AC02). "M/s"/"Messrs"
+  and Pvt/Ltd-style words are ignored when deriving it; the abbreviation can be
+  overridden in the form, which previews the result live.
+- Delete only while the customer has no orders or drawings (else deactivate).
 
 ## Implemented (file paths)
 `backend/modules/customers.py` (data + `/api/customers/*` routes, grant
@@ -17,7 +25,7 @@ drawings (otherwise deactivate — history stays).
 `tests/test_workshop.py` (CustomersSpec).
 
 ## Data model
-`customer(id, name UNIQUE, gstin, address_billing, address_shipping,
+`customer(id, code UNIQUE, name UNIQUE, gstin, address_billing, address_shipping,
 payment_terms, notes, active)` · `customer_contact(customer_id, name, phone,
 email, role)` (cascade).
 
@@ -25,4 +33,4 @@ email, role)` (cascade).
 guide-images: ws-customer.
 
 ## What's left
-- [ ] Nothing pending. (Receivables view belongs to Dashboard — ROADMAP Next.)
+- [ ] Receivables (invoiced vs paid) once invoice payments are tracked.

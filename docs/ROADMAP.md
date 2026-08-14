@@ -17,6 +17,8 @@ and convenience.
 
 ## Next
 
+- Invoice payment tracking (part-payments, outstanding) → customer receivables.
+- Company address/GSTIN fields in Settings for the printed documents.
 - Cross-module dashboard/reports (orders by stage, stock value, salary
   outflow, receivables) — the data all exists now.
 - Friendlier payroll-rules editor inside Settings (raw JSON today).

@@ -7,6 +7,7 @@ and the static frontend mount. All business routes live in their modules:
     modules/customers   customer master + contacts
     modules/parts       drawing master, rate history, costing builder
     modules/orders      orders, stages, consignments, FY numbering
+    modules/quotations  quotations + invoices, printable copies
     modules/settings    order format, units, operation rates, departments
     modules/users       accounts, module grants, the launcher's tile list
 
@@ -28,7 +29,8 @@ from .core import auth, db, edition, paths, update
 from .core.deps import current_user, get_db, require_admin
 from .core.rules import get_rules
 from .core.version import __version__
-from .modules import customers, inventory, orders, parts, settings, users
+from .modules import (customers, inventory, orders, parts, quotations,
+                      settings, users)
 from .modules.employees import seed
 from .modules.employees.router import router as employees_router
 from .modules.payroll.router import router as payroll_router
@@ -40,10 +42,22 @@ app = FastAPI(title="APEX THERMOCON Salary System")
 
 
 @app.middleware("http")
-async def no_cache_frontend(request, call_next):
-    """Never cache the UI assets so edits always show up (this is a local app)."""
+async def cache_policy(request, call_next):
+    """Our own pages/JS are never cached so edits show up immediately, but the
+    vendored libraries ARE — they're 440 KB that every module navigation would
+    otherwise re-download and re-parse (this is a multi-page app: each tile
+    click is a full page load).
+
+    NOTE: cached by filename. If you ever swap a vendored library, rename the
+    file (e.g. alpine-3.15.js) instead of overwriting it.
+    """
     response = await call_next(request)
-    if not request.url.path.startswith("/api"):
+    path = request.url.path
+    if path.startswith("/api"):
+        return response
+    if path.startswith("/vendor/"):
+        response.headers["Cache-Control"] = "public, max-age=604800"  # 7 days
+    else:
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
@@ -56,6 +70,8 @@ def _startup() -> None:
     seed.seed()  # no-op if already populated
     inventory.ensure_defaults()  # first-run inventory dropdown lists
     settings.ensure_defaults()   # first-run units / operations / order format
+    with db.connect() as _c:     # customers added before codes existed
+        customers.backfill_codes(_c)
 
 
 app.include_router(employees_router)
@@ -66,6 +82,7 @@ app.include_router(settings.router)
 app.include_router(customers.router)
 app.include_router(parts.router)
 app.include_router(orders.router)
+app.include_router(quotations.router)
 
 
 # --------------------------------------------------------------------------- #

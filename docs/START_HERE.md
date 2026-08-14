@@ -23,7 +23,8 @@ Tests: `../venv/bin/python -m unittest discover -s tests`.
 | Employee Management (people, documents, leave bank) | 👥 | ✅ built | [modules/employees.md](modules/employees.md) |
 | Order Tracking (stages, heats link, consignments) | 🗂 | ✅ built | [modules/orders.md](modules/orders.md) |
 | Parts & Pricing (drawings, rate history, costing) | 📐 | ✅ built | [modules/parts-pricing.md](modules/parts-pricing.md) |
-| Customers (master + contacts) | 🏢 | ✅ built | [modules/customers.md](modules/customers.md) |
+| Quotations & Invoices (printable copies) | 🧾 | ✅ built | [modules/quotations.md](modules/quotations.md) |
+| Customers (codes, order history, growth) | 🏢 | ✅ built | [modules/customers.md](modules/customers.md) |
 | Settings (order format, units, op rates, departments) | ⚙ | ✅ built | [modules/settings.md](modules/settings.md) |
 | Self-update / backups / two-machine sync | — | ✅ built (shared services) | [ARCHITECTURE.md](ARCHITECTURE.md) |
 

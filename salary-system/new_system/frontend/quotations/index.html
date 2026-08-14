@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quotations &amp; Invoices — APEX THERMOCON</title>
+  <script src="/vendor/tailwind.js"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { brand: { 600: "#1d4ed8", 700: "#1e40af" } } } } };
+  </script>
+  <script defer src="quotations.js"></script>
+  <script defer src="/vendor/alpine.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    input, select, textarea { @apply outline-none; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800" x-data="qi()" x-init="boot()" x-cloak>
+
+  <div x-show="toast.show" x-transition
+       class="fixed top-4 right-4 z-[70] px-4 py-3 rounded-lg shadow-lg text-white text-sm"
+       :class="toast.kind === 'err' ? 'bg-rose-600' : 'bg-emerald-600'" x-text="toast.msg"></div>
+
+  <div x-show="booted && authed" class="min-h-screen flex flex-col">
+    <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
+      <a href="/" title="Back to all modules"
+         class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
+        <span class="text-base leading-none">⌂</span> Home
+      </a>
+      <div>
+        <div class="text-white font-bold leading-tight">Quotations &amp; Invoices</div>
+        <div class="text-[11px] text-slate-400">APEX THERMOCON · what goes out to the customer</div>
+      </div>
+      <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
+        <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-auto p-6 max-w-6xl w-full mx-auto">
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button @click="kind = ''; load()" class="px-3 py-1.5 rounded-full text-xs font-medium border"
+                :class="!kind ? 'bg-slate-800 text-white border-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'">
+          All (<span x-text="(data.counts.quotation || 0) + (data.counts.invoice || 0)"></span>)
+        </button>
+        <button @click="kind = 'quotation'; load()" class="px-3 py-1.5 rounded-full text-xs font-medium border"
+                :class="kind === 'quotation' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'">
+          Quotations <span class="opacity-60" x-text="data.counts.quotation || 0"></span>
+        </button>
+        <button @click="kind = 'invoice'; load()" class="px-3 py-1.5 rounded-full text-xs font-medium border"
+                :class="kind === 'invoice' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'">
+          Invoices <span class="opacity-60" x-text="data.counts.invoice || 0"></span>
+        </button>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-end gap-3">
+        <div class="flex-1 min-w-[240px]">
+          <label class="block text-xs font-medium text-slate-500 mb-1">Search</label>
+          <input x-model="q" @input.debounce.400ms="load()"
+                 placeholder="Number / customer / code / reference"
+                 class="w-full border rounded-lg px-3 py-2 text-sm" />
+        </div>
+        <button @click="newDoc('quotation')"
+                class="ml-auto bg-white border border-brand-600 text-brand-700 hover:bg-brand-600/5 px-4 py-2 rounded-lg text-sm font-medium">
+          + Quotation
+        </button>
+        <button @click="newDoc('invoice')"
+                class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+          + Invoice
+        </button>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm overflow-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-slate-500 border-b bg-slate-50">
+              <th class="px-4 py-3">Number</th>
+              <th class="px-3 py-3">Type</th>
+              <th class="px-3 py-3">Date</th>
+              <th class="px-3 py-3">Customer</th>
+              <th class="px-3 py-3">Against order</th>
+              <th class="px-3 py-3 text-right">Total</th>
+              <th class="px-3 py-3">Status</th>
+              <th class="px-3 py-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="d in data.rows" :key="d.id">
+              <tr @click="open(d.id)" class="border-b last:border-0 hover:bg-brand-600/5 cursor-pointer">
+                <td class="px-4 py-2.5 font-semibold text-brand-700 font-mono text-xs" x-text="d.doc_no"></td>
+                <td class="px-3 py-2.5">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                        :class="kindClass(d.kind)" x-text="kindLabel(d.kind)"></span>
+                </td>
+                <td class="px-3 py-2.5 whitespace-nowrap" x-text="fmtDate(d.doc_date)"></td>
+                <td class="px-3 py-2.5">
+                  <span x-text="d.customer_name"></span>
+                  <span class="text-xs text-slate-400 font-mono" x-text="d.customer_code"></span>
+                </td>
+                <td class="px-3 py-2.5 font-mono text-xs" x-text="d.order_no || '—'"></td>
+                <td class="px-3 py-2.5 text-right font-medium whitespace-nowrap" x-text="money(d.total)"></td>
+                <td class="px-3 py-2.5">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                        :class="statusClass(d.status)" x-text="d.status"></span>
+                </td>
+                <td class="px-3 py-2.5 text-right">
+                  <button @click.stop="print(d)" class="text-brand-700 hover:underline text-xs">Print</button>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="!data.rows.length">
+              <td colspan="8" class="px-4 py-10 text-center text-slate-400">
+                Nothing yet — raise a quotation, or an invoice straight from an order.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- ============================= DETAIL ============================= -->
+  <template x-if="detail">
+  <div class="fixed inset-0 z-40 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-4">
+      <div class="flex items-center gap-3 px-6 py-4 border-b">
+        <div>
+          <div class="text-xl font-bold font-mono" x-text="detail.doc_no"></div>
+          <div class="text-xs text-slate-500"
+               x-text="[detail.customer_name, detail.customer_code, fmtDate(detail.doc_date)].filter(Boolean).join(' · ')"></div>
+        </div>
+        <span class="px-2.5 py-1 rounded-full text-xs font-medium" :class="kindClass(detail.kind)"
+              x-text="kindLabel(detail.kind)"></span>
+        <span class="px-2.5 py-1 rounded-full text-xs font-medium" :class="statusClass(detail.status)"
+              x-text="detail.status"></span>
+        <div class="ml-auto flex gap-2">
+          <button @click="print(detail)"
+                  class="bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium">
+            Print / Save as PDF
+          </button>
+          <button @click="editDoc()" class="border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm">Edit</button>
+          <button @click="remove(detail)" class="border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-sm">Delete</button>
+          <button @click="closeDetail()" class="text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+        </div>
+      </div>
+
+      <div class="px-6 pt-4 flex flex-wrap gap-1.5">
+        <template x-for="s in refs.statuses" :key="s">
+          <button @click="setStatus(detail, s)"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium border capitalize"
+                  :class="s === detail.status ? 'bg-brand-600 text-white border-brand-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'"
+                  x-text="s"></button>
+        </template>
+      </div>
+
+      <div class="p-6">
+        <table class="w-full text-sm mb-4">
+          <thead>
+            <tr class="text-left text-xs text-slate-500 border-b">
+              <th class="py-2">Part / description</th>
+              <th class="py-2 text-right">Qty</th>
+              <th class="py-2">Unit</th>
+              <th class="py-2 text-right">Rate</th>
+              <th class="py-2 text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="l in detail.lines" :key="l.id">
+              <tr class="border-b last:border-0">
+                <td class="py-2">
+                  <div class="font-medium" x-text="l.drawing_no ? (l.drawing_no + ' rev ' + l.revision) : l.description"></div>
+                  <div x-show="l.drawing_no && l.description" class="text-xs text-slate-400" x-text="l.description"></div>
+                </td>
+                <td class="py-2 text-right" x-text="l.qty"></td>
+                <td class="py-2" x-text="l.unit"></td>
+                <td class="py-2 text-right" x-text="money(l.rate)"></td>
+                <td class="py-2 text-right font-medium" x-text="money(l.amount)"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <div class="flex">
+          <div class="text-xs text-slate-500 space-y-1">
+            <div x-show="detail.reference"><b>Reference:</b> <span x-text="detail.reference"></span></div>
+            <div x-show="detail.valid_until"><b>Valid until:</b> <span x-text="fmtDate(detail.valid_until)"></span></div>
+            <div x-show="detail.order_no"><b>Against order:</b> <span class="font-mono" x-text="detail.order_no"></span></div>
+            <div x-show="detail.notes" class="whitespace-pre-line pt-1" x-text="detail.notes"></div>
+          </div>
+          <table class="ml-auto text-sm w-56">
+            <tr><td class="py-1 text-slate-500">Subtotal</td><td class="py-1 text-right" x-text="money(detail.subtotal)"></td></tr>
+            <tr x-show="detail.tax_pct"><td class="py-1 text-slate-500" x-text="'GST @ ' + detail.tax_pct + '%'"></td>
+                <td class="py-1 text-right" x-text="money(detail.tax)"></td></tr>
+            <tr class="border-t"><td class="py-1.5 font-bold">Total</td>
+                <td class="py-1.5 text-right font-bold" x-text="money(detail.total)"></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  </template>
+
+  <!-- ============================= FORM ============================= -->
+  <template x-if="form">
+  <div class="fixed inset-0 z-50 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-6">
+      <div class="px-6 py-4 border-b flex items-center">
+        <div class="text-lg font-bold"
+             x-text="(form.id ? 'Edit ' : 'New ') + kindLabel(form.kind).toLowerCase()"></div>
+        <button @click="form = null" class="ml-auto text-slate-400 hover:text-slate-600 px-2 text-xl leading-none">✕</button>
+      </div>
+      <form @submit.prevent="save()" class="p-6 space-y-4 text-sm">
+        <div x-show="!form.id" class="bg-slate-50 rounded-xl p-3 flex items-end gap-3">
+          <div class="flex-1">
+            <label class="block text-xs text-slate-500 mb-1">Start from an order (fills customer + lines)</label>
+            <select @change="fromOrder($event.target.value)" class="border rounded-lg px-3 py-2 w-full bg-white">
+              <option value="">— start empty —</option>
+              <template x-for="o in refs.orders" :key="o.id">
+                <option :value="o.id" x-text="o.order_no + ' · ' + o.customer_name"></option>
+              </template>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-3">
+          <div class="col-span-2"><label class="block text-xs text-slate-500 mb-1">Customer *</label>
+            <select x-model="form.customer_id" class="border rounded-lg px-3 py-2 w-full">
+              <option value="">—</option>
+              <template x-for="c in refs.customers" :key="c.id">
+                <option :value="c.id" x-text="(c.code ? c.code + ' · ' : '') + c.name"></option>
+              </template>
+            </select></div>
+          <div><label class="block text-xs text-slate-500 mb-1">Date</label>
+            <input type="date" x-model="form.doc_date" class="border rounded-lg px-3 py-2 w-full" /></div>
+          <div x-show="form.kind === 'quotation'"><label class="block text-xs text-slate-500 mb-1">Valid until</label>
+            <input type="date" x-model="form.valid_until" class="border rounded-lg px-3 py-2 w-full" /></div>
+          <div class="col-span-2"><label class="block text-xs text-slate-500 mb-1">Reference (their enquiry / PO)</label>
+            <input x-model="form.reference" class="border rounded-lg px-3 py-2 w-full" /></div>
+          <div><label class="block text-xs text-slate-500 mb-1">GST %</label>
+            <input type="number" min="0" step="0.5" x-model="form.tax_pct" class="border rounded-lg px-3 py-2 w-full" /></div>
+        </div>
+
+        <div>
+          <div class="flex items-center mb-2"><div class="font-semibold">Lines</div></div>
+          <template x-for="(l, i) in form.lines" :key="i">
+            <div class="grid grid-cols-12 gap-2 mb-2 items-center">
+              <select x-model="l.drawing_id" @change="linePicked(l)" class="col-span-3 border rounded-lg px-2 py-1.5">
+                <option value="">(no drawing)</option>
+                <template x-for="d in refs.drawings" :key="d.id">
+                  <option :value="d.id" x-text="d.drawing_no + ' rev ' + d.revision"></option>
+                </template>
+              </select>
+              <input x-model="l.description" placeholder="Description" class="col-span-4 border rounded-lg px-2 py-1.5" />
+              <input type="number" min="0" step="0.01" x-model="l.qty" placeholder="Qty" class="col-span-1 border rounded-lg px-2 py-1.5" />
+              <input x-model="l.unit" list="unitlist" placeholder="Unit" class="col-span-1 border rounded-lg px-2 py-1.5" />
+              <input type="number" min="0" step="0.01" x-model="l.rate" placeholder="₹ rate" class="col-span-2 border rounded-lg px-2 py-1.5" />
+              <button type="button" @click="removeLine(i)" class="col-span-1 text-slate-300 hover:text-rose-600">✕</button>
+            </div>
+          </template>
+          <datalist id="unitlist">
+            <template x-for="u in refs.units" :key="u"><option :value="u"></option></template>
+          </datalist>
+          <button type="button" @click="addLine()" class="text-xs text-brand-700 hover:underline">+ Add line</button>
+        </div>
+
+        <div class="flex items-start gap-4">
+          <div class="flex-1 space-y-3">
+            <div><label class="block text-xs text-slate-500 mb-1">Notes</label>
+              <textarea x-model="form.notes" rows="2" class="border rounded-lg px-3 py-2 w-full"></textarea></div>
+            <div><label class="block text-xs text-slate-500 mb-1">Terms (printed at the bottom)</label>
+              <textarea x-model="form.terms" rows="3" class="border rounded-lg px-3 py-2 w-full"></textarea></div>
+          </div>
+          <table class="w-56 text-sm bg-slate-50 rounded-xl p-2">
+            <tr><td class="py-1 px-3 text-slate-500">Subtotal</td>
+                <td class="py-1 px-3 text-right" x-text="money(formTotals.subtotal)"></td></tr>
+            <tr><td class="py-1 px-3 text-slate-500" x-text="'GST @ ' + (form.tax_pct || 0) + '%'"></td>
+                <td class="py-1 px-3 text-right" x-text="money(formTotals.tax)"></td></tr>
+            <tr class="border-t"><td class="py-2 px-3 font-bold">Total</td>
+                <td class="py-2 px-3 text-right font-bold" x-text="money(formTotals.total)"></td></tr>
+          </table>
+        </div>
+
+        <p x-show="formError" x-text="formError" class="text-rose-600 text-sm"></p>
+        <div class="flex gap-3">
+          <button type="submit" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg">Save</button>
+          <button type="button" @click="form = null"
+                  class="flex-1 border border-slate-300 hover:bg-slate-50 text-slate-600 py-2.5 rounded-lg">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  </template>
+
+</body>
+</html>

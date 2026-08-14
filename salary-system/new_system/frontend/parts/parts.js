@@ -161,11 +161,37 @@ function pt() {
     },
 
     // ---- costing builder --------------------------------------------------- //
+    // The costing WORKSPACE: a full screen for pricing one revision — part card
+    // + revision switcher on the left, the operations table on the right.
+    workspace: false,
+    openWorkspace() {
+      this.workspace = true;
+      if (!this.costing) this.newCosting();
+    },
+    closeWorkspace() { this.workspace = false; this.costing = null; },
     newCosting() {
       this.costing = { material_cost: "", margin_pct: "", notes: "",
                        ops: [this.blankOp()] };
     },
-    blankOp() { return { operation: "", minutes: "", rate_per_hour: "" }; },
+    blankOp() {
+      return { operation: "", minutes: "", rate_per_hour: "", weightage: 1, extra_margin_pct: "" };
+    },
+    // assign / change the customer this drawing belongs to, from the workspace
+    async setCustomer(customerId) {
+      const d = this.detail;
+      try {
+        this.detail = await api(`/api/parts/drawings/${d.id}`, {
+          method: "PUT",
+          body: { drawing_no: d.drawing_no, revision: d.revision,
+                  customer_id: customerId ? Number(customerId) : null,
+                  description: d.description || "", material_class: d.material_class || "",
+                  grade: d.grade || "", unit: d.unit || "Nos", notes: d.notes || "" },
+        });
+        await this.load();
+        this.flash(this.detail.customer_name
+          ? `Assigned to ${this.detail.customer_name}` : "Customer cleared");
+      } catch (e) { this.fail(e); }
+    },
     addOp() { this.costing.ops.push(this.blankOp()); },
     removeOp(i) { this.costing.ops.splice(i, 1); },
     opPicked(op) {
@@ -173,7 +199,14 @@ function pt() {
       const found = this.lists.operations.find((o) => o.name === op.operation);
       if (found) op.rate_per_hour = found.rate_per_hour;
     },
+    // Same formula as the backend (parts.op_cost): time × weightage × (1 + extra margin)
     opCost(op) {
+      const m = Number(op.minutes) || 0, r = Number(op.rate_per_hour) || 0;
+      const w = op.weightage === "" || op.weightage == null ? 1 : Number(op.weightage) || 0;
+      const x = Number(op.extra_margin_pct) || 0;
+      return Math.round((m / 60) * r * w * (1 + x / 100) * 100) / 100;
+    },
+    opTimeCost(op) {   // shown as the "before weighting" figure
       const m = Number(op.minutes) || 0, r = Number(op.rate_per_hour) || 0;
       return Math.round((m / 60) * r * 100) / 100;
     },
@@ -198,10 +231,13 @@ function pt() {
             notes: c.notes,
             ops: c.ops.filter((o) => (o.operation || "").trim() !== "")
               .map((o) => ({ operation: o.operation, minutes: Number(o.minutes),
-                             rate_per_hour: Number(o.rate_per_hour) })),
+                             rate_per_hour: Number(o.rate_per_hour),
+                             weightage: o.weightage === "" || o.weightage == null ? 1 : Number(o.weightage),
+                             extra_margin_pct: Number(o.extra_margin_pct) || 0 })),
           },
         });
         this.costing = null;
+        this.workspace = false;
         this.flash("Costing saved");
       } catch (e) { this.fail(e); }
     },

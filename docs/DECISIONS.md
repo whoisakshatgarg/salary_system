@@ -129,3 +129,25 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
 - **Home moved to the top-left of every page**, beside the APEX/module name
   (it was buried bottom-right in the header, or bottom of the payroll sidebar).
   `?back=1` and the `showBack` flag are gone — Home is always there.
+
+## 2026-08-14 (later still) — Quotations/invoices, customer codes, costing workspace
+- **Bug**: the payroll sidebar badge read the app EDITION, so signing in as the
+  operator account inside the normal app still showed "CEO / Admin". It now
+  reads the signed-in role.
+- **Performance**: measured rather than guessed — APIs 2-4 ms, pages 43-72 ms,
+  the 2 873-cell attendance grid 354 ms. Nothing pathological. The one
+  structural cost was the no-cache middleware re-serving 440 KB of vendored
+  Tailwind/Alpine on every navigation (this is a multi-page app), so
+  `/vendor/*` is now cached for 7 days — cached BY FILENAME, so swapping a
+  vendored library means renaming the file.
+- **Customer codes**: abbreviation + serial (AC01, AC02), assigned inside the
+  same transaction as the insert, `customer.code` UNIQUE as the backstop, and
+  backfilled on startup for customers created before codes existed.
+- **Costing gains weightage and a per-operation additional margin**, and moves
+  into its own full-screen workspace (part + revisions + customer on the left,
+  operations table on the right). One formula, `parts.op_cost`, is shared by the
+  live UI figure and the stored value so they cannot disagree.
+- **Quotations & Invoices** as a new module/tile sharing one `document` table
+  (a `kind` distinguishes them); invoices prefill from an order's items.
+  Printing is HTML + the browser's "Save as PDF" — no PDF dependency, works
+  offline, and the layout stays editable by anyone who can read HTML.

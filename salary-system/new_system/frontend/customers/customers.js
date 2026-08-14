@@ -40,9 +40,39 @@ function cu() {
     q: "",
     activeOnly: true,
     detail: null,
+    biz: null,            // order history + growth + documents
+    tab: "profile",       // 'profile' | 'business'
     form: null,
     formError: "",
     contact: { name: "", phone: "", email: "", role: "" },
+
+    money(n) {
+      if (n === null || n === undefined || n === "") return "—";
+      return "₹" + Math.round(Number(n)).toLocaleString("en-IN");
+    },
+    fmtDate(d) {
+      if (!d) return "—";
+      const [y, m, dd] = d.split("-").map(Number);
+      return new Date(y, m - 1, dd).toLocaleDateString("en-IN",
+        { day: "numeric", month: "short", year: "numeric" });
+    },
+    monthLabel(m) {
+      const [y, mm] = m.split("-").map(Number);
+      return new Date(y, mm - 1, 1).toLocaleDateString("en", { month: "short", year: "2-digit" });
+    },
+    // chart scaling: tallest bar = the biggest month
+    get chartMax() {
+      const s = this.biz?.series || [];
+      return s.length ? Math.max(1, ...s.map((x) => x.amount)) : 1;
+    },
+    barPct(v) { return Math.max(2, Math.round((v / this.chartMax) * 100)); },
+    stageClass(s) {
+      return { payment: "bg-emerald-100 text-emerald-700", dispatch: "bg-teal-100 text-teal-700",
+               production: "bg-amber-100 text-amber-800", qc: "bg-purple-100 text-purple-700",
+               po: "bg-indigo-100 text-indigo-700", quote: "bg-sky-100 text-sky-700",
+             }[s] || "bg-slate-200 text-slate-600";
+    },
+    printDoc(d) { window.open(`/api/quotations/${d.id}/print`, "_blank"); },
 
     async boot() {
       window.addEventListener("unauth", () => { this.authed = false; });
@@ -66,16 +96,37 @@ function cu() {
 
     async open(id) {
       try {
-        this.detail = await api(`/api/customers/${id}`);
+        this.tab = "profile";
+        const [detail, biz] = await Promise.all([
+          api(`/api/customers/${id}`),
+          api(`/api/customers/${id}/business`),
+        ]);
+        this.detail = detail;
+        this.biz = biz;
         this.contact = { name: "", phone: "", email: "", role: "" };
       } catch (e) { this.fail(e); }
     },
-    closeDetail() { this.detail = null; this.load(); },
+    closeDetail() { this.detail = null; this.biz = null; this.load(); },
 
     newCust() {
-      this.form = { id: null, name: "", gstin: "", address_billing: "",
+      this.form = { id: null, name: "", abbr: "", gstin: "", address_billing: "",
                     address_shipping: "", payment_terms: "", notes: "" };
       this.formError = "";
+    },
+    // live preview of the code the server will assign (initials, noise words dropped)
+    get codePreview() {
+      const f = this.form;
+      if (!f || f.id) return "";
+      const manual = (f.abbr || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+      if (manual) return manual + "nn";
+      const noise = ["pvt", "private", "ltd", "limited", "llp", "inc", "co", "company",
+                     "corp", "corporation", "and", "the", "ms"];
+      let w = (f.name || "").split(/[^A-Za-z0-9]+/).filter(Boolean);
+      const sig = w.filter((x) => !noise.includes(x.toLowerCase()));
+      w = sig.length ? sig : w;
+      if (!w.length) return "";
+      const abbr = w.length === 1 ? w[0].slice(0, 2) : w[0][0] + w[1][0];
+      return abbr.toUpperCase() + "nn";
     },
     editCust() {
       this.form = { ...this.detail };

@@ -10,7 +10,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from backend.core import db  # noqa: E402
-from backend.modules import customers, orders, parts, settings  # noqa: E402
+from backend.modules import (customers, orders, parts, quotations,  # noqa: E402
+                             settings)
 
 
 class WorkshopBase(unittest.TestCase):
@@ -237,6 +238,132 @@ class OrdersSpec(WorkshopBase):
                 "customer_id": self.cust, "order_date": o["order_date"],
                 "items": [{"id": item["id"], "description": "Shaft", "qty": 3,
                            "unit": "Nos", "rate": 250}]})
+
+
+class CustomerCodes(WorkshopBase):
+    def test_abbreviation_rules(self):
+        cases = [("Acme Castings", "AC"), ("Bharat Hydraulics Pvt Ltd", "BH"),
+                 ("Sterling", "ST"), ("M/s Tata Steel", "TS"), ("", "XX")]
+        for name, expect in cases:
+            self.assertEqual(customers.abbreviate(name), expect, name)
+
+    def test_serial_within_abbreviation(self):
+        a = customers.save_customer(self.conn, {"name": "Acme Castings"})
+        b = customers.save_customer(self.conn, {"name": "Anand Components"})
+        c = customers.save_customer(self.conn, {"name": "Bharat Gears"})
+        codes = {customers.get_customer(self.conn, i)["code"] for i in (a, b, c)}
+        self.assertEqual(codes, {"AC01", "AC02", "BG01"})
+
+    def test_manual_abbreviation_and_backfill(self):
+        cid = customers.save_customer(self.conn, {"name": "Zenith Works", "abbr": "zw"})
+        self.assertEqual(customers.get_customer(self.conn, cid)["code"], "ZW01")
+        self.conn.execute("UPDATE customer SET code=NULL WHERE id=?", (cid,))
+        self.conn.commit()
+        self.assertEqual(customers.backfill_codes(self.conn), 1)
+        self.assertTrue(customers.get_customer(self.conn, cid)["code"])
+
+    def test_business_view(self):
+        self.order(); self.order()
+        biz = customers.business(self.conn, self.cust)
+        self.assertEqual(biz["stats"]["order_count"], 2)
+        self.assertEqual(biz["stats"]["total_business"], 5000.0)   # 2 x 10 x 250
+        self.assertEqual(biz["stats"]["avg_order"], 2500.0)
+        self.assertEqual(len(biz["series"]), 1)                    # both in 2026-08
+        self.assertEqual(biz["series"][0]["cumulative"], 5000.0)
+
+
+class CostingWeighting(WorkshopBase):
+    def test_weightage_and_extra_margin(self):
+        self.assertEqual(parts.op_cost(12, 400), 80.0)              # plain
+        self.assertEqual(parts.op_cost(12, 400, 1.25), 100.0)       # weighted
+        self.assertEqual(parts.op_cost(12, 400, 1.25, 10), 110.0)   # + row margin
+
+    def test_saved_costing_uses_the_columns(self):
+        did = self.drawing()
+        d = parts.save_costing(self.conn, did, {
+            "material_cost": 80, "margin_pct": 20,
+            "ops": [{"operation": "Turning", "minutes": 12, "rate_per_hour": 400,
+                     "weightage": 1.25, "extra_margin_pct": 10}]})
+        c = d["costings"][0]
+        self.assertEqual(c["ops"][0]["cost"], 110.0)
+        self.assertEqual(c["ops"][0]["weightage"], 1.25)
+        self.assertEqual(c["total"], 228.0)                          # (110+80) * 1.2
+        d = parts.costing_to_rate(self.conn, c["id"], "agreed")
+        self.assertEqual(d["rates"][0]["rate"], 228.0)               # recorded == shown
+
+    def test_defaults_when_columns_left_blank(self):
+        did = self.drawing()
+        d = parts.save_costing(self.conn, did, {
+            "ops": [{"operation": "Turning", "minutes": 12, "rate_per_hour": 400}]})
+        self.assertEqual(d["costings"][0]["ops"][0]["cost"], 80.0)   # weightage defaults to 1
+
+
+class QuotationsAndInvoices(WorkshopBase):
+    def doc(self, kind="quotation", **kw):
+        data = {"customer_id": self.cust, "doc_date": "2026-08-14", "tax_pct": 18,
+                "lines": [{"description": "Shaft", "qty": 10, "unit": "Nos", "rate": 250}]}
+        data.update(kw)
+        return quotations.create_doc(self.conn, kind, data)
+
+    def test_numbering_per_kind_and_fy(self):
+        q1 = quotations.get_doc(self.conn, self.doc())
+        q2 = quotations.get_doc(self.conn, self.doc())
+        i1 = quotations.get_doc(self.conn, self.doc("invoice"))
+        self.assertEqual(q1["doc_no"], "QUO-26-27-001")
+        self.assertEqual(q2["doc_no"], "QUO-26-27-002")
+        self.assertEqual(i1["doc_no"], "INV-26-27-001")   # its own sequence
+        nxt = quotations.get_doc(self.conn, self.doc(doc_date="2027-04-02"))
+        self.assertEqual(nxt["doc_no"], "QUO-27-28-001")  # new FY restarts
+
+    def test_totals_with_tax(self):
+        d = quotations.get_doc(self.conn, self.doc())
+        self.assertEqual(d["subtotal"], 2500.0)
+        self.assertEqual(d["tax"], 450.0)
+        self.assertEqual(d["total"], 2950.0)
+
+    def test_validation(self):
+        with self.assertRaises(ValueError):
+            self.doc(lines=[])
+        with self.assertRaises(ValueError):
+            self.doc(lines=[{"qty": 1, "rate": 10}])          # no part, no text
+        with self.assertRaises(ValueError):
+            self.doc(customer_id=9999)                         # dangling ref
+        with self.assertRaises(ValueError):
+            quotations.create_doc(self.conn, "receipt", {"customer_id": self.cust,
+                                                          "lines": [{"qty": 1}]})
+
+    def test_invoice_from_order_carries_the_items(self):
+        did = self.drawing()
+        oid = self.order(items=[{"drawing_id": did, "qty": 40, "unit": "Nos", "rate": 270}])
+        pre = quotations.from_order(self.conn, oid, "invoice")
+        self.assertEqual(pre["customer_id"], self.cust)
+        self.assertEqual(pre["lines"][0]["qty"], 40)
+        inv = quotations.get_doc(self.conn, quotations.create_doc(self.conn, "invoice",
+                                                                  {**pre, "doc_date": "2026-08-14"}))
+        self.assertEqual(inv["subtotal"], 10800.0)
+        self.assertEqual(inv["order_no"], "ORD-26-27-001")
+
+    def test_status_and_edit_guard(self):
+        did = self.doc()
+        quotations.set_status(self.conn, did, "paid")
+        with self.assertRaises(ValueError):
+            quotations.update_doc(self.conn, did, {"customer_id": self.cust,
+                                                    "doc_date": "2026-08-14",
+                                                    "lines": [{"description": "x", "qty": 1}]})
+        with self.assertRaises(ValueError):
+            quotations.set_status(self.conn, did, "posted")
+
+    def test_print_view_renders(self):
+        d = quotations.get_doc(self.conn, self.doc())
+        html = quotations.render_print(self.conn, d["id"])
+        self.assertIn("QUOTATION", html)
+        self.assertIn(d["doc_no"], html)
+        self.assertIn("2,950.00", html)          # Indian grouping in the total
+        self.assertIn("window.print()", html)
+
+    def test_money_grouping(self):
+        self.assertEqual(quotations._money(1234567.5), "12,34,567.50")
+        self.assertEqual(quotations._money(999), "999.00")
 
 
 class ReviewRegressions(WorkshopBase):

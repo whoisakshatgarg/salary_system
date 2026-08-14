@@ -218,6 +218,7 @@ CREATE TABLE IF NOT EXISTS operation (             -- machining ops for costing
 -- ---------- Customers ---------- --
 CREATE TABLE IF NOT EXISTS customer (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    code             TEXT UNIQUE,                  -- 'AC01' = abbreviation + serial
     name             TEXT NOT NULL UNIQUE,
     gstin            TEXT,
     address_billing  TEXT,
@@ -283,12 +284,14 @@ CREATE TABLE IF NOT EXISTS costing (               -- per-operation build-up
 );
 
 CREATE TABLE IF NOT EXISTS costing_op (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    costing_id    INTEGER NOT NULL REFERENCES costing(id) ON DELETE CASCADE,
-    operation     TEXT NOT NULL,
-    minutes       REAL NOT NULL,
-    rate_per_hour REAL NOT NULL,                   -- snapshot of the rate used
-    cost          REAL NOT NULL                    -- minutes/60 * rate
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    costing_id       INTEGER NOT NULL REFERENCES costing(id) ON DELETE CASCADE,
+    operation        TEXT NOT NULL,
+    minutes          REAL NOT NULL,
+    rate_per_hour    REAL NOT NULL,                -- snapshot of the rate used
+    weightage        REAL NOT NULL DEFAULT 1,      -- multiplier for weighted addition
+    extra_margin_pct REAL NOT NULL DEFAULT 0,      -- margin on THIS operation only
+    cost             REAL NOT NULL                 -- see parts.op_cost() for the formula
 );
 
 -- ---------- Order Tracking ---------- --
@@ -354,6 +357,44 @@ CREATE INDEX IF NOT EXISTS idx_stage_log_order      ON order_stage_log(order_id)
 CREATE INDEX IF NOT EXISTS idx_cons_line_cons       ON consignment_line(consignment_id);
 CREATE INDEX IF NOT EXISTS idx_cons_line_item       ON consignment_line(order_item_id);
 
+-- ---------- Quotations & Invoices ---------- --
+CREATE TABLE IF NOT EXISTS doc_seq (               -- per-FY numbering, per kind
+    kind TEXT NOT NULL,                            -- 'quotation' | 'invoice'
+    fy   TEXT NOT NULL,
+    seq  INTEGER NOT NULL,
+    PRIMARY KEY (kind, fy)
+);
+
+CREATE TABLE IF NOT EXISTS document (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind         TEXT NOT NULL,                    -- 'quotation' | 'invoice'
+    doc_no       TEXT NOT NULL UNIQUE,
+    customer_id  INTEGER NOT NULL REFERENCES customer(id),
+    order_id     INTEGER REFERENCES customer_order(id),  -- invoices usually
+    doc_date     TEXT NOT NULL,
+    valid_until  TEXT,                             -- quotations
+    reference    TEXT,                             -- their enquiry / PO no.
+    tax_pct      REAL NOT NULL DEFAULT 0,          -- GST %
+    notes        TEXT,
+    terms        TEXT,
+    status       TEXT NOT NULL DEFAULT 'draft',    -- draft|sent|accepted|paid|cancelled
+    created_at   TEXT
+);
+
+CREATE TABLE IF NOT EXISTS document_line (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    document_id INTEGER NOT NULL REFERENCES document(id) ON DELETE CASCADE,
+    drawing_id  INTEGER REFERENCES drawing(id),
+    description TEXT,
+    qty         REAL NOT NULL,
+    unit        TEXT,
+    rate        REAL NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_customer ON document(customer_id);
+CREATE INDEX IF NOT EXISTS idx_document_order    ON document(order_id);
+CREATE INDEX IF NOT EXISTS idx_doc_line_doc      ON document_line(document_id);
+
 CREATE TABLE IF NOT EXISTS sync_log (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     filename    TEXT,
@@ -393,6 +434,13 @@ def connect(db_path: str | Path | None = None) -> sqlite3.Connection:
 # Columns added after the first schema shipped — applied to existing DBs so
 # upgrades are non-destructive (SQLite CREATE IF NOT EXISTS won't alter tables).
 _MIGRATIONS = {
+    "customer": {
+        "code": "TEXT",
+    },
+    "costing_op": {
+        "weightage": "REAL NOT NULL DEFAULT 1",
+        "extra_margin_pct": "REAL NOT NULL DEFAULT 0",
+    },
     "app_user": {
         "grants": "TEXT",  # JSON list of module keys (see core/registry.py)
     },
