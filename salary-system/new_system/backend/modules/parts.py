@@ -122,8 +122,9 @@ def list_drawings(conn, q: str = "", customer_id=None, active_only: bool = True)
         args.append(customer_id)
     if _s(q):
         like = f"%{_s(q)}%"
-        sql += " AND (d.drawing_no LIKE ? OR d.description LIKE ? OR d.grade LIKE ? OR c.name LIKE ?)"
-        args += [like] * 4
+        sql += (" AND (d.drawing_no LIKE ? OR d.description LIKE ? OR d.grade LIKE ?"
+                " OR d.part_type LIKE ? OR c.name LIKE ?)")
+        args += [like] * 5
     sql += " ORDER BY d.drawing_no COLLATE NOCASE, d.revision"
     return [dict(r) for r in conn.execute(sql, args)]
 
@@ -146,19 +147,20 @@ def save_drawing(conn, data: dict, drawing_id: int | None = None) -> int:
     try:
         dno, rev = _validate_drawing(conn, data, drawing_id)
         fields = (dno, rev, data.get("customer_id") or None, _s(data.get("description")),
-                  _s(data.get("material_class")), _s(data.get("grade")),
-                  _s(data.get("unit")) or "Nos", _s(data.get("notes")))
+                  _s(data.get("part_type")), _s(data.get("material_class")),
+                  _s(data.get("grade")), _s(data.get("unit")) or "Nos",
+                  _s(data.get("notes")))
         if drawing_id is None:
             cur = conn.execute(
                 """INSERT INTO drawing (drawing_no, revision, customer_id, description,
-                     material_class, grade, unit, notes, active, created_at)
-                   VALUES (?,?,?,?,?,?,?,?,1,?)""", (*fields, _now()))
+                     part_type, material_class, grade, unit, notes, active, created_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,1,?)""", (*fields, _now()))
             drawing_id = cur.lastrowid
         else:
             conn.execute(
                 """UPDATE drawing SET drawing_no=?, revision=?, customer_id=?,
-                     description=?, material_class=?, grade=?, unit=?, notes=?
-                   WHERE id=?""", (*fields, drawing_id))
+                     description=?, part_type=?, material_class=?, grade=?, unit=?,
+                     notes=? WHERE id=?""", (*fields, drawing_id))
         conn.commit()
     except BaseException:
         conn.rollback()
@@ -398,6 +400,7 @@ class DrawingIn(BaseModel):
     revision: str = "A"
     customer_id: int | None = None
     description: str = ""
+    part_type: str = ""     # broad family ("Piston rod") — learned, additive
     material_class: str = ""
     grade: str = ""
     unit: str = "Nos"
@@ -475,6 +478,12 @@ def refs(customer_id: int | None = None, conn=Depends(get_db)):
         "customers": settings_mod.active_customers(conn),
         "units": settings_mod.units(conn),
         "operations": ops,
+        # every part type ever typed, so the form can offer them back —
+        # additive by nature: type a new one and it joins the list on save
+        "part_types": [r["part_type"] for r in conn.execute(
+            "SELECT DISTINCT part_type FROM drawing"
+            " WHERE part_type IS NOT NULL AND part_type != ''"
+            " ORDER BY part_type COLLATE NOCASE")],
     }
 
 

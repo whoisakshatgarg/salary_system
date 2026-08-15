@@ -96,7 +96,12 @@
                   </td>
                   <td class="px-3 py-2.5 whitespace-nowrap" x-text="d.customer_name || '—'"
                       :class="!d.customer_name && 'text-slate-300'"></td>
-                  <td class="px-3 py-2.5 text-slate-500" x-text="d.description || '—'"></td>
+                  <td class="px-3 py-2.5 text-slate-500">
+                    <span x-text="d.description || '—'"></span>
+                    <span x-show="d.part_type"
+                          class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-slate-100 text-slate-500 ring-1 ring-inset ring-slate-500/10"
+                          x-text="d.part_type"></span>
+                  </td>
                   <td class="px-3 py-2.5 whitespace-nowrap"
                       x-text="[d.material_class, d.grade].filter(Boolean).join(' · ') || '—'"></td>
                   <td class="px-3 py-2.5 text-slate-500" x-text="d.unit"></td>
@@ -179,6 +184,8 @@
           <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
             <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Specification</div>
             <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+              <div class="text-slate-500" x-show="detail.part_type">Part type</div>
+              <div x-show="detail.part_type" x-text="detail.part_type"></div>
               <div class="text-slate-500">Material</div>
               <div x-text="[detail.material_class, detail.grade].filter(Boolean).join(' · ') || '—'"></div>
               <div class="text-slate-500">Unit</div><div x-text="detail.unit"></div>
@@ -370,6 +377,14 @@
           <div><label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
             <input x-model="form.description" placeholder="e.g. Pump shaft, stage 2"
                    class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white transition" /></div>
+          <div><label class="block text-xs font-medium text-slate-500 mb-1">Part type</label>
+            <input x-model="form.part_type" list="parttypelist"
+                   placeholder="Shaft, Flange, Bush… — pick one or type a new one"
+                   title="A broad family for grouping and search. New ones join the list automatically."
+                   class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white transition" />
+            <datalist id="parttypelist">
+              <template x-for="t in lists.part_types || []" :key="t"><option :value="t"></option></template>
+            </datalist></div>
           <div class="grid grid-cols-3 gap-3">
             <div><label class="block text-xs font-medium text-slate-500 mb-1">Material class</label>
               <input x-model="form.material_class" placeholder="Steel…"
@@ -387,6 +402,22 @@
           <div><label class="block text-xs font-medium text-slate-500 mb-1">Notes</label>
             <textarea x-model="form.notes" rows="2"
                       class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white transition"></textarea></div>
+        </div>
+
+        <div class="space-y-2">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Drawing files</div>
+          <input type="file" multiple accept="image/*,.pdf"
+                 @change="ptGrabFiles($event)"
+                 class="block w-full text-xs text-slate-500 file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-slate-300 file:bg-white file:text-slate-700 file:text-xs file:font-medium hover:file:bg-slate-50 file:cursor-pointer file:transition-colors" />
+          <div class="flex flex-wrap gap-1.5" x-show="form.files.length">
+            <template x-for="(f, fi) in form.files" :key="fi">
+              <span class="inline-flex items-center gap-1 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5">
+                📄 <span class="max-w-[12rem] truncate" x-text="f.name"></span>
+                <button type="button" @click="form.files.splice(fi,1)"
+                        class="text-slate-300 hover:text-rose-600 transition-colors">✕</button>
+              </span>
+            </template>
+          </div>
         </div>
 
         <p x-show="formError" x-text="formError" class="text-rose-600 text-sm"></p>

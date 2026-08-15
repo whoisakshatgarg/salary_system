@@ -1007,6 +1007,70 @@ class DropAllocation(WorkshopBase):
         self.assertEqual(it["over_delivered"], 0)
 
 
+class OrderPaperTrail(WorkshopBase):
+    """The order record carries every document raised against it."""
+
+    def test_documents_ride_along_on_the_order(self):
+        oid = self.order()
+        quotations.create_doc(self.conn, "invoice", {
+            "customer_id": self.cust, "doc_date": "2026-08-15", "tax_pct": 18,
+            "order_id": oid,
+            "lines": [{"description": "Shaft", "qty": 10, "unit": "Nos", "rate": 250}]})
+        o = orders.get_order(self.conn, oid)
+        self.assertEqual(len(o["documents"]), 1)
+        d = o["documents"][0]
+        self.assertEqual(d["kind"], "invoice")
+        self.assertEqual(d["total"], round(10 * 250 * 1.18, 2))   # tax included
+        self.assertTrue(d["doc_no"].startswith("INV"))
+
+    def test_an_order_with_no_documents_says_so(self):
+        self.assertEqual(orders.get_order(self.conn, self.order())["documents"], [])
+
+    def test_customer_documents_name_their_order(self):
+        """business() docs carry order_id so the past-orders table can hang
+        each document on its order row."""
+        oid = self.order(stage="payment")
+        quotations.create_doc(self.conn, "invoice", {
+            "customer_id": self.cust, "doc_date": "2026-08-15", "tax_pct": 0,
+            "order_id": oid,
+            "lines": [{"description": "Shaft", "qty": 1, "unit": "Nos", "rate": 99}]})
+        biz = customers.business(self.conn, self.cust)
+        linked = [d for d in biz["documents"] if d["order_id"] == oid]
+        self.assertEqual(len(linked), 1)
+
+    def test_deadline_rows_carry_the_order_id(self):
+        """The home panel links each line to /orders/?open=<id> — no id, no link."""
+        oid = self.order(due_date="2026-08-20")
+        dl = orders.deadlines(self.conn, today="2026-08-15")
+        every = dl["overdue"] + dl["this_week"] + dl["this_month"]
+        self.assertIn(oid, [r["id"] for r in every])
+
+
+class PartTypes(WorkshopBase):
+    """A broad, additive family name on the drawing."""
+
+    def test_round_trips_and_is_offered_back(self):
+        did = parts.save_drawing(self.conn, {
+            "drawing_no": "PT-1", "revision": "A", "part_type": "Piston rod"})
+        self.assertEqual(parts.get_drawing(self.conn, did)["part_type"], "Piston rod")
+        offered = [r["part_type"] for r in self.conn.execute(
+            "SELECT DISTINCT part_type FROM drawing"
+            " WHERE part_type IS NOT NULL AND part_type != ''")]
+        self.assertIn("Piston rod", offered)
+
+    def test_the_route_model_accepts_it(self):
+        """Regression: DrawingIn silently DROPPED unknown fields, so the UI
+        saved and the value vanished. The model must carry it."""
+        self.assertEqual(parts.DrawingIn(
+            drawing_no="X", part_type="Bush").part_type, "Bush")
+
+    def test_search_finds_by_part_type(self):
+        parts.save_drawing(self.conn, {
+            "drawing_no": "PT-2", "revision": "A", "part_type": "Impeller"})
+        hits = parts.list_drawings(self.conn, q="impell")
+        self.assertEqual([h["drawing_no"] for h in hits], ["PT-2"])
+
+
 class DeliverySegments(WorkshopBase):
     """The stretches an order is split into — one progress bar each."""
 

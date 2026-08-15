@@ -7,6 +7,10 @@ The paperwork that leaves the workshop. A quotation prices work and expires; an
 invoice bills for it and is usually raised straight from an order.
 
 ## User flows
+- **Add AND edit open the full page** (owner's call, 2026-08-15 — "a popup is
+  disruptive" for line-item editing). The form markup serves both; `editDoc()`
+  sets `addPage = true`. `/quotations/?open=<id>` deep-links onto a document
+  (the order record's Documents segment links here).
 - One list, filtered by kind, searchable by number / customer / code / reference.
 - **+ Quotation / + Invoice** — optionally "start from an order", which fills the
   customer and copies its items as lines (nobody retypes quantities and rates).

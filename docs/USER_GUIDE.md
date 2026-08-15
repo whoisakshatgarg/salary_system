@@ -56,7 +56,8 @@ Under the tiles you'll find the **Deadlines** panel — orders whose delivery
 dates are close, as three columns: anything already **Overdue** (rose), **Next
 7 days** (amber) and **Next 31 days**. Each line names the customer, the order
 number and how much of it still has to go out, with how soon as a small chip on
-the right.
+the right. **Click any line and it takes you straight to that order's record**
+— the panel is a to-do list, not just a warning.
 
 An order disappears from the panel once it has been fully sent — nothing left to
 deliver is not a deadline. If you have nothing due, the panel doesn't appear at
@@ -263,6 +264,10 @@ reason heat numbers are kept apart. If several cards share one heat number they
 share one analysis. The small Composition box on the left is only a fallback for
 cards you leave blank.
 
+Elements are picked by their **full name** — start typing "man…" and choose
+**Manganese (Mn)** from the list. A name the list doesn't know (a rare-earth
+from a special report, say) can be typed as it is.
+
 Each row carries its **own heat number**, and that matters more than anything
 else on this screen. Two bars can be the same steel, the same diameter, from the
 same lorry, and still be *different metal* — a different heat is a different
@@ -272,9 +277,9 @@ number becomes its own record and stays that way for good.
 | Column | What to put in it |
 | --- | --- |
 | **Heat number** | Off the mill certificate. Required. |
-| **Material / Grade** | Leave blank to inherit what you set on the left. |
+| **Material / Grade / Sect.** | Leave blank to inherit what you set on the left. **Sect.** is the bar's section — Round, Hexagonal, Square… — and a delivery can mix them; **+ Add new…** learns a section the list doesn't have. |
 | **Length** | The actual length of this bar. Required — it is what makes the material check possible. |
-| **Ø** | Diameter. |
+| **Ø / A-F** | Diameter for rounds, across-flats for hex, width for flats. |
 | **Qty** | How many identical bars of this length. |
 | **Note** | Anything worth remembering, e.g. "short offcuts". |
 
@@ -283,10 +288,16 @@ check it against the delivery challan before saving. **Save delivery** records
 the whole thing at once: if one heat number turns out to be a duplicate,
 nothing at all is saved and you can fix that row.
 
-Afterwards, open any heat to attach photos or PDFs of the mill certificate and
-purchase invoice — phone photos are compressed automatically. Editing an
-existing heat still opens the familiar popup, where you can also correct the
-piece lengths and diameters.
+**The paperwork goes in with the delivery.** The **Paperwork** box on the left
+takes the mill test certificates and the receipt or purchase invoice — photos
+or PDFs — and attaches them to every heat the delivery creates, so each heat
+record carries its own copy. A certificate that belongs to one heat alone goes
+in that row's drawer (the same one as its chemistry), under **Files for this
+heat**. If a file fails to upload, the delivery is still saved — a message
+names the file, and you can add it again from the heat record.
+
+Editing an existing heat still opens the familiar popup, where you can also
+correct the piece lengths and diameters.
 
 > If you don't know the lengths, you can still record the heat the old way and
 > leave the pieces out. You just won't be able to check it by dimension —
@@ -393,9 +404,17 @@ The record has three tabs.
 
 Lifetime total, number of orders, average order value and how much is still
 open, then a **month-by-month bar chart** of business won — hover a bar to see
-the running total to that month. Below it, every order newest-first with its
-stage, and every quotation and invoice with a **Print** button, so any past
-document can be reprinted from here without hunting for the original.
+the running total to that month.
+
+Their orders sit below as **two tables**. **Orders in progress** is what's
+still moving, each with its stage; **Past orders** is the archive — done and
+paid — and its Documents column hangs each order's quotations and invoices on
+the order itself as small chips: click a chip to print that document. **Click
+any order row and you land on the order's full record** in Order Tracking —
+this screen is a view of the relationship, not a second copy of the order.
+
+The full **Quotations & invoices** list stays underneath for paperwork that
+wasn't raised against any order, with the same Print buttons.
 
 ### 6.2 Rates — the prices you agreed with them
 
@@ -427,7 +446,12 @@ Open the **📐 Parts & Pricing** tile — one record per customer drawing.
 
 - **Drawing number + revision** identify the part; **+ Revision** starts a new
   revision (its rates and files begin fresh — pricing history is per revision).
-- **Drawing files** — attach the PDF or a scan.
+- **Drawing files** — attach the PDF or a scan, **right in the New drawing form**
+  or later from the record.
+- **Part type** — a broad family name like *Shaft*, *Flange* or *Adapter*. The
+  box offers every type you've used before; typing a new one adds it to the
+  list the moment you save. It shows as a small tag in the list and is
+  searchable, so "impeller" finds every impeller you've ever drawn.
 - **Rate history** answers "what did we charge last time": dated entries marked
   **quoted / agreed / revised**, newest first. The latest rate shows on the
   list and auto-fills order items.
@@ -533,6 +557,10 @@ the same way.
 - **Material used** — rods issued in Inventory against this order number
   appear automatically, with their heat numbers: order → heat → mill
   certificate, the full traceability chain.
+- **Documents** — the record's fourth tab lists every quotation and invoice
+  raised against this order, with its status, total and a **Print** button;
+  the document number links into Quotations & Invoices. Everything about the
+  order in one place.
 - **Shipping (consignments)** — press **🚚 Ship**:
 
 ![Consignment](guide-images/ws-consignment.jpg)
@@ -658,12 +686,12 @@ you send before the work, an invoice is what you send after it.
 
 ![Invoice form](guide-images/ws-invoice-form.jpg)
 
-**+ Quotation** or **+ Invoice** opens a full screen (editing an existing one
-still opens the popup). Choose the customer and their
-details fill in. Add a line per item: description, quantity, rate — the amount,
-subtotal, GST and grand total all calculate themselves. For an invoice you can
-pick an **order** instead and its items are copied in for you, so you are not
-retyping what you already entered in Order Tracking.
+**+ Quotation** or **+ Invoice** opens a full screen — and so does **Edit**:
+a document has too many lines to work on comfortably in a popup. Choose the
+customer and their details fill in. Add a line per item: description, quantity,
+rate — the amount, subtotal, GST and grand total all calculate themselves. For
+an invoice you can pick an **order** instead and its items are copied in for
+you, so you are not retyping what you already entered in Order Tracking.
 
 Document numbers are issued automatically per financial year, and quotations and
 invoices are numbered in separate series.

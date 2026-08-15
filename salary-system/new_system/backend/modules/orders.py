@@ -319,6 +319,16 @@ def get_order(conn, order_id: int) -> dict:
     o["qty_pending"] = round(o["qty_total"] - o["qty_shipped"], 3)
     o["stage_log"] = [dict(r) for r in conn.execute(
         "SELECT * FROM order_stage_log WHERE order_id=? ORDER BY id DESC", (order_id,))]
+    # the paper trail: every quotation/invoice raised against this order, so
+    # the record answers "what did we send them?" without a trip to Quotations
+    o["documents"] = [dict(r) for r in conn.execute(
+        """SELECT d.id, d.kind, d.doc_no, d.doc_date, d.status, d.tax_pct,
+                  (SELECT COALESCE(SUM(l.qty * l.rate), 0) FROM document_line l
+                     WHERE l.document_id = d.id) AS subtotal
+           FROM document d WHERE d.order_id=?
+           ORDER BY d.doc_date DESC, d.id DESC""", (order_id,))]
+    for d in o["documents"]:
+        d["total"] = round(d["subtotal"] * (1 + (d["tax_pct"] or 0) / 100), 2)
     # material traceability: inventory issues recorded against this order number
     o["heats"] = [dict(r) for r in conn.execute(
         """SELECT m.mv_date, m.rods, m.weight_kg, m.remarks,

@@ -120,9 +120,9 @@
             <div class="flex items-center gap-1 rounded-lg bg-slate-50 border border-slate-200 px-1.5 py-1"
                  title="Filter by chemical composition">
               <select x-model="f.element" @change="loadHeats()" aria-label="Element"
-                      class="border border-slate-300 rounded-md px-1.5 py-1 text-sm bg-white w-[68px] focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
-                <option value="">Elem.</option>
-                <template x-for="o in options.element"><option :value="o" x-text="o"></option></template>
+                      class="border border-slate-300 rounded-md px-1.5 py-1 text-sm bg-white w-32 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
+                <option value="">Element…</option>
+                <template x-for="o in options.element"><option :value="o" x-text="elemLabel(o)"></option></template>
               </select>
               <input x-model="f.pct_min" @input.debounce.400ms="loadHeats()" type="number" step="0.01" min="0" max="100"
                      placeholder="min %" aria-label="Minimum percent" :disabled="!f.element"
@@ -526,8 +526,9 @@
             <div class="p-3">
               <div class="flex flex-wrap gap-1.5" x-show="detail?.composition.length">
                 <template x-for="c in detail?.composition || []">
-                  <span class="bg-slate-100 rounded-md px-2 py-0.5 font-mono text-xs text-slate-700">
-                    <b class="text-slate-900" x-text="c.element"></b> <span class="tabular-nums" x-text="c.percent + '%'"></span>
+                  <span class="bg-slate-100 rounded-md px-2 py-0.5 text-xs text-slate-700">
+                    <b class="text-slate-900" x-text="elemLabel(c.element)"></b>
+                    <span class="tabular-nums font-mono" x-text="c.percent + '%'"></span>
                   </span>
                 </template>
               </div>
@@ -744,12 +745,52 @@
                   <option value="">—</option>
                   <template x-for="o in options.grade" :key="o"><option :value="o" x-text="o"></option></template>
                 </select></div>
-              <div><label class="block text-xs text-slate-500 mb-1">Shape</label>
+              <div><label class="block text-xs text-slate-500 mb-1">Section / shape</label>
                 <select x-model="intake.shape"
+                        @change="intake.shape === '__add__' && inlineAdd('shape', intake, 'shape')"
                         class="border border-slate-300 rounded-lg px-2 py-1.5 w-full text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
                   <option value="">—</option>
                   <template x-for="o in options.shape" :key="o"><option :value="o" x-text="o"></option></template>
+                  <option value="__add__">+ Add new…</option>
                 </select></div>
+            </div>
+          </div>
+
+          <!-- the paperwork that arrives with the truck -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Paperwork</div>
+            <p class="text-[11px] text-slate-400 mb-3">Attached to every heat in this delivery.</p>
+            <div class="space-y-3 text-sm">
+              <div>
+                <label class="block text-xs text-slate-500 mb-1">Mill test certificates</label>
+                <input type="file" multiple accept="image/*,.pdf"
+                       @change="grabFiles($event, intake.files, 'certificate')"
+                       class="block w-full text-xs text-slate-500 file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-slate-300 file:bg-white file:text-slate-700 file:text-xs file:font-medium hover:file:bg-slate-50 file:cursor-pointer file:transition-colors" />
+                <div class="mt-1.5 space-y-1">
+                  <template x-for="(f, fi) in intake.files.certificate" :key="fi">
+                    <div class="flex items-center gap-1.5 text-xs text-slate-600">
+                      <span class="truncate">📄 <span x-text="f.name"></span></span>
+                      <button type="button" @click="intake.files.certificate.splice(fi,1)"
+                              class="text-slate-300 hover:text-rose-600 transition-colors shrink-0">✕</button>
+                    </div>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs text-slate-500 mb-1">Receipt / invoice</label>
+                <input type="file" multiple accept="image/*,.pdf"
+                       @change="grabFiles($event, intake.files, 'invoice')"
+                       class="block w-full text-xs text-slate-500 file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-slate-300 file:bg-white file:text-slate-700 file:text-xs file:font-medium hover:file:bg-slate-50 file:cursor-pointer file:transition-colors" />
+                <div class="mt-1.5 space-y-1">
+                  <template x-for="(f, fi) in intake.files.invoice" :key="fi">
+                    <div class="flex items-center gap-1.5 text-xs text-slate-600">
+                      <span class="truncate">📄 <span x-text="f.name"></span></span>
+                      <button type="button" @click="intake.files.invoice.splice(fi,1)"
+                              class="text-slate-300 hover:text-rose-600 transition-colors shrink-0">✕</button>
+                    </div>
+                  </template>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -762,13 +803,24 @@
             <p class="text-[11px] text-slate-400 mb-2.5">Fallback for rows with no chemistry of their own.</p>
             <template x-for="(c, i) in intake.composition" :key="i">
               <div class="flex gap-2 mb-2">
-                <select x-model="c.element" x-effect="c.element && $nextTick(() => $el.value = c.element)"
-                        class="border border-slate-300 rounded-lg px-2 py-1 text-sm w-24 bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
-                  <option value="">—</option>
-                  <template x-for="o in options.element" :key="o"><option :value="o" x-text="o"></option></template>
-                </select>
+                <!-- searchable: type "man…" and pick Manganese (Mn); stores the symbol -->
+                <div x-data="elemBox(c)" @click.outside="open = false" class="relative flex-1 min-w-0">
+                  <input x-model="q" @focus="open = true" @input="open = true"
+                         @keydown.enter.prevent="hits().length ? pick(hits()[0]) : settle()"
+                         @keydown.escape="open = false" @blur="settle()"
+                         placeholder="Element…" aria-label="Element"
+                         class="border border-slate-300 rounded-lg px-2 py-1 text-sm w-full bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                  <div x-show="open && hits().length" x-cloak
+                       class="absolute z-20 mt-1 w-52 max-h-48 overflow-auto bg-white border border-slate-200 rounded-lg shadow-lg">
+                    <template x-for="sym in hits()" :key="sym">
+                      <button type="button" @mousedown.prevent="pick(sym)"
+                              class="block w-full text-left px-3 py-1.5 text-sm hover:bg-brand-50 transition-colors"
+                              x-text="elemLabel(sym)"></button>
+                    </template>
+                  </div>
+                </div>
                 <input x-model="c.percent" type="number" step="0.001" min="0" max="100" placeholder="%"
-                       class="border border-slate-300 rounded-lg px-2 py-1 text-sm flex-1 min-w-0 bg-white text-right tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                       class="border border-slate-300 rounded-lg px-2 py-1 text-sm w-20 bg-white text-right tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
                 <button type="button" @click="intake.composition.splice(i,1)"
                         class="text-slate-300 hover:text-rose-600 px-1 transition-colors">✕</button>
               </div>
@@ -801,8 +853,10 @@
                       <th class="px-2 py-2 whitespace-nowrap">Heat no. *</th>
                       <th class="px-2 py-2 whitespace-nowrap">Material</th>
                       <th class="px-2 py-2 whitespace-nowrap">Grade</th>
+                      <th class="px-2 py-2 whitespace-nowrap">Sect.</th>
                       <th class="px-2 py-2 text-right whitespace-nowrap">Length *</th>
-                      <th class="px-2 py-2 text-right">Ø</th>
+                      <th class="px-2 py-2 text-right whitespace-nowrap"
+                          title="Diameter for rounds, across-flats for hex, width for flats">Ø / A-F</th>
                       <th class="px-2 py-2 text-right">Qty</th>
                       <th class="px-2 py-2">Note</th>
                       <th class="px-2 py-2"></th>
@@ -830,6 +884,15 @@
                             <template x-for="o in options.grade" :key="o"><option :value="o" x-text="o"></option></template>
                           </select>
                         </td>
+                        <td class="px-2 py-2">
+                          <select x-model="r.shape" aria-label="Section / shape"
+                                  @change="r.shape === '__add__' && inlineAdd('shape', r, 'shape')"
+                                  class="border border-slate-300 rounded-lg px-1.5 py-1.5 w-24 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
+                            <option value="" x-text="intake.shape || '—'"></option>
+                            <template x-for="o in options.shape" :key="o"><option :value="o" x-text="o"></option></template>
+                            <option value="__add__">+ Add new…</option>
+                          </select>
+                        </td>
                         <td class="px-2 py-2 text-right">
                           <input x-model="r.length_mm" type="number" step="0.01" min="0" aria-label="Length"
                                  class="border border-slate-300 rounded-lg px-2 py-1.5 w-20 text-right tabular-nums text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
@@ -851,8 +914,9 @@
                             <button type="button" @click="toggleComp(r)"
                                     title="Rows sharing this heat number share one analysis"
                                     class="px-1.5 py-1.5 rounded-lg text-[11px] font-medium border whitespace-nowrap transition-colors"
-                                    :class="compCount(r) ? 'border-brand-600 text-brand-700 bg-brand-50' : 'border-slate-300 text-slate-500 hover:bg-slate-50'"
-                                    x-text="compCount(r) ? 'Chem. (' + compCount(r) + ')' : '+ Chem.'"></button>
+                                    :class="(compCount(r) || r.files.length) ? 'border-brand-600 text-brand-700 bg-brand-50' : 'border-slate-300 text-slate-500 hover:bg-slate-50'"
+                                    x-text="(compCount(r) ? 'Chem. (' + compCount(r) + ')' : '+ Chem.')
+                                            + (r.files.length ? ' · 📎' + r.files.length : '')"></button>
                             <button type="button" @click="copyDown(i)" title="Duplicate this piece"
                                     class="text-slate-300 hover:text-brand-600 px-0.5 text-base leading-none transition-colors">⧉</button>
                             <button type="button" @click="removeRow(i)" title="Remove this piece"
@@ -860,9 +924,9 @@
                           </div>
                         </td>
                       </tr>
-                      <!-- per-heat chemistry -->
+                      <!-- per-heat chemistry + paperwork -->
                       <tr x-show="r.showComp" x-cloak class="bg-brand-50/40">
-                        <td colspan="9" class="px-3 pb-3">
+                        <td colspan="10" class="px-3 pb-3">
                           <div class="flex items-center mb-1.5">
                             <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                               Composition of heat
@@ -874,13 +938,21 @@
                           <div class="flex flex-wrap gap-2">
                             <template x-for="(c, ci) in r.composition" :key="ci">
                               <div class="flex items-center gap-1">
-                                <!-- x-effect re-applies the value AFTER x-for has rendered the
-                                     options; without it a prefilled select shows blank. -->
-                                <select x-model="c.element" x-effect="c.element && $nextTick(() => $el.value = c.element)"
-                                        class="border border-slate-300 rounded-lg px-2 py-1 text-sm w-24 bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
-                                  <option value="">—</option>
-                                  <template x-for="o in options.element" :key="o"><option :value="o" x-text="o"></option></template>
-                                </select>
+                                <div x-data="elemBox(c)" @click.outside="open = false" class="relative">
+                                  <input x-model="q" @focus="open = true" @input="open = true"
+                                         @keydown.enter.prevent="hits().length ? pick(hits()[0]) : settle()"
+                                         @keydown.escape="open = false" @blur="settle()"
+                                         placeholder="Element…" aria-label="Element"
+                                         class="border border-slate-300 rounded-lg px-2 py-1 text-sm w-40 bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                                  <div x-show="open && hits().length" x-cloak
+                                       class="absolute z-20 mt-1 w-52 max-h-48 overflow-auto bg-white border border-slate-200 rounded-lg shadow-lg">
+                                    <template x-for="sym in hits()" :key="sym">
+                                      <button type="button" @mousedown.prevent="pick(sym)"
+                                              class="block w-full text-left px-3 py-1.5 text-sm hover:bg-brand-50 transition-colors"
+                                              x-text="elemLabel(sym)"></button>
+                                    </template>
+                                  </div>
+                                </div>
                                 <input x-model="c.percent" type="number" step="0.001" min="0" max="100" placeholder="%"
                                        class="border border-slate-300 rounded-lg px-2 py-1 text-sm w-20 text-right tabular-nums bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
                                 <button type="button" @click="r.composition.splice(ci,1)"
@@ -888,13 +960,33 @@
                               </div>
                             </template>
                           </div>
+                          <!-- paperwork for THIS heat only (the delivery-wide
+                               receipts live on the left) -->
+                          <div class="mt-3 pt-2 border-t border-brand-100/60">
+                            <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                              Files for this heat
+                              <span class="normal-case tracking-normal font-normal">— its own certificate or report</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                              <input type="file" multiple accept="image/*,.pdf"
+                                     @change="grabFiles($event, r, 'files')"
+                                     class="text-xs text-slate-500 file:mr-2 file:px-2.5 file:py-1 file:rounded-lg file:border file:border-slate-300 file:bg-white file:text-slate-700 file:text-xs file:font-medium hover:file:bg-slate-50 file:cursor-pointer file:transition-colors" />
+                              <template x-for="(f, fi) in r.files" :key="fi">
+                                <span class="inline-flex items-center gap-1 text-xs text-slate-600 bg-white border border-slate-200 rounded-lg px-2 py-0.5">
+                                  📄 <span class="max-w-[10rem] truncate" x-text="f.name"></span>
+                                  <button type="button" @click="r.files.splice(fi,1)"
+                                          class="text-slate-300 hover:text-rose-600 transition-colors">✕</button>
+                                </span>
+                              </template>
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     </tbody>
                   </template>
                   <tfoot>
                     <tr class="bg-slate-50 border-t-2 border-slate-200">
-                      <td colspan="9" class="px-3 py-2.5 text-xs text-slate-500">
+                      <td colspan="10" class="px-3 py-2.5 text-xs text-slate-500">
                         <span class="font-bold text-slate-800 tabular-nums" x-text="intakeHeatCount()"></span> heat number(s),
                         <span class="font-bold text-slate-800 tabular-nums" x-text="intakeRodCount()"></span> piece(s) in this delivery
                       </td>
@@ -1018,13 +1110,21 @@
           <div class="space-y-2">
             <template x-for="(c, i) in form?.composition || []" :key="i">
               <div class="flex items-center gap-2">
-                <select x-model="c.element" x-effect="c.element && $nextTick(() => $el.value = c.element)"
-                        @change="c.element === '__add__' && inlineAdd('element', c, 'element')"
-                        class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-32 bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition">
-                  <option value="">Element…</option>
-                  <template x-for="o in options.element"><option :value="o" x-text="o"></option></template>
-                  <option value="__add__">+ Add new…</option>
-                </select>
+                <div x-data="elemBox(c)" @click.outside="open = false" class="relative">
+                  <input x-model="q" @focus="open = true" @input="open = true"
+                         @keydown.enter.prevent="hits().length ? pick(hits()[0]) : settle()"
+                         @keydown.escape="open = false" @blur="settle()"
+                         placeholder="Element…" aria-label="Element"
+                         class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-44 bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+                  <div x-show="open && hits().length" x-cloak
+                       class="absolute z-20 mt-1 w-52 max-h-48 overflow-auto bg-white border border-slate-200 rounded-lg shadow-lg">
+                    <template x-for="sym in hits()" :key="sym">
+                      <button type="button" @mousedown.prevent="pick(sym)"
+                              class="block w-full text-left px-3 py-1.5 text-sm hover:bg-brand-50 transition-colors"
+                              x-text="elemLabel(sym)"></button>
+                    </template>
+                  </div>
+                </div>
                 <input type="number" step="0.001" min="0" max="100" x-model="c.percent" placeholder="%"
                        class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm w-28 text-right tabular-nums bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
                 <span class="text-slate-400 text-sm">%</span>

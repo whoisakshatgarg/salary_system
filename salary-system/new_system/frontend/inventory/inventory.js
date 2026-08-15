@@ -54,6 +54,9 @@ function blankIntake() {
     material_class: "", grade: "", shape: "", size_section: "",
     composition: [{ element: "", percent: "" }],
     pieces: [blankIntakeRow()],
+    // paperwork that arrives WITH the truck — uploaded to every heat created
+    // by this delivery once the save succeeds (a heat record must stand alone)
+    files: { certificate: [], invoice: [] },
   };
 }
 
@@ -62,7 +65,49 @@ function blankIntakeRow() {
   // whole reason heat numbers are kept apart in the first place.
   return { heat_number: "", material_class: "", grade: "", shape: "",
            length_mm: "", diameter_mm: "", quantity: 1, note: "",
-           composition: [], showComp: false };
+           composition: [], files: [], showComp: false };
+}
+
+// Chemical elements a mill test certificate actually lists, so the picker can
+// say "Carbon (C)" instead of a bare symbol. STORAGE stays the symbol — the
+// stock filter groups by the stored string, and "C" written last year must
+// land in the same bucket as one written today.
+const ELEMENTS = {
+  C: "Carbon", Si: "Silicon", Mn: "Manganese", P: "Phosphorus", S: "Sulphur",
+  Cr: "Chromium", Ni: "Nickel", Mo: "Molybdenum", Cu: "Copper",
+  Al: "Aluminium", Zn: "Zinc", Sn: "Tin", Pb: "Lead", Fe: "Iron",
+  V: "Vanadium", Ti: "Titanium", Nb: "Niobium", B: "Boron", N: "Nitrogen",
+  Co: "Cobalt", W: "Tungsten", Mg: "Magnesium", As: "Arsenic", Sb: "Antimony",
+};
+const ELEMENT_BY_NAME = Object.fromEntries(
+  Object.entries(ELEMENTS).map(([sym, name]) => [name.toLowerCase(), sym]));
+
+// One searchable element box. Nested x-data: it reads `options`/`elemLabel`
+// from the page scope and writes the SYMBOL back onto the row it was given.
+function elemBox(row) {
+  return {
+    open: false,
+    q: "",
+    init() { this.q = this.elemLabel(row.element); },
+    hits() {
+      const needle = this.q.trim().toLowerCase();
+      const all = this.options.element || [];
+      if (!needle) return all;
+      return all.filter((sym) =>
+        this.elemLabel(sym).toLowerCase().includes(needle));
+    },
+    pick(sym) { row.element = sym; this.q = this.elemLabel(sym); this.open = false; },
+    // Free text is allowed — "Cerium" isn't seeded but a lab report may list
+    // it. "Name (X)" and known full names normalise to the symbol.
+    settle() {
+      const t = this.q.trim();
+      const m = t.match(/\(([^)]+)\)\s*$/);
+      row.element = m ? m[1].trim()
+        : (ELEMENT_BY_NAME[t.toLowerCase()] || t);
+      this.q = this.elemLabel(row.element);
+      this.open = false;
+    },
+  };
 }
 
 function inv() {
@@ -137,6 +182,11 @@ function inv() {
     },
     statusLabel(s) {
       return { in_stock: "In stock", consumed: "Consumed", rejected: "Rejected" }[s] || s;
+    },
+    // "C" → "Carbon (C)"; an element we have no name for shows as typed.
+    elemLabel(sym) {
+      const s = (sym || "").trim();
+      return ELEMENTS[s] ? `${ELEMENTS[s]} (${s})` : s;
     },
     // Dot-chip body (bg 50 / text 700 / inset ring 600/20). The dot itself is
     // invStatusDot() — one shape for every status on every screen.
@@ -295,11 +345,56 @@ function inv() {
               .map((c) => ({ element: c.element, percent: Number(c.percent) })),
           })),
         }});
+        // Heats exist from here on — attach the paperwork to them. A failed
+        // upload must NOT look like a failed save (retrying would duplicate
+        // the heats), so failures downgrade to a toast naming the files.
+        const failed = await this.uploadIntakeFiles(r.heats, rows);
         this.addPage = false; this.intake = null;
         await this.loadOptions();
         await this.loadHeats();
-        this.flash(`Recorded ${r.count} heat(s), ${r.rods} rod(s)`);
+        if (failed.length) {
+          this.flash(`Saved, but ${failed.length} file(s) failed to attach`
+            + ` (${failed.join(", ")}) — add them from the heat record`, "err");
+        } else {
+          const n = this.intakeFileCount(g, rows);
+          this.flash(`Recorded ${r.count} heat(s), ${r.rods} rod(s)`
+            + (n ? ` · ${n} file(s) attached` : ""));
+        }
       } catch (e) { this.formError = e.message; }
+    },
+    intakeFileCount(g, rows) {
+      return g.files.certificate.length + g.files.invoice.length
+        + rows.reduce((n, x) => n + (x.files || []).length, 0);
+    },
+    async uploadIntakeFiles(made, rows) {
+      const byHeat = Object.fromEntries(made.map((h) => [h.heat_number, h.id]));
+      const failed = [];
+      const send = async (heatId, kind, files) => {
+        if (!files.length) return;
+        const fd = new FormData();
+        fd.append("kind", kind);
+        for (const f of files) fd.append("files", f, f.name);
+        try { await api(`/api/inventory/heats/${heatId}/attachments`,
+                        { method: "POST", form: fd }); }
+        catch (_) { failed.push(...files.map((f) => f.name)); }
+      };
+      // delivery paperwork goes on every heat it covers — each heat record
+      // must tell its whole story on its own
+      for (const h of made) {
+        await send(h.id, "certificate", this.intake.files.certificate);
+        await send(h.id, "invoice", this.intake.files.invoice);
+      }
+      for (const x of rows) {
+        const id = byHeat[String(x.heat_number).trim()];
+        if (id) await send(id, "certificate", x.files || []);
+      }
+      return [...new Set(failed)];
+    },
+    // <input type=file> → a plain array on the model; the input resets so the
+    // same file can be picked again after a remove
+    grabFiles(e, into, key) {
+      into[key] = [...into[key], ...e.target.files];
+      e.target.value = "";
     },
     editHeat() {
       const d = this.detail;

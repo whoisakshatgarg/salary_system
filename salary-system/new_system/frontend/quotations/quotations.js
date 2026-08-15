@@ -97,6 +97,12 @@ function qi() {
       try { this.refs = await api("/api/quotations/refs"); await this.load(); }
       catch (e) { this.fail(e); }
       this.booted = true;
+      // deep link from an order record: /quotations/?open=12
+      const want = new URLSearchParams(window.location.search).get("open");
+      if (want) {
+        window.history.replaceState({}, "", window.location.pathname);
+        await this.open(Number(want));
+      }
     },
     _seq: 0,
     async load() {
@@ -211,7 +217,9 @@ function qi() {
                     lines: d.lines.map((l) => ({ drawing_id: l.drawing_id || "", description: l.description || "",
                                                  qty: l.qty, unit: l.unit, rate: l.rate })) };
       this.formError = "";
-      this.addPage = false;             // editing stays a modal
+      // Editing opens the same FULL PAGE as adding (owner's call, 2026-08-15):
+      // a document has too many lines for a popup to edit comfortably.
+      this.addPage = true;
       this.checkOn = false; this.chkResult = null;
     },
     async fromOrder(orderId) {

@@ -334,3 +334,34 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   Two traps are recorded in the spec because every page hit them: Alpine's
   `<template x-for>` shifts `nth-child` zebra by one, and `@apply` in a plain
   `<style>` block is silently dead with the vendored Play build.
+
+## 2026-08-15 (later) — Everything about a record, on the record
+- **The order record carries its paper trail**: `get_order` embeds the
+  quotations/invoices whose `order_id` points at it, shown as a fourth
+  segment (Documents) with Print. Embedded under the *orders* grant — order
+  values are already visible there — while Print stays behind the quotations
+  grant.
+- **Deep links instead of copies**: `/orders/?open=<id>` and
+  `/quotations/?open=<id>` open straight onto a record. The home deadline
+  panel, the customer's order tables and the order's document numbers all
+  LINK to the owning module rather than re-rendering it — one screen owns
+  each record, everything else points at it.
+- **The customer's orders split into In progress / Past**, past orders
+  carrying their documents as printable chips (docs now expose `order_id`).
+- **Intake takes the paperwork with the truck**: delivery-level certificates
+  and receipts attach to EVERY heat the delivery creates — deliberately
+  duplicated so each heat record stands alone — with a per-heat drawer for
+  files that belong to one heat. Uploads run after the save; a failed upload
+  is a toast, never a failed save (re-saving would duplicate heats).
+- **Elements are stored as symbols, shown as names** ("Manganese (Mn)"): the
+  searchable combo writes the symbol so old and new rows group identically in
+  the composition filter. Section/shape is now per intake ROW too (a delivery
+  can mix hex and round), additive via "+ Add new…".
+- **Part type on drawings is additive by construction**: a DISTINCT over
+  what's been saved feeds the datalist — no separate list to manage, no way
+  for the list and reality to disagree. Regression note: Pydantic input
+  models silently DROP unknown fields — a new column needs SCHEMA,
+  _MIGRATIONS **and** the route model (`DrawingIn` ate `part_type` until
+  then; now tested).
+- **Editing a quotation/invoice is a full page** (was a modal): line-item
+  editing needs the room — same call as orders made earlier.

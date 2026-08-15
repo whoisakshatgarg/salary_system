@@ -217,7 +217,8 @@
                 </div>
                 <div class="divide-y divide-slate-100">
                   <template x-for="o in dueSoon.overdue" :key="o.id">
-                    <div class="px-4 py-2 hover:bg-brand-50/60 transition-colors">
+                    <a :href="'/orders/?open=' + o.id" title="Open this order"
+                       class="block px-4 py-2 hover:bg-brand-50/60 transition-colors cursor-pointer">
                       <div class="flex items-center gap-2">
                         <span class="font-mono text-xs font-semibold text-brand-700 shrink-0" x-text="o.order_no"></span>
                         <span class="text-sm text-slate-800 truncate min-w-0" x-text="o.customer_name"></span>
@@ -227,7 +228,7 @@
                         </span>
                       </div>
                       <div class="text-[11px] text-slate-400 tabular-nums mt-0.5" x-text="o.qty_pending + ' left'"></div>
-                    </div>
+                    </a>
                   </template>
                   <div x-show="!dueSoon.overdue.length" class="px-4 py-3 text-xs text-slate-300">Nothing overdue</div>
                 </div>
@@ -243,7 +244,8 @@
                 </div>
                 <div class="divide-y divide-slate-100">
                   <template x-for="o in dueSoon.this_week" :key="o.id">
-                    <div class="px-4 py-2 hover:bg-brand-50/60 transition-colors">
+                    <a :href="'/orders/?open=' + o.id" title="Open this order"
+                       class="block px-4 py-2 hover:bg-brand-50/60 transition-colors cursor-pointer">
                       <div class="flex items-center gap-2">
                         <span class="font-mono text-xs font-semibold text-brand-700 shrink-0" x-text="o.order_no"></span>
                         <span class="text-sm text-slate-800 truncate min-w-0" x-text="o.customer_name"></span>
@@ -253,7 +255,7 @@
                         </span>
                       </div>
                       <div class="text-[11px] text-slate-400 tabular-nums mt-0.5" x-text="o.qty_pending + ' left'"></div>
-                    </div>
+                    </a>
                   </template>
                   <div x-show="!dueSoon.this_week.length" class="px-4 py-3 text-xs text-slate-300">Nothing due</div>
                 </div>
@@ -269,7 +271,8 @@
                 </div>
                 <div class="divide-y divide-slate-100">
                   <template x-for="o in dueSoon.this_month" :key="o.id">
-                    <div class="px-4 py-2 hover:bg-brand-50/60 transition-colors">
+                    <a :href="'/orders/?open=' + o.id" title="Open this order"
+                       class="block px-4 py-2 hover:bg-brand-50/60 transition-colors cursor-pointer">
                       <div class="flex items-center gap-2">
                         <span class="font-mono text-xs font-semibold text-brand-700 shrink-0" x-text="o.order_no"></span>
                         <span class="text-sm text-slate-800 truncate min-w-0" x-text="o.customer_name"></span>
@@ -279,7 +282,7 @@
                         </span>
                       </div>
                       <div class="text-[11px] text-slate-400 tabular-nums mt-0.5" x-text="o.qty_pending + ' left'"></div>
-                    </div>
+                    </a>
                   </template>
                   <div x-show="!dueSoon.this_month.length" class="px-4 py-3 text-xs text-slate-300">Nothing due</div>
                 </div>

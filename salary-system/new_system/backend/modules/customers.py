@@ -217,7 +217,7 @@ def business(conn, customer_id: int) -> dict:
         running += s["amount"]
         s["cumulative"] = round(running, 2)
     docs = [dict(r) for r in conn.execute(
-        """SELECT id, kind, doc_no, doc_date, status,
+        """SELECT id, kind, doc_no, doc_date, status, order_id,
                   (SELECT COALESCE(SUM(l.qty * l.rate), 0) FROM document_line l
                      WHERE l.document_id = d.id) AS subtotal, tax_pct
            FROM document d WHERE d.customer_id=?

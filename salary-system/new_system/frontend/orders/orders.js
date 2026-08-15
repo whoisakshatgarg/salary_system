@@ -111,6 +111,14 @@ function od() {
         await this.load();
       } catch (e) { this.fail(e); }
       this.booted = true;
+      // deep link: /orders/?open=6 lands straight on that order's record —
+      // this is how the home page's deadline panel and the customer record
+      // jump here. The param is then cleaned off so Back/reload behave.
+      const want = new URLSearchParams(window.location.search).get("open");
+      if (want) {
+        window.history.replaceState({}, "", window.location.pathname);
+        await this.open(Number(want));
+      }
     },
     _seq: 0,
     async load() {
@@ -190,6 +198,7 @@ function od() {
       { k: "items",     label: "Items & delivery plan" },
       { k: "material",  label: "Material" },
       { k: "shipments", label: "Shipments & history" },
+      { k: "documents", label: "Documents" },
     ],
     segCount(k) {
       const d = this.detail;
@@ -197,7 +206,28 @@ function od() {
       if (k === "items") return d.items.length;
       if (k === "material") return (this.bom?.summary || []).length;
       if (k === "shipments") return d.consignments.length;
+      if (k === "documents") return (d.documents || []).length;
       return 0;
+    },
+    // quotation/invoice chips on the order record — same colours Quotations uses
+    odDocClass(kind) {
+      return kind === "invoice"
+        ? "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-600/20"
+        : "bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20";
+    },
+    odDocDot(kind) { return kind === "invoice" ? "bg-indigo-500" : "bg-sky-500"; },
+    odDocStatus(st) {
+      return {
+        sent: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20",
+        accepted: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20",
+        paid: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20",
+        rejected: "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20",
+        cancelled: "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20",
+      }[st] || "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20";
+    },
+    odDocStatusDot(st) {
+      return { sent: "bg-amber-500", accepted: "bg-emerald-500", paid: "bg-emerald-500",
+               rejected: "bg-rose-500", cancelled: "bg-rose-500" }[st] || "bg-slate-400";
     },
 
     // ---- deliveries ---------------------------------------------------------- //

@@ -14,8 +14,13 @@ GSTIN, addresses, contact persons, payment terms.
 - **Profile**: addresses, terms, contact persons.
 - **Business**: lifetime totals (total, orders, average, still-open), a
   month-by-month bar chart of business won (hover shows the running total),
-  every order newest-first with its stage, and their quotations/invoices with a
-  Print button — any past document can be reprinted here.
+  and the orders as TWO tables (2026-08-15): **Orders in progress** (stage
+  before Payment received, with stage chips) and **Past orders** (done & paid)
+  whose Documents column hangs each order's quotations/invoices on its row as
+  printable chips (`business()` docs now carry `order_id`). Every order row
+  navigates to `/orders/?open=<id>` — the record lives in Order Tracking; this
+  is a view of it. The full Quotations & invoices table stays below for
+  documents not raised against any order.
 - **Rates**: the operations this customer has an agreed price for — standard
   ₹/hour from Settings shown alongside, so you can see what was negotiated. Each
   row is `operation · ₹/hour · additional ₹/hour · note`, one row per operation

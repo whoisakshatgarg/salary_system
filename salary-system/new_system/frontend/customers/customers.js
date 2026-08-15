@@ -103,6 +103,18 @@ function cu() {
       const n = (this.biz?.orders || []).length;
       return n ? `${n} order${n === 1 ? "" : "s"}, newest first` : "";
     },
+    // In progress = the order still owes something (any stage before Payment
+    // received). Past = fully done and paid — the archive with its paperwork.
+    get cuOpenOrders() {
+      return (this.biz?.orders || []).filter((o) => o.stage !== "payment");
+    },
+    get cuPastOrders() {
+      return (this.biz?.orders || []).filter((o) => o.stage === "payment");
+    },
+    // the documents raised against ONE order — drawn as chips on its row
+    cuDocsFor(orderId) {
+      return (this.biz?.documents || []).filter((d) => d.order_id === orderId);
+    },
     get cuDocLine() {
       const d = this.biz?.documents || [];
       if (!d.length) return "";

@@ -972,6 +972,69 @@
             <div class="text-sm text-amber-900" x-text="detail.notes"></div>
           </div>
         </div>
+
+        <!-- ============ DOCUMENTS: the order's paper trail ============
+             Every quotation and invoice raised against this order, so the
+             record answers "what did we send them?" in one place. -->
+        <div class="space-y-4" x-show="oseg === 'documents'">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">
+              Quotations &amp; invoices against this order
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden"
+                 x-show="(detail.documents || []).length">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b-2 border-slate-200">
+                  <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    <th class="px-4 py-2.5">Document</th>
+                    <th class="px-3 py-2.5">Type</th>
+                    <th class="px-3 py-2.5">Date</th>
+                    <th class="px-3 py-2.5 text-right">Total</th>
+                    <th class="px-3 py-2.5">Status</th>
+                    <th class="px-3 py-2.5 text-right">Print</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="d in detail.documents" :key="d.id">
+                    <tr class="odd:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                      <td class="px-4 py-2.5">
+                        <a :href="'/quotations/?open=' + d.id" title="Open in Quotations & Invoices"
+                           class="font-mono text-xs font-semibold text-brand-700 hover:underline"
+                           x-text="d.doc_no"></a>
+                      </td>
+                      <td class="px-3 py-2.5">
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                              :class="odDocClass(d.kind)">
+                          <span class="w-1.5 h-1.5 rounded-full" :class="odDocDot(d.kind)"></span>
+                          <span x-text="d.kind === 'invoice' ? 'Invoice' : 'Quotation'"></span>
+                        </span>
+                      </td>
+                      <td class="px-3 py-2.5 whitespace-nowrap" x-text="fmtDate(d.doc_date)"></td>
+                      <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900"
+                          x-text="money(d.total)"></td>
+                      <td class="px-3 py-2.5">
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                              :class="odDocStatus(d.status)">
+                          <span class="w-1.5 h-1.5 rounded-full" :class="odDocStatusDot(d.status)"></span>
+                          <span x-text="d.status"></span>
+                        </span>
+                      </td>
+                      <td class="px-3 py-2.5 text-right">
+                        <button @click="window.open('/api/quotations/' + d.id + '/print', '_blank')"
+                                class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-2.5 py-1 text-xs font-medium shadow-sm transition-colors">
+                          🖶 Print
+                        </button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+            <p x-show="!(detail.documents || []).length" class="text-xs text-slate-400">
+              Nothing issued against this order yet — raise one from Quotations &amp; Invoices.
+            </p>
+          </div>
+        </div>
       </div>
       </div>
     </div>

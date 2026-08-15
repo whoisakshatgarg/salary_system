@@ -168,7 +168,7 @@
 <p data-access="general">You only see the tiles your account is allowed to use. Here is what a staff account with two permissions sees:</p>
 <figure data-access="general"><img src="images/shell-home-restricted.jpg" alt="Restricted account&#x27;s home" loading="lazy"><figcaption>Restricted account&#x27;s home</figcaption></figure>
 <h3 data-access="general" id="deadlines-coming-up">Deadlines coming up</h3>
-<p data-access="general">Under the tiles you'll find the <strong>Deadlines</strong> panel — orders whose delivery dates are close, as three columns: anything already <strong>Overdue</strong> (rose), <strong>Next 7 days</strong> (amber) and <strong>Next 31 days</strong>. Each line names the customer, the order number and how much of it still has to go out, with how soon as a small chip on the right.</p>
+<p data-access="general">Under the tiles you'll find the <strong>Deadlines</strong> panel — orders whose delivery dates are close, as three columns: anything already <strong>Overdue</strong> (rose), <strong>Next 7 days</strong> (amber) and <strong>Next 31 days</strong>. Each line names the customer, the order number and how much of it still has to go out, with how soon as a small chip on the right. <strong>Click any line and it takes you straight to that order's record</strong> — the panel is a to-do list, not just a warning.</p>
 <p data-access="general">An order disappears from the panel once it has been fully sent — nothing left to deliver is not a deadline. If you have nothing due, the panel doesn't appear at all. It's only visible to accounts that can open Order Tracking.</p>
 <hr data-access="general">
 <h2 data-access="admin" id="2-accounts--who-can-open-what">2. Accounts — who can open what</h2>
@@ -257,19 +257,21 @@
 <p data-access="inventory">On the left, the things true of the whole delivery: date received, supplier, rack, and the material/grade/shape most of it is. On the right, <strong>one card per piece</strong>. Press <strong>+ Add piece</strong> for each one, or the ⧉ button to duplicate the card above when only the heat number changes.</p>
 <p data-access="inventory"><strong>Supplier</strong> is a dropdown, not a typing box. Pick an existing mill, or choose <strong>+ Add new…</strong> to enter one — it joins the list from then on, so the same supplier never ends up spelled three different ways. You can tidy the list in the <strong>Lists</strong> tab.</p>
 <p data-access="inventory"><strong>Chemistry per piece.</strong> Press <strong>+ Chemistry</strong> on any card to record that heat's spectroscopy analysis — element and percentage, as many rows as the report has. This sits on the piece, not the delivery, because the composition is the whole reason heat numbers are kept apart. If several cards share one heat number they share one analysis. The small Composition box on the left is only a fallback for cards you leave blank.</p>
+<p data-access="inventory">Elements are picked by their <strong>full name</strong> — start typing "man…" and choose <strong>Manganese (Mn)</strong> from the list. A name the list doesn't know (a rare-earth from a special report, say) can be typed as it is.</p>
 <p data-access="inventory">Each row carries its <strong>own heat number</strong>, and that matters more than anything else on this screen. Two bars can be the same steel, the same diameter, from the same lorry, and still be <em>different metal</em> — a different heat is a different melt with a different composition. So the software never merges them: each heat number becomes its own record and stays that way for good.</p>
 <div data-access="inventory" class='tablewrap'><table>
 <thead data-access="inventory"><tr><th>Column</th><th>What to put in it</th></tr></thead>
 <tbody data-access="inventory">
 <tr data-access="inventory"><td><strong>Heat number</strong></td><td>Off the mill certificate. Required.</td></tr>
-<tr data-access="inventory"><td><strong>Material / Grade</strong></td><td>Leave blank to inherit what you set on the left.</td></tr>
+<tr data-access="inventory"><td><strong>Material / Grade / Sect.</strong></td><td>Leave blank to inherit what you set on the left. <strong>Sect.</strong> is the bar's section — Round, Hexagonal, Square… — and a delivery can mix them; <strong>+ Add new…</strong> learns a section the list doesn't have.</td></tr>
 <tr data-access="inventory"><td><strong>Length</strong></td><td>The actual length of this bar. Required — it is what makes the material check possible.</td></tr>
-<tr data-access="inventory"><td><strong>Ø</strong></td><td>Diameter.</td></tr>
+<tr data-access="inventory"><td><strong>Ø / A-F</strong></td><td>Diameter for rounds, across-flats for hex, width for flats.</td></tr>
 <tr data-access="inventory"><td><strong>Qty</strong></td><td>How many identical bars of this length.</td></tr>
 <tr data-access="inventory"><td><strong>Note</strong></td><td>Anything worth remembering, e.g. "short offcuts".</td></tr>
 </tbody></table></div>
 <p data-access="inventory">The header keeps a running tally — <em>3 heat number(s), 4 piece(s)</em> — so you can check it against the delivery challan before saving. <strong>Save delivery</strong> records the whole thing at once: if one heat number turns out to be a duplicate, nothing at all is saved and you can fix that row.</p>
-<p data-access="inventory">Afterwards, open any heat to attach photos or PDFs of the mill certificate and purchase invoice — phone photos are compressed automatically. Editing an existing heat still opens the familiar popup, where you can also correct the piece lengths and diameters.</p>
+<p data-access="inventory"><strong>The paperwork goes in with the delivery.</strong> The <strong>Paperwork</strong> box on the left takes the mill test certificates and the receipt or purchase invoice — photos or PDFs — and attaches them to every heat the delivery creates, so each heat record carries its own copy. A certificate that belongs to one heat alone goes in that row's drawer (the same one as its chemistry), under <strong>Files for this heat</strong>. If a file fails to upload, the delivery is still saved — a message names the file, and you can add it again from the heat record.</p>
+<p data-access="inventory">Editing an existing heat still opens the familiar popup, where you can also correct the piece lengths and diameters.</p>
 <blockquote data-access="inventory">If you don't know the lengths, you can still record the heat the old way and leave the pieces out. You just won't be able to check it by dimension — only by counting bars.</blockquote>
 <h3 data-access="inventory" id="53-can-we-actually-make-it--the-material-check">5.3 Can we actually make it? — the Material Check</h3>
 <p data-access="inventory">The <strong>Material Check</strong> tab answers the question you ask before promising a customer anything: <em>do we have enough steel to make this?</em></p>
@@ -312,7 +314,9 @@
 <p data-access="customers">The record has three tabs.</p>
 <h3 data-access="customers" id="61-business--what-theyre-worth-to-you">6.1 Business — what they're worth to you</h3>
 <figure data-access="customers"><img src="images/ws-customer-business.jpg" alt="Customer business" loading="lazy"><figcaption>Customer business</figcaption></figure>
-<p data-access="customers">Lifetime total, number of orders, average order value and how much is still open, then a <strong>month-by-month bar chart</strong> of business won — hover a bar to see the running total to that month. Below it, every order newest-first with its stage, and every quotation and invoice with a <strong>Print</strong> button, so any past document can be reprinted from here without hunting for the original.</p>
+<p data-access="customers">Lifetime total, number of orders, average order value and how much is still open, then a <strong>month-by-month bar chart</strong> of business won — hover a bar to see the running total to that month.</p>
+<p data-access="customers">Their orders sit below as <strong>two tables</strong>. <strong>Orders in progress</strong> is what's still moving, each with its stage; <strong>Past orders</strong> is the archive — done and paid — and its Documents column hangs each order's quotations and invoices on the order itself as small chips: click a chip to print that document. <strong>Click any order row and you land on the order's full record</strong> in Order Tracking — this screen is a view of the relationship, not a second copy of the order.</p>
+<p data-access="customers">The full <strong>Quotations &amp; invoices</strong> list stays underneath for paperwork that wasn't raised against any order, with the same Print buttons.</p>
 <h3 data-access="customers" id="62-rates--the-prices-you-agreed-with-them">6.2 Rates — the prices you agreed with them</h3>
 <figure data-access="customers"><img src="images/ws-customer-rates.jpg" alt="Customer rates" loading="lazy"><figcaption>Customer rates</figcaption></figure>
 <p data-access="customers">Most customers negotiate their own machining rates. Put them here once and every part you price for that customer uses them automatically.</p>
@@ -328,7 +332,8 @@
 <figure data-access="parts"><img src="images/ws-part-detail.jpg" alt="Drawing record" loading="lazy"><figcaption>Drawing record</figcaption></figure>
 <ul data-access="parts">
 <li data-access="parts"><strong>Drawing number + revision</strong> identify the part; <strong>+ Revision</strong> starts a new revision (its rates and files begin fresh — pricing history is per revision).</li>
-<li data-access="parts"><strong>Drawing files</strong> — attach the PDF or a scan.</li>
+<li data-access="parts"><strong>Drawing files</strong> — attach the PDF or a scan, <strong>right in the New drawing form</strong> or later from the record.</li>
+<li data-access="parts"><strong>Part type</strong> — a broad family name like <em>Shaft</em>, <em>Flange</em> or <em>Adapter</em>. The box offers every type you've used before; typing a new one adds it to the list the moment you save. It shows as a small tag in the list and is searchable, so "impeller" finds every impeller you've ever drawn.</li>
 <li data-access="parts"><strong>Rate history</strong> answers "what did we charge last time": dated entries marked <strong>quoted / agreed / revised</strong>, newest first. The latest rate shows on the list and auto-fills order items.</li>
 <li data-access="parts"><strong>Customer</strong> — assign the drawing to a customer here. This is what makes the costing screen use that customer's agreed rates.</li>
 </ul>
@@ -372,6 +377,7 @@
 <li data-access="orders"><strong>Deadline</strong> — the date the whole order must be with the customer. It shows as a column on the list, turning <strong>amber inside a week</strong> and <strong>red once overdue</strong>, and it drives the warning panel on Home.</li>
 <li data-access="orders"><strong>Stages</strong> — Enquiry → Quote → PO received → Production → QC → Dispatch → Payment received. Click any stage to move there (skipping is fine); every move is logged with a note.</li>
 <li data-access="orders"><strong>Material used</strong> — rods issued in Inventory against this order number appear automatically, with their heat numbers: order → heat → mill certificate, the full traceability chain.</li>
+<li data-access="orders"><strong>Documents</strong> — the record's fourth tab lists every quotation and invoice raised against this order, with its status, total and a <strong>Print</strong> button; the document number links into Quotations &amp; Invoices. Everything about the order in one place.</li>
 <li data-access="orders"><strong>Shipping (consignments)</strong> — press <strong>🚚 Ship</strong>:</li>
 </ul>
 <figure data-access="orders"><img src="images/ws-consignment.jpg" alt="Consignment" loading="lazy"><figcaption>Consignment</figcaption></figure>
@@ -411,7 +417,7 @@
 <h2 data-access="quotations" id="9-quotations--invoices">9. Quotations &amp; Invoices</h2>
 <p data-access="quotations">Open the <strong>🧾 Quotations &amp; Invoices</strong> tile. Both live here — a quotation is what you send before the work, an invoice is what you send after it.</p>
 <figure data-access="quotations"><img src="images/ws-invoice-form.jpg" alt="Invoice form" loading="lazy"><figcaption>Invoice form</figcaption></figure>
-<p data-access="quotations"><strong>+ Quotation</strong> or <strong>+ Invoice</strong> opens a full screen (editing an existing one still opens the popup). Choose the customer and their details fill in. Add a line per item: description, quantity, rate — the amount, subtotal, GST and grand total all calculate themselves. For an invoice you can pick an <strong>order</strong> instead and its items are copied in for you, so you are not retyping what you already entered in Order Tracking.</p>
+<p data-access="quotations"><strong>+ Quotation</strong> or <strong>+ Invoice</strong> opens a full screen — and so does <strong>Edit</strong>: a document has too many lines to work on comfortably in a popup. Choose the customer and their details fill in. Add a line per item: description, quantity, rate — the amount, subtotal, GST and grand total all calculate themselves. For an invoice you can pick an <strong>order</strong> instead and its items are copied in for you, so you are not retyping what you already entered in Order Tracking.</p>
 <p data-access="quotations">Document numbers are issued automatically per financial year, and quotations and invoices are numbered in separate series.</p>
 <h3 data-access="quotations" id="91-checking-material-before-you-commit">9.1 Checking material before you commit</h3>
 <p data-access="quotations">While writing a quotation you can tick <strong>☐ Check material availability</strong>.</p>

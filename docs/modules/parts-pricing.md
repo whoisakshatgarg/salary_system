@@ -34,6 +34,17 @@ builder that rolls up to ₹/piece.
   Rates tab), never on the drawing, so one edit reprices every part for that
   customer. An unassigned drawing — or a customer with no agreed rate for that
   operation — falls back to the Settings rate with no additional margin.
+- **Part type** (2026-08-15): a broad family name on the drawing ("Piston
+  rod", "Adapter") — additive by nature: the form's datalist offers every type
+  ever saved (`/api/parts/refs` → `part_types`, a DISTINCT over drawings) and
+  typing a new one adds it on save. Searchable in the list, shown as a dim
+  chip beside the description. Regression to remember: `DrawingIn` silently
+  DROPPED the field until it was added to the model — Pydantic eats unknown
+  keys, so a new column needs SCHEMA + _MIGRATIONS + the route model.
+- **Files upload at creation**: the new-drawing form takes the drawing files
+  directly; they POST to `/files` after the drawing is created. A failed
+  upload downgrades to a toast (the drawing exists; the record can take the
+  files again).
 - Delete only while the drawing is on no order (else deactivate).
 
 ## Bill of materials

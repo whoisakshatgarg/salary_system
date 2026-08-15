@@ -278,6 +278,7 @@ CREATE TABLE IF NOT EXISTS drawing (
     revision       TEXT NOT NULL DEFAULT 'A',
     customer_id    INTEGER REFERENCES customer(id),
     description    TEXT,
+    part_type      TEXT,                           -- broad family ("Piston rod"), learned from use
     material_class TEXT,                           -- denormalized (inventory lists)
     grade          TEXT,
     unit           TEXT,                           -- from the units list
@@ -536,6 +537,9 @@ def connect(db_path: str | Path | None = None) -> sqlite3.Connection:
 _MIGRATIONS = {
     "customer": {
         "code": "TEXT",
+    },
+    "drawing": {
+        "part_type": "TEXT",
     },
     "costing_op": {
         "weightage": "REAL NOT NULL DEFAULT 1",

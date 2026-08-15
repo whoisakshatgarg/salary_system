@@ -100,26 +100,50 @@ function pt() {
     // ---- drawing form ------------------------------------------------------ //
     newDrawing() {
       this.form = { id: null, drawing_no: "", revision: "A", customer_id: "",
-                    description: "", material_class: "", grade: "", unit: "Nos",
-                    notes: "" };
+                    description: "", part_type: "", material_class: "", grade: "",
+                    unit: "Nos", notes: "", files: [] };
       this.formError = "";
     },
     editDrawing() {
-      this.form = { ...this.detail, customer_id: this.detail.customer_id || "" };
+      this.form = { ...this.detail, customer_id: this.detail.customer_id || "",
+                    part_type: this.detail.part_type || "", files: [] };
       this.formError = "";
+    },
+    ptGrabFiles(e) {
+      this.form.files = [...this.form.files, ...e.target.files];
+      e.target.value = "";
     },
     async saveDrawing() {
       this.formError = "";
       const f = this.form;
-      const payload = { ...f, customer_id: f.customer_id ? Number(f.customer_id) : null };
+      const files = f.files || [];
+      const payload = { ...f, files: undefined,
+                        customer_id: f.customer_id ? Number(f.customer_id) : null };
       try {
-        const saved = f.id
+        let saved = f.id
           ? await api(`/api/parts/drawings/${f.id}`, { method: "PUT", body: payload })
           : await api("/api/parts/drawings", { method: "POST", body: payload });
+        // the drawing exists from here — a failed upload must not read as a
+        // failed save, so it downgrades to a toast and the files can be
+        // re-added from the record
+        let fileNote = "";
+        if (files.length) {
+          const fd = new FormData();
+          for (const x of files) fd.append("files", x, x.name);
+          try {
+            await api(`/api/parts/drawings/${saved.id}/files`, { method: "POST", form: fd });
+            saved = await api(`/api/parts/drawings/${saved.id}`);
+            fileNote = ` · ${files.length} file(s) attached`;
+          } catch (e) {
+            fileNote = "";
+            this.flash(`Files failed to attach (${e.message}) — add them from the record`, "err");
+          }
+        }
         this.form = null;
         this.detail = saved;
+        await this.loadRefs();   // a new part type joins the offered list
         await this.load();
-        this.flash(`Drawing ${saved.drawing_no} rev ${saved.revision} saved`);
+        this.flash(`Drawing ${saved.drawing_no} rev ${saved.revision} saved` + fileNote);
       } catch (e) { this.formError = e.message; }
     },
     async newRevision() {

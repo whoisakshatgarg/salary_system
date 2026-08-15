@@ -30,7 +30,7 @@ touching code.
 - **Deadlines panel** under the tiles: orders whose delivery date is close, as
   two lists — *next 7 days* and *next month* — with anything already overdue
   called out above them. Each line is customer · order number · quantity still
-  to send. Fed by `GET /api/orders/deadlines`, fetched **fail-closed**
+  to send, and IS a link to that order's record (`/orders/?open=<id>`). Fed by `GET /api/orders/deadlines`, fetched **fail-closed**
   (`shell.js loadDueSoon()` swallows the error), so an account without the
   `orders` grant simply sees no panel instead of an error. Orders that are fully
   shipped drop out — nothing left to send is not a deadline. The panel is hidden

@@ -23,8 +23,22 @@ from purchase to the orders it fed or the rejection that sent it back.
 - **Material Check** tab: the feasibility calculation described below.
 - New heat from the mill certificate: heat number, supplier, class/grade/shape
   (extensible dropdowns with inline "+ Add new…"), size, rods, weight, prices,
-  chemical composition rows, notes; attach certificates/invoices after saving
-  (images auto-compressed client-side; PDFs pass through).
+  chemical composition rows, notes.
+- **Paperwork uploads at intake** (2026-08-15): the delivery card takes mill
+  certificates and the receipt/invoice; each piece row's drawer can also carry
+  files for THAT heat alone. Uploads run AFTER `create_intake` returns, against
+  the created heat ids — a failed upload downgrades to a toast naming the
+  files (the heats exist; re-saving would duplicate them). Delivery-level
+  paperwork is attached to EVERY heat it covers, deliberately duplicated so a
+  heat record tells its whole story on its own.
+- **Section / shape is per row too** (a delivery can mix hex and round): the
+  row's `Sect.` select overrides the delivery-level one, both additive via
+  "+ Add new…". The Ø column reads "Ø / A-F" — across-flats for hex.
+- **Elements are picked by full name** — a searchable combo shows
+  "Manganese (Mn)" (type "man…" and pick); STORAGE stays the symbol so old
+  "Mn" rows and new ones group identically in the composition filter, which
+  also displays full names. Unknown symbols/names pass through as typed
+  (`ELEMENTS` map + `elemBox()` in inventory.js).
 - Usage log per heat: issue to an order (Order ID required) or reject to
   supplier; can't exceed remaining; one-click "Reject remaining batch"; delete
   an entry to undo. Status derives: In stock / Consumed / Rejected.

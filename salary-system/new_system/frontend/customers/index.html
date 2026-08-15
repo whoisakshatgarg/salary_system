@@ -408,9 +408,9 @@
 
           <div class="grid grid-cols-2 gap-4 items-start">
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Order history</div>
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Orders in progress</div>
               <div class="mt-3 rounded-lg border border-slate-200 overflow-hidden">
-                <div class="max-h-[46vh] overflow-y-auto overflow-x-auto">
+                <div class="max-h-[38vh] overflow-y-auto overflow-x-auto">
                   <table class="w-full text-sm">
                     <thead class="bg-slate-50 sticky top-0 z-10">
                       <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
@@ -421,8 +421,11 @@
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                      <template x-for="o in biz.orders" :key="o.id">
-                        <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                      <!-- a row IS the order — clicking it goes to the order record -->
+                      <template x-for="o in cuOpenOrders" :key="o.id">
+                        <tr @click="window.location.href = '/orders/?open=' + o.id"
+                            title="Open this order"
+                            class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
                           <td class="px-3 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="o.order_no"></td>
                           <td class="px-3 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(o.order_date)"></td>
                           <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(o.amount)"></td>
@@ -435,8 +438,57 @@
                           </td>
                         </tr>
                       </template>
-                      <tr x-show="!biz.orders.length">
-                        <td colspan="4" class="px-3 py-10 text-center text-sm text-slate-400">No orders yet</td>
+                      <tr x-show="!cuOpenOrders.length">
+                        <td colspan="4" class="px-3 py-8 text-center text-sm text-slate-400">Nothing in progress</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mt-5">
+                Past orders
+                <span class="normal-case tracking-normal font-normal">— done &amp; paid, with their paperwork</span>
+              </div>
+              <div class="mt-3 rounded-lg border border-slate-200 overflow-hidden">
+                <div class="max-h-[38vh] overflow-y-auto overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 sticky top-0 z-10">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Order</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Date</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200 text-right">Amount</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Documents</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="o in cuPastOrders" :key="o.id">
+                        <tr @click="window.location.href = '/orders/?open=' + o.id"
+                            title="Open this order"
+                            class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
+                          <td class="px-3 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="o.order_no"></td>
+                          <td class="px-3 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(o.order_date)"></td>
+                          <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(o.amount)"></td>
+                          <td class="px-3 py-2.5">
+                            <div class="flex flex-wrap items-center gap-1.5">
+                              <template x-for="d in cuDocsFor(o.id)" :key="d.id">
+                                <!-- @click.stop: the chip prints the document,
+                                     the row underneath opens the order -->
+                                <button @click.stop="window.open('/api/quotations/' + d.id + '/print', '_blank')"
+                                        :title="'Print ' + d.doc_no"
+                                        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium font-mono transition-colors hover:ring-2"
+                                        :class="cuKindClass(d.kind)">
+                                  <span class="w-1.5 h-1.5 rounded-full" :class="cuKindDot(d.kind)"></span>
+                                  <span x-text="d.doc_no"></span> 🖶
+                                </button>
+                              </template>
+                              <span x-show="!cuDocsFor(o.id).length" class="text-xs text-slate-300">—</span>
+                            </div>
+                          </td>
+                        </tr>
+                      </template>
+                      <tr x-show="!cuPastOrders.length">
+                        <td colspan="4" class="px-3 py-8 text-center text-sm text-slate-400">Nothing completed yet</td>
                       </tr>
                     </tbody>
                   </table>

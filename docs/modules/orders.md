@@ -74,6 +74,18 @@ the browser's Save-as-PDF is the PDF engine — with Required / Already issued /
 To issue now, the committed value, and three signature lines (issued by, store
 keeper, received by).
 
+## The order's paper trail
+- `get_order` embeds `documents`: every quotation/invoice whose `order_id`
+  points at the order (number, kind, date, status, tax-inclusive total), shown
+  as the record's fourth segment — **Documents** — with Print and a link into
+  Quotations & Invoices. Decision: embedded under the *orders* grant (order
+  values are already visible there); Print itself still runs under the
+  quotations grant.
+- **Deep links**: `/orders/?open=<id>` opens straight onto that order's record
+  (the home deadline panel and the customer record link here); the param is
+  stripped with `history.replaceState` so reload/Back behave. Same pattern on
+  `/quotations/?open=<id>`.
+
 ## Deadlines, delivery plans and shipment progress
 - **Deadline** (`customer_order.due_date`) is a column on the list, tinted amber
   inside a week and rose once overdue, and a chip on the order record.
