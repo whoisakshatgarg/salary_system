@@ -97,12 +97,13 @@ function qi() {
       try { this.refs = await api("/api/quotations/refs"); await this.load(); }
       catch (e) { this.fail(e); }
       this.booted = true;
-      // deep link from an order record: /quotations/?open=12
-      const want = new URLSearchParams(window.location.search).get("open");
-      if (want) {
-        window.history.replaceState({}, "", window.location.pathname);
-        await this.open(Number(want));
-      }
+      // deep links: ?open=12 from an order record; ?kind=invoice from a
+      // right-clicked filter pill
+      const qs = new URLSearchParams(window.location.search);
+      const want = qs.get("open"), k = qs.get("kind");
+      if (want || k) window.history.replaceState({}, "", window.location.pathname);
+      if (["quotation", "invoice"].includes(k)) { this.kind = k; await this.load(); }
+      if (want) await this.open(Number(want));
     },
     _seq: 0,
     async load() {

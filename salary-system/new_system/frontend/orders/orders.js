@@ -111,13 +111,20 @@ function od() {
         await this.load();
       } catch (e) { this.fail(e); }
       this.booted = true;
-      // deep link: /orders/?open=6 lands straight on that order's record —
-      // this is how the home page's deadline panel and the customer record
-      // jump here. The param is then cleaned off so Back/reload behave.
-      const want = new URLSearchParams(window.location.search).get("open");
+      // deep links: /orders/?open=6 lands on that order's record (optionally
+      // ?seg=material for a segment); ?tab=shipments lands on a view — this is
+      // what makes right-click → "open in new tab" give the same screen. The
+      // params are then cleaned off so Back/reload behave.
+      const qs = new URLSearchParams(window.location.search);
+      const want = qs.get("open"), view = qs.get("tab"), seg = qs.get("seg");
+      if (want || view) window.history.replaceState({}, "", window.location.pathname);
+      if (["orders", "consignments", "shipments"].includes(view)) {
+        this.tab = view;
+        if (view === "consignments") this.loadCons();
+      }
       if (want) {
-        window.history.replaceState({}, "", window.location.pathname);
         await this.open(Number(want));
+        if (seg && this.orderSegs.some((s) => s.k === seg)) this.oseg = seg;
       }
     },
     _seq: 0,

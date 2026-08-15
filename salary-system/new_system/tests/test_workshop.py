@@ -1071,6 +1071,39 @@ class PartTypes(WorkshopBase):
         self.assertEqual([h["drawing_no"] for h in hits], ["PT-2"])
 
 
+class OverallDimensions(WorkshopBase):
+    """The finished part's envelope, straight off the drawing."""
+
+    def test_round_trip_and_blank(self):
+        did = parts.save_drawing(self.conn, {
+            "drawing_no": "OD-1", "overall_length_mm": "120.5",
+            "overall_width_mm": 40})
+        d = parts.get_drawing(self.conn, did)
+        self.assertEqual((d["overall_length_mm"], d["overall_width_mm"]), (120.5, 40.0))
+        # blank means "not on the drawing", never zero
+        did2 = parts.save_drawing(self.conn, {"drawing_no": "OD-2",
+                                              "overall_length_mm": ""})
+        self.assertIsNone(parts.get_drawing(self.conn, did2)["overall_length_mm"])
+
+    def test_nonsense_is_refused(self):
+        for bad in (-5, 0, "abc", float("inf"), 1e9):
+            with self.assertRaises(ValueError):
+                parts.save_drawing(self.conn, {"drawing_no": "OD-BAD",
+                                               "overall_length_mm": bad})
+
+    def test_the_route_model_carries_them(self):
+        """Same Pydantic trap as part_type: unknown fields vanish silently."""
+        m = parts.DrawingIn(drawing_no="X", overall_length_mm=120,
+                            overall_width_mm="40")
+        self.assertEqual((m.overall_length_mm, m.overall_width_mm), (120, "40"))
+
+    def test_a_new_revision_inherits_the_envelope(self):
+        did = parts.save_drawing(self.conn, {
+            "drawing_no": "OD-3", "overall_length_mm": 90})
+        rid = parts.revise_drawing(self.conn, did, "B")
+        self.assertEqual(parts.get_drawing(self.conn, rid)["overall_length_mm"], 90.0)
+
+
 class DeliverySegments(WorkshopBase):
     """The stretches an order is split into — one progress bar each."""
 

@@ -100,14 +100,25 @@ function pt() {
     // ---- drawing form ------------------------------------------------------ //
     newDrawing() {
       this.form = { id: null, drawing_no: "", revision: "A", customer_id: "",
-                    description: "", part_type: "", material_class: "", grade: "",
+                    description: "", part_type: "", overall_length_mm: "",
+                    overall_width_mm: "", material_class: "", grade: "",
                     unit: "Nos", notes: "", files: [] };
       this.formError = "";
     },
     editDrawing() {
       this.form = { ...this.detail, customer_id: this.detail.customer_id || "",
-                    part_type: this.detail.part_type || "", files: [] };
+                    part_type: this.detail.part_type || "",
+                    overall_length_mm: this.detail.overall_length_mm ?? "",
+                    overall_width_mm: this.detail.overall_width_mm ?? "",
+                    files: [] };
       this.formError = "";
+    },
+    // "120 × 40 mm" — or just the one that's filled in
+    ptDims(d) {
+      const L = d?.overall_length_mm, W = d?.overall_width_mm;
+      if (!L && !W) return "";
+      if (L && W) return `${L} × ${W} mm`;
+      return L ? `L ${L} mm` : `W ${W} mm`;
     },
     ptGrabFiles(e) {
       this.form.files = [...this.form.files, ...e.target.files];

@@ -8,7 +8,8 @@ module their account is granted. The owner manages accounts and grants without
 touching code.
 
 ## User flows
-- Sign in → Home → click a tile → module page at `/<module>/` (same window;
+- Sign in → Home → click a tile → module page at `/<module>/` (tiles are real
+  `<a href>`s, so right-click → open-in-new-tab works; same window on a click;
   the ⌂ Home button top-left of every page returns). Unbuilt modules open a placeholder page.
 - Operator edition (kiosk laptop): auto sign-in, straight to `/payroll/` —
   no launcher ceremony.

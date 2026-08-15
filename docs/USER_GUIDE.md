@@ -59,6 +59,9 @@ number and how much of it still has to go out, with how soon as a small chip on
 the right. **Click any line and it takes you straight to that order's record**
 — the panel is a to-do list, not just a warning.
 
+> Tiles, tabs and section buttons all behave like ordinary web links: <b>right-click
+> any of them</b> and choose "Open in new tab" to keep two screens side by side.
+
 An order disappears from the panel once it has been fully sent — nothing left to
 deliver is not a deadline. If you have nothing due, the panel doesn't appear at
 all. It's only visible to accounts that can open Order Tracking.
@@ -396,7 +399,7 @@ becomes **AC02**. "M/s", "Pvt", "Ltd" and similar words are ignored. If you'd
 rather the initials were something else, type them in the form — the code
 preview updates as you type. You can search the list by code, name or GSTIN.
 
-The record has three tabs.
+The record has four tabs.
 
 ### 6.1 Business — what they're worth to you
 
@@ -406,17 +409,23 @@ Lifetime total, number of orders, average order value and how much is still
 open, then a **month-by-month bar chart** of business won — hover a bar to see
 the running total to that month.
 
-Their orders sit below as **two tables**. **Orders in progress** is what's
-still moving, each with its stage; **Past orders** is the archive — done and
-paid — and its Documents column hangs each order's quotations and invoices on
-the order itself as small chips: click a chip to print that document. **Click
-any order row and you land on the order's full record** in Order Tracking —
-this screen is a view of the relationship, not a second copy of the order.
+The full **Quotations & invoices** list sits below the chart — any past
+document can be reprinted from here.
 
-The full **Quotations & invoices** list stays underneath for paperwork that
-wasn't raised against any order, with the same Print buttons.
+### 6.2 Orders — everything they've ordered, in one tab
 
-### 6.2 Rates — the prices you agreed with them
+![Customer orders](guide-images/ws-customer-orders.jpg)
+
+Their orders have a tab of their own, so a long history never stretches the
+page — the lists scroll inside their own frames. **Orders in progress** is
+what's still moving, each with its stage. **Past orders** is the archive —
+done and paid — and its Documents column hangs each order's quotations and
+invoices on the order itself as small chips: click a chip to print that
+document. **Click any order row and you land on the order's full record** in
+Order Tracking — this screen is a view of the relationship, not a second copy
+of the order.
+
+### 6.3 Rates — the prices you agreed with them
 
 ![Customer rates](guide-images/ws-customer-rates.jpg)
 
@@ -448,6 +457,9 @@ Open the **📐 Parts & Pricing** tile — one record per customer drawing.
   revision (its rates and files begin fresh — pricing history is per revision).
 - **Drawing files** — attach the PDF or a scan, **right in the New drawing form**
   or later from the record.
+- **Overall length / width (mm)** — the finished part's envelope, straight off
+  the drawing. Optional; shows as *120 × 40 mm* on the record and carries over
+  to new revisions.
 - **Part type** — a broad family name like *Shaft*, *Flange* or *Adapter*. The
   box offers every type you've used before; typing a new one adds it to the
   list the moment you save. It shows as a small tag in the list and is

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>APEX THERMOCON — Salary System</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png" />
   <!-- Vendored locally so the app works fully offline (no CDN needed). -->
   <script src="/vendor/tailwind.js"></script>
   <script>
@@ -83,7 +84,7 @@
   <div x-show="booted && !user && !isOperatorEdition" class="min-h-screen flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-md p-8">
       <div class="text-center mb-6 pb-4 border-b border-slate-200">
-        <div class="text-xl font-bold uppercase tracking-[0.18em] text-brand-700">APEX THERMOCON</div>
+        <img src="/assets/logo-full.png" alt="APEX THERMACON" class="mx-auto w-56 max-w-full" />
         <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mt-1.5">Salary system — CEO</div>
       </div>
       <form @submit.prevent="doLogin()" class="space-y-4">
@@ -130,6 +131,8 @@
         <div class="flex items-center gap-2.5">
           <a href="/" title="Back to all modules"
              class="shrink-0 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg px-2 py-1.5 text-base leading-none transition-colors">⌂</a>
+          <img src="/assets/logo-mark.png" alt="APEX logo"
+               class="w-8 h-8 rounded-lg bg-white ring-1 ring-white/15 shrink-0" />
           <div class="min-w-0">
             <div class="text-white font-bold text-xs uppercase tracking-[0.16em] leading-tight" x-text="meta.company_name"></div>
             <div class="text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">Salary &amp; attendance</div>
@@ -153,12 +156,12 @@
             {k:'exports', label:'Export Slips', admin:true},
             {k:'sync', label:'Sync / Exchange', admin:false},
             {k:'rules', label:'Rules', admin:true}]">
-          <button x-show="!item.admin || isAdmin" @click="go(item.k)"
-                  class="block w-full text-left rounded-lg px-3 py-2 text-sm transition-colors"
+          <a :href="'?view=' + item.k" x-show="!item.admin || isAdmin" @click.prevent="go(item.k)"
+                  class="block w-full text-left rounded-lg px-3 py-2 text-sm transition-colors no-underline"
                   :class="view === item.k
                             ? 'bg-brand-600 text-white font-medium shadow-sm'
                             : 'text-slate-300 hover:bg-white/5 hover:text-white'"
-                  x-text="item.label"></button>
+                  x-text="item.label"></a>
         </template>
       </nav>
       <div class="border-t border-white/10 pt-3 mt-3 px-1">

@@ -175,6 +175,14 @@ function cu() {
         await this.load();
       } catch (e) { this.fail(e); }
       this.booted = true;
+      // ?open=3&tab=orders — a right-clicked record tab in its own browser tab
+      const qs = new URLSearchParams(window.location.search);
+      const want = qs.get("open"), tab = qs.get("tab");
+      if (want) {
+        window.history.replaceState({}, "", window.location.pathname);
+        await this.open(Number(want),
+          ["profile", "business", "orders", "rates"].includes(tab) ? tab : "profile");
+      }
     },
     _seq: 0,
     async load() {
@@ -185,9 +193,9 @@ function cu() {
       } catch (e) { if (seq === this._seq) this.fail(e); }
     },
 
-    async open(id) {
+    async open(id, tab = "profile") {
       try {
-        this.tab = "profile";
+        this.tab = tab;
         const [detail, biz] = await Promise.all([
           api(`/api/customers/${id}`),
           api(`/api/customers/${id}/business`),

@@ -10,17 +10,18 @@ GSTIN, addresses, contact persons, payment terms.
 - List (searchable by name, GSTIN **or code**) → the record opens as a **full
   window** with a Back button, not a dialog: a profile, a growth chart, an order
   history and a rate card do not fit in a popup. Editing still opens a modal on
-  top of it. Three tabs:
+  top of it. Four tabs:
 - **Profile**: addresses, terms, contact persons.
-- **Business**: lifetime totals (total, orders, average, still-open), a
-  month-by-month bar chart of business won (hover shows the running total),
-  and the orders as TWO tables (2026-08-15): **Orders in progress** (stage
-  before Payment received, with stage chips) and **Past orders** (done & paid)
-  whose Documents column hangs each order's quotations/invoices on its row as
-  printable chips (`business()` docs now carry `order_id`). Every order row
-  navigates to `/orders/?open=<id>` — the record lives in Order Tracking; this
-  is a view of it. The full Quotations & invoices table stays below for
-  documents not raised against any order.
+- **Business**: lifetime totals (total, orders, average, still-open), the
+  month-by-month bar chart (hover shows the running total), and the full
+  Quotations & invoices reprint table.
+- **Orders** (own tab, 2026-08-15 — long histories were stretching the page):
+  **Orders in progress** (stage before Payment received, stage chips) and
+  **Past orders** (done & paid) whose Documents column hangs each order's
+  quotations/invoices on its row as printable chips (`business()` docs carry
+  `order_id`). Every order row navigates to `/orders/?open=<id>` — the record
+  lives in Order Tracking; this is a view of it. Both tables scroll inside
+  their frames.
 - **Rates**: the operations this customer has an agreed price for — standard
   ₹/hour from Settings shown alongside, so you can see what was negotiated. Each
   row is `operation · ₹/hour · additional ₹/hour · note`, one row per operation

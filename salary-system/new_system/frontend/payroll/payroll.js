@@ -134,7 +134,16 @@ function app() {
       await this.loadEmployees();
       await this.refreshSync();
       await this.postLoginSync();
-      this.go(this.isAdmin ? "dashboard" : "attendance");
+      // ?view=advances — a right-clicked sidebar item opened in a new tab
+      // lands on the same section. go() itself ignores views the account
+      // can't use; operators still land on attendance.
+      const KEYS = ["dashboard", "employees", "attendance", "advances",
+                    "salary", "history", "exports", "sync", "rules"];
+      const want = new URLSearchParams(window.location.search).get("view");
+      const ok = KEYS.includes(want)
+        && (this.isAdmin || ["attendance", "sync"].includes(want));
+      if (want) window.history.replaceState({}, "", window.location.pathname);
+      this.go(ok ? want : (this.isAdmin ? "dashboard" : "attendance"));
     },
     async logout() {
       await api("/api/logout", { method: "POST" });

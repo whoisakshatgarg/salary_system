@@ -279,6 +279,8 @@ CREATE TABLE IF NOT EXISTS drawing (
     customer_id    INTEGER REFERENCES customer(id),
     description    TEXT,
     part_type      TEXT,                           -- broad family ("Piston rod"), learned from use
+    overall_length_mm REAL,                        -- finished-part envelope, off the drawing
+    overall_width_mm  REAL,                        -- width / Ø across, whichever the drawing gives
     material_class TEXT,                           -- denormalized (inventory lists)
     grade          TEXT,
     unit           TEXT,                           -- from the units list
@@ -540,6 +542,8 @@ _MIGRATIONS = {
     },
     "drawing": {
         "part_type": "TEXT",
+        "overall_length_mm": "REAL",
+        "overall_width_mm": "REAL",
     },
     "costing_op": {
         "weightage": "REAL NOT NULL DEFAULT 1",

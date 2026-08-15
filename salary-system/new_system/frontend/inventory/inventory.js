@@ -166,6 +166,13 @@ function inv() {
         await this.loadHeats();
       } catch (e) { this.fail(e); }
       this.booted = true;
+      // ?tab=log etc. — how a right-clicked tab opens on the same view
+      const view = new URLSearchParams(window.location.search).get("tab");
+      if (["stock", "check", "log", "settings"].includes(view)) {
+        window.history.replaceState({}, "", window.location.pathname);
+        this.tab = view;
+        if (view === "log") this.loadLog();
+      }
     },
 
     // ---- formatting ------------------------------------------------------ //

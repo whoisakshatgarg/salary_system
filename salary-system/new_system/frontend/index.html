@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>APEX THERMOCON — Workshop</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png" />
   <!-- Vendored locally so the app works fully offline (no CDN needed). -->
   <script src="/vendor/tailwind.js"></script>
   <script>
@@ -78,10 +79,11 @@
        class="min-h-screen flex items-center justify-center p-4
               bg-[radial-gradient(60rem_38rem_at_50%_-6%,#e2e8f0_0%,transparent_70%)]">
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-md px-8 py-9">
-      <!-- machined nameplate -->
-      <div class="text-center mb-8">
-        <div class="text-[21px] font-bold uppercase tracking-[0.26em] text-slate-900 pl-[0.26em]">Apex Thermocon</div>
-        <div class="mx-auto mt-3.5 h-px w-14 bg-brand-600"></div>
+      <!-- the company mark carries the name; keep only the role line under it -->
+      <div class="text-center mb-7">
+        <img src="/assets/logo-full.png" alt="APEX THERMACON"
+             class="mx-auto w-64 max-w-full" />
+        <div class="mx-auto mt-2 h-px w-14 bg-brand-600"></div>
         <div class="mt-3.5 text-[10px] uppercase tracking-[0.22em] text-slate-400 font-semibold">Workshop Management</div>
       </div>
       <template x-if="edition !== 'operator'">
@@ -125,9 +127,13 @@
   <!-- ============================= SHELL ============================= -->
   <div x-show="user" class="min-h-screen flex flex-col">
     <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
-      <button @click="view = 'home'" class="text-left group">
-        <div class="text-white font-bold uppercase tracking-[0.16em] text-sm leading-tight group-hover:text-brand-100 transition-colors">Apex Thermocon</div>
-        <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500 mt-0.5">Workshop Management</div>
+      <button @click="view = 'home'" class="text-left group flex items-center gap-3">
+        <img src="/assets/logo-mark.png" alt="APEX logo"
+             class="w-9 h-9 rounded-lg bg-white ring-1 ring-white/15 shrink-0" />
+        <span>
+          <span class="block text-white font-bold uppercase tracking-[0.16em] text-sm leading-tight group-hover:text-brand-100 transition-colors">Apex Thermocon</span>
+          <span class="block text-[10px] uppercase tracking-[0.18em] text-slate-500 mt-0.5">Workshop Management</span>
+        </span>
       </button>
       <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
         <button @click="checkUpdates(true)" title="Check for updates"
@@ -153,9 +159,11 @@
         </div>
         <div class="grid grid-cols-3 gap-4">
           <template x-for="m in grantedModules" :key="m.key">
-            <button @click="open(m)"
-                    class="rounded-xl border border-slate-200 bg-white shadow-sm p-5 text-left flex flex-col min-h-[128px]
-                           hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 transition-all">
+            <!-- a real <a> when the module is built, so right-click / middle-click
+                 "open in new tab" works like anywhere else in a browser -->
+            <a :href="m.built && m.path ? m.path : null" @click.prevent="open(m)"
+               class="rounded-xl border border-slate-200 bg-white shadow-sm p-5 text-left flex flex-col min-h-[128px] no-underline cursor-pointer
+                      hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 transition-all">
               <div class="flex items-center gap-3">
                 <div class="w-11 h-11 rounded-xl bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-600/10 flex items-center justify-center text-2xl shrink-0"
                      x-text="m.icon"></div>
@@ -167,7 +175,7 @@
                 </span>
               </div>
               <p class="text-[13px] leading-snug text-slate-500 mt-3" x-text="m.desc"></p>
-            </button>
+            </a>
           </template>
           <!-- Admin-only: account management -->
           <button x-show="isAdmin" @click="openUsers()"

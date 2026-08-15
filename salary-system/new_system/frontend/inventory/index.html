@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Inventory — APEX THERMOCON</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png" />
   <!-- Vendored locally so the app works fully offline (no CDN needed). -->
   <script src="/vendor/tailwind.js"></script>
   <script>
@@ -50,16 +51,19 @@
          class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium">
         <span class="text-base leading-none">⌂</span> Home
       </a>
+      <img src="/assets/logo-mark.png" alt="APEX logo"
+           class="w-9 h-9 rounded-lg bg-white ring-1 ring-white/15 shrink-0 -mr-1" />
       <div>
         <div class="text-white font-bold leading-tight">Raw Material Inventory</div>
         <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Apex Thermocon</div>
       </div>
       <nav class="ml-4 inline-flex items-center gap-0.5 bg-white/10 rounded-xl p-1">
         <template x-for="t in [{k:'stock',label:'Stock'},{k:'check',label:'Material check'},{k:'log',label:'Usage log'},{k:'settings',label:'Lists'}]">
-          <button @click="tab = t.k; if (t.k==='log') loadLog()"
-                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                  :class="tab === t.k ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'"
-                  x-text="t.label"></button>
+          <!-- real link so right-click "open in new tab" works -->
+          <a :href="'?tab=' + t.k" @click.prevent="tab = t.k; if (t.k==='log') loadLog()"
+             class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+             :class="tab === t.k ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'"
+             x-text="t.label"></a>
         </template>
       </nav>
       <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">

@@ -41,6 +41,10 @@ builder that rolls up to ₹/piece.
   chip beside the description. Regression to remember: `DrawingIn` silently
   DROPPED the field until it was added to the model — Pydantic eats unknown
   keys, so a new column needs SCHEMA + _MIGRATIONS + the route model.
+- **Overall length / width (mm)** (2026-08-15): the finished part's envelope,
+  off the drawing — optional, validated (>0, finite, <1e6), shown as
+  "120 × 40 mm" in the record's Specification card, inherited by new
+  revisions. Route model carries both (the Pydantic-drops-unknown-fields trap).
 - **Files upload at creation**: the new-drawing form takes the drawing files
   directly; they POST to `/files` after the drawing is created. A failed
   upload downgrades to a toast (the drawing exists; the record can take the

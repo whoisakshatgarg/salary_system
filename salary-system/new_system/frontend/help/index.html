@@ -126,7 +126,8 @@
     <a class="h3" data-access="inventory" href="#56-lists">5.6 Lists</a>
     <a class="h2" data-access="customers" href="#6-customers">6. Customers</a>
     <a class="h3" data-access="customers" href="#61-business--what-theyre-worth-to-you">6.1 Business — what they&#x27;re worth to you</a>
-    <a class="h3" data-access="customers" href="#62-rates--the-prices-you-agreed-with-them">6.2 Rates — the prices you agreed with them</a>
+    <a class="h3" data-access="customers" href="#62-orders--everything-theyve-ordered-in-one-tab">6.2 Orders — everything they&#x27;ve ordered, in one tab</a>
+    <a class="h3" data-access="customers" href="#63-rates--the-prices-you-agreed-with-them">6.3 Rates — the prices you agreed with them</a>
     <a class="h2" data-access="parts" href="#7-parts--pricing">7. Parts &amp; Pricing</a>
     <a class="h3" data-access="parts" href="#71-the-costing-workspace">7.1 The costing workspace</a>
     <a class="h3" data-access="parts" href="#72-bill-of-materials--pricing-the-steel-from-stock">7.2 Bill of materials — pricing the steel from stock</a>
@@ -169,6 +170,7 @@
 <figure data-access="general"><img src="images/shell-home-restricted.jpg" alt="Restricted account&#x27;s home" loading="lazy"><figcaption>Restricted account&#x27;s home</figcaption></figure>
 <h3 data-access="general" id="deadlines-coming-up">Deadlines coming up</h3>
 <p data-access="general">Under the tiles you'll find the <strong>Deadlines</strong> panel — orders whose delivery dates are close, as three columns: anything already <strong>Overdue</strong> (rose), <strong>Next 7 days</strong> (amber) and <strong>Next 31 days</strong>. Each line names the customer, the order number and how much of it still has to go out, with how soon as a small chip on the right. <strong>Click any line and it takes you straight to that order's record</strong> — the panel is a to-do list, not just a warning.</p>
+<blockquote data-access="general">Tiles, tabs and section buttons all behave like ordinary web links: &lt;b&gt;right-click any of them&lt;/b&gt; and choose "Open in new tab" to keep two screens side by side.</blockquote>
 <p data-access="general">An order disappears from the panel once it has been fully sent — nothing left to deliver is not a deadline. If you have nothing due, the panel doesn't appear at all. It's only visible to accounts that can open Order Tracking.</p>
 <hr data-access="general">
 <h2 data-access="admin" id="2-accounts--who-can-open-what">2. Accounts — who can open what</h2>
@@ -311,13 +313,15 @@
 <figure data-access="customers"><img src="images/ws-customer.jpg" alt="Customer record" loading="lazy"><figcaption>Customer record</figcaption></figure>
 <p data-access="customers"><strong>+ Add customer</strong> creates one; click a row and the customer's record opens as a <strong>full window</strong> — a Back button top-left takes you to the list. It needs the room: the record holds their profile, a growth chart, every order and every document. Editing still opens a small form on top. You add contact persons (name, role, phone, email) there. Customers with orders or drawings can be <strong>deactivated</strong> but never deleted — history stays intact.</p>
 <p data-access="customers">Every customer gets a short <strong>code</strong> automatically: the initials of the name plus a number, so Acme Castings becomes <strong>AC01</strong> and the next AC… customer becomes <strong>AC02</strong>. "M/s", "Pvt", "Ltd" and similar words are ignored. If you'd rather the initials were something else, type them in the form — the code preview updates as you type. You can search the list by code, name or GSTIN.</p>
-<p data-access="customers">The record has three tabs.</p>
+<p data-access="customers">The record has four tabs.</p>
 <h3 data-access="customers" id="61-business--what-theyre-worth-to-you">6.1 Business — what they're worth to you</h3>
 <figure data-access="customers"><img src="images/ws-customer-business.jpg" alt="Customer business" loading="lazy"><figcaption>Customer business</figcaption></figure>
 <p data-access="customers">Lifetime total, number of orders, average order value and how much is still open, then a <strong>month-by-month bar chart</strong> of business won — hover a bar to see the running total to that month.</p>
-<p data-access="customers">Their orders sit below as <strong>two tables</strong>. <strong>Orders in progress</strong> is what's still moving, each with its stage; <strong>Past orders</strong> is the archive — done and paid — and its Documents column hangs each order's quotations and invoices on the order itself as small chips: click a chip to print that document. <strong>Click any order row and you land on the order's full record</strong> in Order Tracking — this screen is a view of the relationship, not a second copy of the order.</p>
-<p data-access="customers">The full <strong>Quotations &amp; invoices</strong> list stays underneath for paperwork that wasn't raised against any order, with the same Print buttons.</p>
-<h3 data-access="customers" id="62-rates--the-prices-you-agreed-with-them">6.2 Rates — the prices you agreed with them</h3>
+<p data-access="customers">The full <strong>Quotations &amp; invoices</strong> list sits below the chart — any past document can be reprinted from here.</p>
+<h3 data-access="customers" id="62-orders--everything-theyve-ordered-in-one-tab">6.2 Orders — everything they've ordered, in one tab</h3>
+<figure data-access="customers"><img src="images/ws-customer-orders.jpg" alt="Customer orders" loading="lazy"><figcaption>Customer orders</figcaption></figure>
+<p data-access="customers">Their orders have a tab of their own, so a long history never stretches the page — the lists scroll inside their own frames. <strong>Orders in progress</strong> is what's still moving, each with its stage. <strong>Past orders</strong> is the archive — done and paid — and its Documents column hangs each order's quotations and invoices on the order itself as small chips: click a chip to print that document. <strong>Click any order row and you land on the order's full record</strong> in Order Tracking — this screen is a view of the relationship, not a second copy of the order.</p>
+<h3 data-access="customers" id="63-rates--the-prices-you-agreed-with-them">6.3 Rates — the prices you agreed with them</h3>
 <figure data-access="customers"><img src="images/ws-customer-rates.jpg" alt="Customer rates" loading="lazy"><figcaption>Customer rates</figcaption></figure>
 <p data-access="customers">Most customers negotiate their own machining rates. Put them here once and every part you price for that customer uses them automatically.</p>
 <p data-access="customers">Pick the <strong>Operation</strong>, type <strong>Their ₹/hour</strong> (what this customer pays for it), optionally an <strong>Additional ₹/hour</strong> on top, add a note like <em>"agreed Apr 2026"</em> so you remember when it was settled, and press <strong>Save rate</strong>. The standard shop rate from Settings sits greyed out in the <strong>Standard ₹/hr</strong> column beside it, so you can see at a glance what was negotiated.</p>
@@ -333,6 +337,7 @@
 <ul data-access="parts">
 <li data-access="parts"><strong>Drawing number + revision</strong> identify the part; <strong>+ Revision</strong> starts a new revision (its rates and files begin fresh — pricing history is per revision).</li>
 <li data-access="parts"><strong>Drawing files</strong> — attach the PDF or a scan, <strong>right in the New drawing form</strong> or later from the record.</li>
+<li data-access="parts"><strong>Overall length / width (mm)</strong> — the finished part's envelope, straight off the drawing. Optional; shows as <em>120 × 40 mm</em> on the record and carries over to new revisions.</li>
 <li data-access="parts"><strong>Part type</strong> — a broad family name like <em>Shaft</em>, <em>Flange</em> or <em>Adapter</em>. The box offers every type you've used before; typing a new one adds it to the list the moment you save. It shows as a small tag in the list and is searchable, so "impeller" finds every impeller you've ever drawn.</li>
 <li data-access="parts"><strong>Rate history</strong> answers "what did we charge last time": dated entries marked <strong>quoted / agreed / revised</strong>, newest first. The latest rate shows on the list and auto-fills order items.</li>
 <li data-access="parts"><strong>Customer</strong> — assign the drawing to a customer here. This is what makes the costing screen use that customer's agreed rates.</li>

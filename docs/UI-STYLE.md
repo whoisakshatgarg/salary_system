@@ -132,6 +132,13 @@ keeps the full pill so it pops.
 - Inputs/selects: `border border-slate-300 rounded-lg px-3 py-2 text-sm
   bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
   outline-none transition` (kill default outline once, per page CSS is fine).
+- **Navigation is a real link.** Anything that switches WHAT you're looking
+  at — a home tile, a view tab, a record tab, a sidebar section — is an
+  `<a href>` carrying a URL that reproduces the view (`?tab=…`, `?view=…`,
+  `?open=<id>&seg=…`), with `@click.prevent` doing the in-place switch. Left
+  click behaves as before; right-click/middle-click "open in new tab" works
+  like the rest of the web. Each page's boot() honours the params and strips
+  them with `history.replaceState`.
 - **Segmented control** for view switches (tabs like All/Quotations/Invoices,
   Stock/Usage, order stages filter): one container
   `inline-flex items-center gap-0.5 bg-white border border-slate-200 rounded-xl p-1 shadow-sm`,

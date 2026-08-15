@@ -365,3 +365,20 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   then; now tested).
 - **Editing a quotation/invoice is a full page** (was a modal): line-item
   editing needs the room — same call as orders made earlier.
+
+## 2026-08-15 (evening) — Links, envelopes, the logo
+- **Every view switch is a real `<a href>`** (owner's ask: right-click →
+  open-in-new-tab must work). The href carries `?tab=` / `?view=` /
+  `?open=<id>&seg=` and boot() reproduces the view; `@click.prevent` keeps the
+  in-place switch. No routing library — the params are read once and stripped.
+- **Customer record grew an Orders tab** (Profile · Business · Orders ·
+  Rates): the two order tables were stretching the Business page; long lists
+  belong in their own tab, scrolling inside their frames.
+- **Drawings carry the finished part's envelope** (`overall_length_mm` /
+  `overall_width_mm`) — optional, validated, inherited by revisions.
+- **The company logo is in** (`frontend/assets/logo-{full,mark}.png`, cropped
+  from the owner's file, near-whites lifted to pure white so it sits on white
+  cards): login cards show the full lockup, every dark bar and the payroll
+  sidebar show the mark on a white tile, and it is the favicon everywhere.
+  ⚠ OPEN: the logo spells **THERMACON**; every screen and printed document
+  spells **THERMOCON**. Owner to confirm which is right — then one sweep.

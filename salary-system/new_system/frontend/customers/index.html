@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Customers — APEX THERMOCON</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png" />
   <script src="/vendor/tailwind.js"></script>
   <script>
     tailwind.config = { theme: { extend: { colors: { brand: {
@@ -31,6 +32,8 @@
          class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
         <span class="text-base leading-none">⌂</span> Home
       </a>
+      <img src="/assets/logo-mark.png" alt="APEX logo"
+           class="w-9 h-9 rounded-lg bg-white ring-1 ring-white/15 shrink-0 -mr-1" />
       <div>
         <div class="text-white font-bold leading-tight">Customers</div>
         <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-semibold">Apex Thermocon</div>
@@ -141,16 +144,25 @@
           <div class="text-[11px] text-slate-500 font-mono" x-text="detail.gstin || 'no GSTIN'"></div>
         </div>
 
-        <!-- segmented control, dark surface -->
+        <!-- segmented control, dark surface — real links so any tab can be
+             right-clicked into its own browser tab -->
         <div class="ml-2 inline-flex items-center gap-0.5 bg-slate-800/80 rounded-xl p-1">
-          <button @click="tab = 'profile'" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                  :class="tab === 'profile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Profile</button>
-          <button @click="tab = 'business'" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                  :class="tab === 'business' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Business</button>
-          <button @click="tab = 'rates'" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                  :class="tab === 'rates' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">
+          <a :href="'?open=' + detail.id + '&tab=profile'" @click.prevent="tab = 'profile'"
+             class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+             :class="tab === 'profile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Profile</a>
+          <a :href="'?open=' + detail.id + '&tab=business'" @click.prevent="tab = 'business'"
+             class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+             :class="tab === 'business' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Business</a>
+          <a :href="'?open=' + detail.id + '&tab=orders'" @click.prevent="tab = 'orders'"
+             class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+             :class="tab === 'orders' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">
+            Orders <span x-show="biz?.orders?.length" class="text-[11px] font-normal opacity-60"
+                         x-text="biz?.orders?.length"></span></a>
+          <a :href="'?open=' + detail.id + '&tab=rates'" @click.prevent="tab = 'rates'"
+             class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+             :class="tab === 'rates' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">
             Rates <span x-show="detail.operation_rates?.length" class="text-[11px] font-normal opacity-60"
-                        x-text="detail.operation_rates?.length"></span></button>
+                        x-text="detail.operation_rates?.length"></span></a>
         </div>
 
         <span class="inline-flex items-center gap-1.5 text-xs font-medium"
@@ -406,97 +418,7 @@
             <div x-show="!biz.series.length" class="py-10 text-center text-sm text-slate-400">No orders yet</div>
           </div>
 
-          <div class="grid grid-cols-2 gap-4 items-start">
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Orders in progress</div>
-              <div class="mt-3 rounded-lg border border-slate-200 overflow-hidden">
-                <div class="max-h-[38vh] overflow-y-auto overflow-x-auto">
-                  <table class="w-full text-sm">
-                    <thead class="bg-slate-50 sticky top-0 z-10">
-                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Order</th>
-                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Date</th>
-                        <th class="px-3 py-2.5 border-b-2 border-slate-200 text-right">Amount</th>
-                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Stage</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                      <!-- a row IS the order — clicking it goes to the order record -->
-                      <template x-for="o in cuOpenOrders" :key="o.id">
-                        <tr @click="window.location.href = '/orders/?open=' + o.id"
-                            title="Open this order"
-                            class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
-                          <td class="px-3 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="o.order_no"></td>
-                          <td class="px-3 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(o.order_date)"></td>
-                          <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(o.amount)"></td>
-                          <td class="px-3 py-2.5">
-                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
-                                  :class="stageClass(o.stage)">
-                              <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="cuDot(o.stage)"></span>
-                              <span x-text="cuStageLabel(o.stage)"></span>
-                            </span>
-                          </td>
-                        </tr>
-                      </template>
-                      <tr x-show="!cuOpenOrders.length">
-                        <td colspan="4" class="px-3 py-8 text-center text-sm text-slate-400">Nothing in progress</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mt-5">
-                Past orders
-                <span class="normal-case tracking-normal font-normal">— done &amp; paid, with their paperwork</span>
-              </div>
-              <div class="mt-3 rounded-lg border border-slate-200 overflow-hidden">
-                <div class="max-h-[38vh] overflow-y-auto overflow-x-auto">
-                  <table class="w-full text-sm">
-                    <thead class="bg-slate-50 sticky top-0 z-10">
-                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Order</th>
-                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Date</th>
-                        <th class="px-3 py-2.5 border-b-2 border-slate-200 text-right">Amount</th>
-                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Documents</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                      <template x-for="o in cuPastOrders" :key="o.id">
-                        <tr @click="window.location.href = '/orders/?open=' + o.id"
-                            title="Open this order"
-                            class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
-                          <td class="px-3 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="o.order_no"></td>
-                          <td class="px-3 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(o.order_date)"></td>
-                          <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(o.amount)"></td>
-                          <td class="px-3 py-2.5">
-                            <div class="flex flex-wrap items-center gap-1.5">
-                              <template x-for="d in cuDocsFor(o.id)" :key="d.id">
-                                <!-- @click.stop: the chip prints the document,
-                                     the row underneath opens the order -->
-                                <button @click.stop="window.open('/api/quotations/' + d.id + '/print', '_blank')"
-                                        :title="'Print ' + d.doc_no"
-                                        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium font-mono transition-colors hover:ring-2"
-                                        :class="cuKindClass(d.kind)">
-                                  <span class="w-1.5 h-1.5 rounded-full" :class="cuKindDot(d.kind)"></span>
-                                  <span x-text="d.doc_no"></span> 🖶
-                                </button>
-                              </template>
-                              <span x-show="!cuDocsFor(o.id).length" class="text-xs text-slate-300">—</span>
-                            </div>
-                          </td>
-                        </tr>
-                      </template>
-                      <tr x-show="!cuPastOrders.length">
-                        <td colspan="4" class="px-3 py-8 text-center text-sm text-slate-400">Nothing completed yet</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div class="mt-2 text-xs text-slate-400" x-text="cuOrderLine"></div>
-            </div>
-
+          <div class="grid grid-cols-1">
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
               <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Quotations &amp; invoices</div>
               <div class="mt-3 rounded-lg border border-slate-200 overflow-hidden">
@@ -545,6 +467,106 @@
               <div class="mt-2 text-xs text-slate-400" x-text="cuDocLine"></div>
             </div>
           </div>
+        </div>
+        </template>
+      </div>
+
+      <!-- ============ ORDERS TAB: the whole relationship, order by order ====
+           In progress up top, the archive below with each order's paperwork
+           hanging on its row — long histories scroll INSIDE their frames so
+           the page never grows with them. -->
+      <div x-show="tab === 'orders'">
+        <template x-if="biz">
+        <div class="space-y-4">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Orders in progress</div>
+              <div class="mt-3 rounded-lg border border-slate-200 overflow-hidden">
+                <div class="max-h-[56vh] overflow-y-auto overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 sticky top-0 z-10">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Order</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Date</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200 text-right">Amount</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Stage</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <!-- a row IS the order — clicking it goes to the order record -->
+                      <template x-for="o in cuOpenOrders" :key="o.id">
+                        <tr @click="window.location.href = '/orders/?open=' + o.id"
+                            title="Open this order"
+                            class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
+                          <td class="px-3 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="o.order_no"></td>
+                          <td class="px-3 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(o.order_date)"></td>
+                          <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(o.amount)"></td>
+                          <td class="px-3 py-2.5">
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+                                  :class="stageClass(o.stage)">
+                              <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="cuDot(o.stage)"></span>
+                              <span x-text="cuStageLabel(o.stage)"></span>
+                            </span>
+                          </td>
+                        </tr>
+                      </template>
+                      <tr x-show="!cuOpenOrders.length">
+                        <td colspan="4" class="px-3 py-8 text-center text-sm text-slate-400">Nothing in progress</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mt-5">
+                Past orders
+                <span class="normal-case tracking-normal font-normal">— done &amp; paid, with their paperwork</span>
+              </div>
+              <div class="mt-3 rounded-lg border border-slate-200 overflow-hidden">
+                <div class="max-h-[56vh] overflow-y-auto overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 sticky top-0 z-10">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Order</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Date</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200 text-right">Amount</th>
+                        <th class="px-3 py-2.5 border-b-2 border-slate-200">Documents</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="o in cuPastOrders" :key="o.id">
+                        <tr @click="window.location.href = '/orders/?open=' + o.id"
+                            title="Open this order"
+                            class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
+                          <td class="px-3 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="o.order_no"></td>
+                          <td class="px-3 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(o.order_date)"></td>
+                          <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(o.amount)"></td>
+                          <td class="px-3 py-2.5">
+                            <div class="flex flex-wrap items-center gap-1.5">
+                              <template x-for="d in cuDocsFor(o.id)" :key="d.id">
+                                <!-- @click.stop: the chip prints the document,
+                                     the row underneath opens the order -->
+                                <button @click.stop="window.open('/api/quotations/' + d.id + '/print', '_blank')"
+                                        :title="'Print ' + d.doc_no"
+                                        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium font-mono transition-colors hover:ring-2"
+                                        :class="cuKindClass(d.kind)">
+                                  <span class="w-1.5 h-1.5 rounded-full" :class="cuKindDot(d.kind)"></span>
+                                  <span x-text="d.doc_no"></span> 🖶
+                                </button>
+                              </template>
+                              <span x-show="!cuDocsFor(o.id).length" class="text-xs text-slate-300">—</span>
+                            </div>
+                          </td>
+                        </tr>
+                      </template>
+                      <tr x-show="!cuPastOrders.length">
+                        <td colspan="4" class="px-3 py-8 text-center text-sm text-slate-400">Nothing completed yet</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="mt-2 text-xs text-slate-400" x-text="cuOrderLine"></div>
+            </div>
         </div>
         </template>
       </div>

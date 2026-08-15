@@ -141,25 +141,45 @@ def _validate_drawing(conn, data: dict, drawing_id: int | None = None) -> tuple[
     return dno, rev
 
 
+def _check_dim(v, label: str):
+    """An overall dimension in mm — optional, but never nonsense."""
+    if v in (None, ""):
+        return None
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        raise ValueError(f"{label} must be a number")
+    if not math.isfinite(f) or f <= 0:
+        raise ValueError(f"{label} must be greater than 0")
+    if f > 1e6:   # a kilometre-long part is a typo, not a part
+        raise ValueError(f"{label} is unrealistically large")
+    return round(f, 3)
+
+
 def save_drawing(conn, data: dict, drawing_id: int | None = None) -> int:
     # BEGIN IMMEDIATE: the duplicate check and the write are one atomic step.
     conn.execute("BEGIN IMMEDIATE")
     try:
         dno, rev = _validate_drawing(conn, data, drawing_id)
         fields = (dno, rev, data.get("customer_id") or None, _s(data.get("description")),
-                  _s(data.get("part_type")), _s(data.get("material_class")),
+                  _s(data.get("part_type")),
+                  _check_dim(data.get("overall_length_mm"), "Overall length"),
+                  _check_dim(data.get("overall_width_mm"), "Overall width"),
+                  _s(data.get("material_class")),
                   _s(data.get("grade")), _s(data.get("unit")) or "Nos",
                   _s(data.get("notes")))
         if drawing_id is None:
             cur = conn.execute(
                 """INSERT INTO drawing (drawing_no, revision, customer_id, description,
-                     part_type, material_class, grade, unit, notes, active, created_at)
-                   VALUES (?,?,?,?,?,?,?,?,?,1,?)""", (*fields, _now()))
+                     part_type, overall_length_mm, overall_width_mm,
+                     material_class, grade, unit, notes, active, created_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,1,?)""", (*fields, _now()))
             drawing_id = cur.lastrowid
         else:
             conn.execute(
                 """UPDATE drawing SET drawing_no=?, revision=?, customer_id=?,
-                     description=?, part_type=?, material_class=?, grade=?, unit=?,
+                     description=?, part_type=?, overall_length_mm=?,
+                     overall_width_mm=?, material_class=?, grade=?, unit=?,
                      notes=? WHERE id=?""", (*fields, drawing_id))
         conn.commit()
     except BaseException:
@@ -401,6 +421,10 @@ class DrawingIn(BaseModel):
     customer_id: int | None = None
     description: str = ""
     part_type: str = ""     # broad family ("Piston rod") — learned, additive
+    # finished-part envelope off the drawing; str-or-number because the form
+    # sends "" for blank (validated + rounded in _check_dim)
+    overall_length_mm: float | str | None = None
+    overall_width_mm: float | str | None = None
     material_class: str = ""
     grade: str = ""
     unit: str = "Nos"

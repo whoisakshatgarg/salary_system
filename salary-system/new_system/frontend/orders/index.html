@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Orders — APEX THERMOCON</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png" />
   <script src="/vendor/tailwind.js"></script>
   <script>
     tailwind.config = { theme: { extend: { colors: { brand: {
@@ -30,17 +31,24 @@
          class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
         <span class="text-base leading-none">⌂</span> Home
       </a>
+      <img src="/assets/logo-mark.png" alt="APEX logo"
+           class="w-9 h-9 rounded-lg bg-white ring-1 ring-white/15 shrink-0 -mr-1" />
       <div>
         <div class="text-white font-bold leading-tight">Order Tracking</div>
         <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-semibold">Apex Thermocon</div>
       </div>
+      <!-- real links: right-click "open in new tab" works; a normal click is
+           intercepted and switches in place without a reload -->
       <nav class="inline-flex items-center gap-0.5 ml-4 bg-slate-800/80 rounded-xl p-1">
-        <button @click="tab = 'orders'" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                :class="tab === 'orders' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Orders</button>
-        <button @click="tab = 'consignments'; loadCons()" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                :class="tab === 'consignments' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Consignments</button>
-        <button @click="tab = 'shipments'" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                :class="tab === 'shipments' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Shipments</button>
+        <a href="?tab=orders" @click.prevent="tab = 'orders'"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+           :class="tab === 'orders' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Orders</a>
+        <a href="?tab=consignments" @click.prevent="tab = 'consignments'; loadCons()"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+           :class="tab === 'consignments' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Consignments</a>
+        <a href="?tab=shipments" @click.prevent="tab = 'shipments'"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+           :class="tab === 'shipments' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Shipments</a>
       </nav>
       <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
         <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
@@ -578,15 +586,16 @@
            unrelated blocks. Segments keep each answer on its own screen. -->
       <div class="inline-flex items-center gap-0.5 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
         <template x-for="seg in orderSegs" :key="seg.k">
-          <button @click="oseg = seg.k"
-                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                  :class="oseg === seg.k
-                          ? 'bg-slate-900 text-white shadow-sm'
-                          : 'text-slate-500 hover:text-slate-800'">
+          <!-- real link: right-click opens this order AT this segment in a new tab -->
+          <a :href="'?open=' + detail.id + '&seg=' + seg.k" @click.prevent="oseg = seg.k"
+             class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+             :class="oseg === seg.k
+                     ? 'bg-slate-900 text-white shadow-sm'
+                     : 'text-slate-500 hover:text-slate-800'">
             <span x-text="seg.label"></span>
             <span x-show="segCount(seg.k)" class="text-[11px] opacity-70 tabular-nums"
                   x-text="segCount(seg.k)"></span>
-          </button>
+          </a>
         </template>
       </div>
 
