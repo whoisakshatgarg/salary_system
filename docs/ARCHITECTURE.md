@@ -71,6 +71,8 @@ salary_system/                        repo root
         │   ├── customers/ · parts/ · orders/ · quotations/ · settings/  → /<module>/
         │   ├── help/                GENERATED user guide (index.html + images/)
         │   │                        → /help/ — build with tools/build_help.py
+        │   ├── assets/               brand: logo-full.png (login lockup),
+        │   │                          logo-mark.png (dark-bar tile + favicon)
         │   └── vendor/               tailwind.js, alpine.js (offline, shared:
         │                             pages load it as /vendor/…)
         ├── config/                   rules.json (payroll policy) · sync.json · update.json
@@ -88,12 +90,16 @@ salary_system/                        repo root
 - **Module shape:** backend — a module starts as one file under `backend/modules/`,
   becomes a folder at its second file. Frontend — every module owns a folder
   `frontend/<module>/` with `index.html` + `<module>.js`, served at `/<module>/`.
-- **One entry point per module:** a module is reachable only from its launcher
-  tile (`core/registry.py`). Pages never link sideways into another module — the
-  single cross-module link on any page is Home (top-left). This is why the
-  payroll dashboard no longer carries its own Inventory shortcut. `/help/` is the
-  one page that is NOT a module: no registry entry, no grant, reachable from its
-  Home tile and directly by URL, because someone who is stuck needs to read it.
+- **One entry point per module; one OWNER per record.** A module is reachable
+  from its launcher tile (`core/registry.py`), and since 2026-08-15 pages may
+  also DEEP-LINK into the module that owns a record — `/orders/?open=<id>`,
+  `/quotations/?open=<id>`, `?tab=`/`?view=`/`&seg=` for views — which is how
+  the Home deadline panel, the customer record's order tables and the order
+  record's document numbers jump across. The rule that survived: modules never
+  re-render each other's screens — they link to the owner. Navigation controls
+  are real `<a href>`s (UI-STYLE §4), so right-click → open-in-new-tab works.
+  `/help/` is the one page that is NOT a module: no registry entry, no grant
+  (owner-only at the route), reachable from its Home tile and directly by URL.
   Each module owns its routes (`router.py`, included from
   `main.py`) and its SQL (`repo.py`). Newer modules namespace their routes with a
   router prefix (`/api/{inventory,customers,parts,orders,settings}/*`); the

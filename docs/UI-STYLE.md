@@ -40,6 +40,12 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
   (good / attention / late-or-bad) and never decoration.
 - Identifiers (heat numbers, order numbers, codes, GSTINs) are always
   `font-mono text-xs` — a serial number should look like one.
+- **Identity assets** (`frontend/assets/`): `logo-full.png` — the corrected
+  APEX THERMOCON lockup in electric blue — on login cards only, ~w-64;
+  `logo-mark.png` — the hex mark — on every dark bar in a `w-9 h-9 rounded-lg
+  bg-white ring-1 ring-white/15` tile, and as the favicon on every page. Don't
+  restyle the marks; they're the owner's brand, repaired and approved
+  2026-08-18 (DECISIONS).
 
 ## 2. The instrument table — the heart of this pass
 
@@ -197,8 +203,9 @@ existing x-transition.
 
 ## 9. Per-page direction
 
-- **Shell/login**: wordmark as machined nameplate — uppercase, wide tracking,
-  thin rule under it; card on a very subtle radial slate wash. Home tiles get
+- **Shell/login**: the logo lockup carries the name (no text wordmark beside
+  it); thin brand rule + role line under it; card on a very subtle radial
+  slate wash. Home tiles get
   the hover lift + tinted icon squares (keep emoji); deadline panel becomes
   three labelled columns (Overdue / 7 days / 31 days) with a coloured left rail
   each (rose/amber/slate), rows = mono order no + customer + right-aligned

@@ -36,6 +36,8 @@ convenience.
 - Per-employee `bonus_eligible` flag (retire hardcoded name exclusions in
   `config/rules.json`).
 - LAN multi-user mode if a third machine appears.
+- A true vector (SVG) of the corrected logo from the designer — the repaired
+  raster is clean at app sizes but won't scale to print/signage.
 
 ## Known, not yet fixed
 
@@ -52,6 +54,10 @@ The ones worth picking up first:
   change the customer, and `_check_refs` only verifies the order exists.
 - **Payroll accepts impossible paid-day counts** (999 days, or negative) and will
   offer the result for publishing with no warning.
+- **The EM edit form shows "Overtime-eligible" unchecked for an OT person**
+  (x-model treats the API's integer 1 as a value, not a checked state) — saving
+  without touching it would silently downgrade them. Found during the
+  2026-08-15 restyle, detailed in QA-FINDINGS.
 - **Settings "Add" on an existing operation name silently overwrites its rate**
   (`INSERT … ON CONFLICT DO UPDATE`), repricing every costing built afterwards.
 

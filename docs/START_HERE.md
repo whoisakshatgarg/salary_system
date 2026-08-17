@@ -36,8 +36,10 @@ Tests: `../venv/bin/python -m unittest discover -s tests`.
 3. [DECISIONS.md](DECISIONS.md) + [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) — what's settled vs defaulted.
 4. [ROADMAP.md](ROADMAP.md) — what to build next (Now / Next / Later) and the
    known-but-unfixed defects ([QA-FINDINGS.md](QA-FINDINGS.md) is the full sweep).
-5. The module doc for whatever you're touching (`modules/<name>.md`).
-6. End-user behaviour reference: [USER_GUIDE.md](USER_GUIDE.md) (illustrated).
+5. [UI-STYLE.md](UI-STYLE.md) — the design system every screen follows
+   (instrument tables, dot-chips, link-tabs; includes the Alpine traps).
+6. The module doc for whatever you're touching (`modules/<name>.md`).
+7. End-user behaviour reference: [USER_GUIDE.md](USER_GUIDE.md) (illustrated).
    It is also the SOURCE for the in-app guide at `/help/` — after editing it run
    `python tools/build_help.py` and commit the regenerated `frontend/help/`.
    Every `## ` chapter must be followed by an `<!-- access: KEY -->` marker (a
