@@ -41,16 +41,26 @@ class EmployeeIn(BaseModel):
     rem_advance: int = 0
     leave_balance: int | None = None
     date_joined: str | None = None
+    # optional — how this person is paid; free text on purpose (an account
+    # number is an identifier, not a number)
+    bank_name: str = ""
+    bank_account_no: str = ""
+    bank_ifsc: str = ""
 
 
 class EmployeeProfileIn(BaseModel):
     """EM's edit form — the people side. Pay fields deliberately absent so a
-    stale profile form can never revert Pay Setup (and vice versa)."""
+    stale profile form can never revert Pay Setup (and vice versa). Bank
+    details ride with the profile: EM owns who the person is and where their
+    pay goes; Pay Setup owns how much."""
     name: str
     dept: str
     shift: str = "D"
     overtime_eligible: bool = False
     date_joined: str | None = None
+    bank_name: str = ""
+    bank_account_no: str = ""
+    bank_ifsc: str = ""
 
 
 class EmployeePayIn(BaseModel):

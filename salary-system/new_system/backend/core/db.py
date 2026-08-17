@@ -48,6 +48,9 @@ CREATE TABLE IF NOT EXISTS employee (
     rem_advance       INTEGER NOT NULL DEFAULT 0,    -- outstanding advance balance
     leave_balance     INTEGER NOT NULL DEFAULT 0,    -- paid-leave bank (non-OT only)
     date_joined       TEXT,                          -- 'YYYY-MM-DD' (nullable)
+    bank_name         TEXT,                          -- optional: how this person is paid
+    bank_account_no   TEXT,                          -- TEXT — account numbers aren't math
+    bank_ifsc         TEXT,
     active            INTEGER NOT NULL DEFAULT 1
 );
 
@@ -554,6 +557,9 @@ _MIGRATIONS = {
     },
     "employee": {
         "date_joined": "TEXT",
+        "bank_name": "TEXT",
+        "bank_account_no": "TEXT",
+        "bank_ifsc": "TEXT",
     },
     "attendance_summary": {
         "leave_used": "INTEGER NOT NULL DEFAULT 0",

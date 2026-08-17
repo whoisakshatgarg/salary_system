@@ -382,3 +382,11 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   sidebar show the mark on a white tile, and it is the favicon everywhere.
   ⚠ OPEN: the logo spells **THERMACON**; every screen and printed document
   spells **THERMOCON**. Owner to confirm which is right — then one sweep.
+
+## 2026-08-18 — Employee bank details + day-one documents
+- Bank details live on the employee as optional TEXT (account numbers are
+  identifiers), entered at creation or in EM's edit form, and belong to the
+  PROFILE side of the EM/Salary split — Pay Setup can never blank them.
+- The add-employee form uploads day-one documents after the create returns
+  (same pattern as intake and drawings): the person existing must never be
+  confused with the paperwork attaching.

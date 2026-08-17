@@ -149,13 +149,23 @@ function em() {
         date_joined: today(), overtime_eligible: false, leave_balance: null,
         // one-time payroll setup on creation; managed in Salary afterwards
         base_salary: "", pf_applicable: false, esi_applicable: false, rem_advance: 0,
+        // optional — where the pay goes
+        bank_name: "", bank_account_no: "", bank_ifsc: "",
+        // documents handed over on day one (Aadhaar, agreement, certificates)
+        files: [],
       };
       this.formError = "";
     },
     editEmp() {
       const e = this.detail.emp;
-      this.form = { ...e, date_joined: e.date_joined || "" };
+      this.form = { ...e, date_joined: e.date_joined || "",
+                    bank_name: e.bank_name || "", bank_account_no: e.bank_account_no || "",
+                    bank_ifsc: e.bank_ifsc || "", files: [] };
       this.formError = "";
+    },
+    emGrabFiles(ev) {
+      this.form.files = [...this.form.files, ...ev.target.files];
+      ev.target.value = "";
     },
     async saveEmp() {
       this.formError = "";
@@ -172,16 +182,34 @@ function em() {
               method: "PUT",
               body: { name: f.name, dept: f.dept, shift: f.shift,
                       overtime_eligible: f.overtime_eligible,
-                      date_joined: f.date_joined || null },
+                      date_joined: f.date_joined || null,
+                      bank_name: f.bank_name, bank_account_no: f.bank_account_no,
+                      bank_ifsc: f.bank_ifsc },
             })
           : await api("/api/employees", {
               method: "POST",
-              body: { ...f, base_salary: Number(f.base_salary) || 0 },
+              body: { ...f, files: undefined,
+                      base_salary: Number(f.base_salary) || 0 },
             });
+        // the person exists from here — documents attach afterwards, and a
+        // failed upload must not read as a failed save (re-saving would
+        // create the employee twice)
+        let fileNote = "";
+        if ((f.files || []).length) {
+          const fd = new FormData();
+          fd.append("label", "Joining documents");
+          for (const x of f.files) fd.append("files", x, x.name);
+          try {
+            await api(`/api/employees/${saved.id}/documents`, { method: "POST", form: fd });
+            fileNote = ` · ${f.files.length} document(s) attached`;
+          } catch (e) {
+            this.flash(`Documents failed to attach (${e.message}) — add them from the record`, "err");
+          }
+        }
         this.form = null;
-        if (this.detail) this.detail.emp = saved;
+        if (this.detail) await this.open(saved.id);   // refresh emp + documents
         await this.load();
-        this.flash(`${saved.name} saved`);
+        this.flash(`${saved.name} saved` + fileNote);
       } catch (e) { this.formError = e.message; }
     },
 

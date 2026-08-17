@@ -239,6 +239,43 @@ class EmployeeModule(UsersBase):
         emp = self.repo.get_employee(self.conn, new_id)
         self.assertIsInstance(emp["leave_balance"], int)
 
+    def test_bank_details_ride_with_creation_and_the_profile(self):
+        from backend.core.rules import load_rules
+        new_id = self.repo.create_employee(self.conn, {
+            "name": "Bank Man", "dept": "QA", "base_salary": 9000,
+            "leave_balance": 0,
+            "bank_name": " SBI ", "bank_account_no": " 00123400567 ",
+            "bank_ifsc": "sbin0001234",
+        }, load_rules())
+        emp = self.repo.get_employee(self.conn, new_id)
+        # tidied: stripped, IFSC uppercased; account number stays TEXT
+        self.assertEqual(emp["bank_name"], "SBI")
+        self.assertEqual(emp["bank_account_no"], "00123400567")
+        self.assertEqual(emp["bank_ifsc"], "SBIN0001234")
+        # the profile update carries them (EM owns where the pay goes)…
+        self.repo.update_employee_profile(self.conn, new_id, {
+            "name": "Bank Man", "dept": "QA", "bank_name": "HDFC",
+            "bank_account_no": "999", "bank_ifsc": "hdfc0000001"})
+        emp = self.repo.get_employee(self.conn, new_id)
+        self.assertEqual((emp["bank_name"], emp["bank_ifsc"]), ("HDFC", "HDFC0000001"))
+        # …and the pay update never touches them (the split holds)
+        self.repo.update_employee_pay(self.conn, new_id, {"base_salary": 9500})
+        self.assertEqual(self.repo.get_employee(self.conn, new_id)["bank_name"], "HDFC")
+
+    def test_bank_fields_are_optional_and_on_the_route_models(self):
+        from backend.core.rules import load_rules
+        from backend.modules.employees import router as emp_router
+        new_id = self.repo.create_employee(self.conn, {
+            "name": "No Bank", "dept": "QA", "base_salary": 9000,
+            "leave_balance": 0}, load_rules())
+        emp = self.repo.get_employee(self.conn, new_id)
+        self.assertEqual((emp["bank_name"], emp["bank_ifsc"]), ("", ""))
+        # the Pydantic-drops-unknown-fields trap, pinned for both models
+        self.assertEqual(emp_router.EmployeeIn(
+            name="X", dept="QA", base_salary=1, bank_ifsc="x").bank_ifsc, "x")
+        self.assertEqual(emp_router.EmployeeProfileIn(
+            name="X", dept="QA", bank_account_no="9").bank_account_no, "9")
+
     def test_leave_adjust(self):
         emp = self.repo.adjust_leave(self.conn, 1, 3)
         self.assertEqual(emp["leave_balance"], 8)

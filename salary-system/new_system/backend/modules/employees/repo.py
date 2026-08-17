@@ -49,6 +49,14 @@ def _new_employee_leave_seed(rules: dict, overtime_eligible: bool) -> int:
     return entitlement
 
 
+def _bank_fields(data: dict) -> tuple[str, str, str]:
+    """Optional bank details, tidied: stripped, IFSC uppercased. Free text on
+    purpose — an account number is an identifier, not arithmetic."""
+    return ((data.get("bank_name") or "").strip(),
+            (data.get("bank_account_no") or "").strip(),
+            (data.get("bank_ifsc") or "").strip().upper())
+
+
 def create_employee(conn, data: dict, rules: dict) -> int:
     ot = bool(data.get("overtime_eligible"))
     leave = _new_employee_leave_seed(rules, ot)
@@ -60,8 +68,9 @@ def create_employee(conn, data: dict, rules: dict) -> int:
     cur = conn.execute(
         """INSERT INTO employee
            (name, dept, base_salary, pf_applicable, esi_applicable,
-            overtime_eligible, shift, rem_advance, leave_balance, date_joined, active)
-           VALUES (?,?,?,?,?,?,?,?,?,?,1)""",
+            overtime_eligible, shift, rem_advance, leave_balance, date_joined,
+            bank_name, bank_account_no, bank_ifsc, active)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1)""",
         (
             data["name"].strip(),
             data["dept"],
@@ -73,6 +82,7 @@ def create_employee(conn, data: dict, rules: dict) -> int:
             int(data.get("rem_advance", 0)),
             int(data.get("leave_balance", leave)),
             data.get("date_joined") or None,
+            *_bank_fields(data),
         ),
     )
     conn.commit()
@@ -87,7 +97,8 @@ def create_employee(conn, data: dict, rules: dict) -> int:
 def update_employee_profile(conn, emp_id: int, data: dict) -> None:
     conn.execute(
         """UPDATE employee SET
-             name=?, dept=?, shift=?, overtime_eligible=?, date_joined=?
+             name=?, dept=?, shift=?, overtime_eligible=?, date_joined=?,
+             bank_name=?, bank_account_no=?, bank_ifsc=?
            WHERE id=?""",
         (
             data["name"].strip(),
@@ -95,6 +106,7 @@ def update_employee_profile(conn, emp_id: int, data: dict) -> None:
             data.get("shift", "D"),
             int(bool(data.get("overtime_eligible"))),
             data.get("date_joined") or None,
+            *_bank_fields(data),
             emp_id,
         ),
     )

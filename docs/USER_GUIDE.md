@@ -198,6 +198,9 @@ bank, and attendance summaries. Open the **👥 Employee Management** tile.
 Search by name/department/number, filter by department or **Working / Left**.
 Each row shows the shift, joining date, leave scheme and the leave bank.
 Click a row to open the full record. **+ Add employee** creates a new person —
+with their **bank details** (bank, account number, IFSC — all optional) and the
+**documents they hand over on day one** (Aadhaar, agreement, certificates)
+attached right from the same form —
 profile details plus a one-time *Starting pay* box (afterwards pay is managed
 in Salary → Pay Setup).
 

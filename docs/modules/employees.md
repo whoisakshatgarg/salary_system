@@ -43,6 +43,18 @@ sync live there); this module shows the summaries.
 - Seed: `backend/modules/employees/seed.py`. Spec: `tests/test_users.py`
   (EmployeeModule class) + `tests/test_payroll.py` for the rules engine.
 
+## Bank details & day-one documents (2026-08-18)
+- **Bank details** (bank name · account number · IFSC) are optional TEXT on the
+  employee — an account number is an identifier, not arithmetic. Entered at
+  creation or via EM's edit form; shown on the record's Profile card. They ride
+  with the PROFILE model, not Pay Setup: EM owns who the person is and where
+  their pay goes, Salary owns how much — so a stale pay form can never blank
+  them (tested).
+- **Documents at creation**: the add form takes files (labelled "Joining
+  documents") and uploads them to the existing documents endpoint AFTER the
+  person is created — a failed upload downgrades to a toast, never a failed
+  save (re-saving would create the employee twice).
+
 ## Data model
 `employee(...)` · `attendance_day` · `attendance_summary` · `leave_reset` ·
 `sync_log` · **`employee_document(id, employee_id, label, filename, mime,
