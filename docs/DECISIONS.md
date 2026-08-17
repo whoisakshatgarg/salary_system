@@ -380,8 +380,12 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
   from the owner's file, near-whites lifted to pure white so it sits on white
   cards): login cards show the full lockup, every dark bar and the payroll
   sidebar show the mark on a white tile, and it is the favicon everywhere.
-  ⚠ OPEN: the logo spells **THERMACON**; every screen and printed document
-  spells **THERMOCON**. Owner to confirm which is right — then one sweep.
+  ~~⚠ OPEN: the logo spells THERMACON vs the app's THERMOCON~~ **RESOLVED
+  2026-08-18: THERMOCON is correct.** The logo itself was repaired in-place —
+  the wrong A replaced with the logo's own O glyph (perfect style match), the
+  navy shifted to an electric blue at the owner's request (approved on a
+  Preview proof, three iterations), and the wordmark re-rendered as smooth
+  flat shapes to shed the source JPEG's noise. App text needed no change.
 
 ## 2026-08-18 — Employee bank details + day-one documents
 - Bank details live on the employee as optional TEXT (account numbers are
