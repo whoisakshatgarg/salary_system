@@ -74,6 +74,78 @@
         </div>
       </section>
 
+      <!-- ================= DOCUMENT NUMBERING (CONVENTIONS §3) =================
+           Every counter the paperwork spends, with the serial it hands out next.
+           Admin-only writes, enforced on the server as well. -->
+      <section class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div class="px-5 pt-4 pb-3">
+          <div class="flex items-center">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Document numbering</div>
+            <button @click="loadCounters()"
+                    class="ml-auto text-xs text-slate-400 hover:text-brand-700 transition-colors">Refresh</button>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">
+            Counters follow the paperwork — set them to the next unused number.
+          </p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-y-2 border-slate-200">
+              <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <th class="px-5 py-2.5">Scope</th>
+                <th class="px-3 py-2.5">Counter</th>
+                <th class="px-3 py-2.5 text-right w-40">Next number</th>
+                <th class="px-3 py-2.5 text-right w-24"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <template x-for="c in counters" :key="c.scope">
+                <tr class="odd:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                  <td class="px-5 py-2 font-mono text-xs font-semibold text-brand-700" x-text="c.scope"></td>
+                  <td class="px-3 py-2 text-slate-600" x-text="c.label"></td>
+                  <td class="px-3 py-2 text-right">
+                    <input x-model="c.next_seq" :disabled="!isAdmin" type="number" min="1"
+                           class="w-28 border border-slate-300 rounded-lg px-2.5 py-1 text-sm text-right tabular-nums bg-white
+                                  focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition
+                                  disabled:bg-slate-50 disabled:text-slate-400" />
+                  </td>
+                  <td class="px-3 py-2 text-right">
+                    <button x-show="isAdmin" @click="saveCounter(c)"
+                            class="text-brand-700 hover:underline text-xs font-medium">Save</button>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="!counters.length">
+                <td colspan="4" class="px-5 py-8 text-center text-sm text-slate-400">
+                  No counters have been used yet — the first document of each kind creates one.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div x-show="isAdmin" class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-end gap-3">
+          <div>
+            <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">New scope</label>
+            <input x-model="newCounter.scope" placeholder="qtn:R01"
+                   title="'qtn:{client}', 'ack:{client}:{ddmmyy}', 'wo:{yy}', 'inv:{FY}', 'bom:{FY}'"
+                   class="w-48 border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-mono bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+          </div>
+          <div>
+            <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Next number</label>
+            <input x-model="newCounter.next_seq" type="number" min="1" placeholder="1"
+                   class="w-28 border border-slate-300 rounded-lg px-3 py-1.5 text-sm text-right tabular-nums bg-white
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+          </div>
+          <button @click="addCounter()"
+                  class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-sm font-medium shadow-sm transition-colors">
+            Seed counter
+          </button>
+          <span class="ml-auto text-xs text-slate-400 tabular-nums">
+            <span x-text="counters.length"></span> counters</span>
+        </div>
+      </section>
+
       <div class="grid grid-cols-2 gap-5">
         <!-- Units -->
         <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-5 flex flex-col">

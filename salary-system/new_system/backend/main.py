@@ -11,6 +11,7 @@ and the static frontend mount. All business routes live in their modules:
     modules/outsourcing vendors, outgoing job orders, receipts, bought-out stock
     modules/settings    order format, units, operation rates, departments
     modules/users       accounts, module grants, the launcher's tile list
+    documents/router    /api/papers — the SOP paperwork engine (/papers/)
 
 Run:  ../venv/bin/uvicorn backend.main:app --reload
 """
@@ -31,6 +32,7 @@ from .core import auth, db, edition, numbering, paths, update
 from .core.deps import current_user, get_db, require_admin
 from .core.rules import get_rules
 from .core.version import __version__
+from .documents.router import router as papers_router
 from .modules import (customers, inventory, orders, outsourcing, parts,
                       quotations, settings, users)
 from .modules.employees import seed
@@ -90,6 +92,7 @@ app.include_router(parts.router)
 app.include_router(orders.router)
 app.include_router(quotations.router)
 app.include_router(outsourcing.router)
+app.include_router(papers_router)            # /api/papers — the SOP paperwork
 
 
 # --------------------------------------------------------------------------- #

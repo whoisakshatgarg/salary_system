@@ -115,8 +115,8 @@ def save_customer(conn, data: dict, customer_id: int | None = None) -> int:
     if not name:
         raise ValueError("Customer name is required")
     fields = (name, _s(data.get("gstin")).upper(), _s(data.get("address_billing")),
-              _s(data.get("address_shipping")), _s(data.get("payment_terms")),
-              _s(data.get("notes")))
+              _s(data.get("address_shipping")), _s(data.get("country")),
+              _s(data.get("payment_terms")), _s(data.get("notes")))
     # An abbreviation that is already a whole code ('T04') is one: the field is
     # labelled "Customer code", so a typed code is taken at its word.
     typed = clean_code(data.get("code"))
@@ -139,8 +139,9 @@ def save_customer(conn, data: dict, customer_id: int | None = None) -> int:
             code = typed or next_code(conn, name, abbr)
             cur = conn.execute(
                 """INSERT INTO customer (code, name, gstin, address_billing,
-                     address_shipping, payment_terms, notes, active, created_at)
-                   VALUES (?,?,?,?,?,?,?,1,?)""",
+                     address_shipping, country, payment_terms, notes, active,
+                     created_at)
+                   VALUES (?,?,?,?,?,?,?,?,1,?)""",
                 (code, *fields, datetime.now().isoformat(timespec="seconds")))
             customer_id = cur.lastrowid
         else:
@@ -154,7 +155,8 @@ def save_customer(conn, data: dict, customer_id: int | None = None) -> int:
             code = typed or _s(row["code"]) or next_code(conn, name, abbr)
             conn.execute(
                 """UPDATE customer SET name=?, gstin=?, address_billing=?,
-                     address_shipping=?, payment_terms=?, notes=?, code=? WHERE id=?""",
+                     address_shipping=?, country=?, payment_terms=?, notes=?,
+                     code=? WHERE id=?""",
                 (*fields, code, customer_id))
         conn.commit()
     except BaseException:
@@ -310,10 +312,10 @@ def add_contact(conn, customer_id: int, data: dict) -> dict:
     if not _s(data.get("name")):
         raise ValueError("Contact name is required")
     conn.execute(
-        "INSERT INTO customer_contact (customer_id, name, phone, email, role)"
-        " VALUES (?,?,?,?,?)",
+        "INSERT INTO customer_contact (customer_id, name, phone, email, fax, role)"
+        " VALUES (?,?,?,?,?,?)",
         (customer_id, _s(data.get("name")), _s(data.get("phone")),
-         _s(data.get("email")), _s(data.get("role"))))
+         _s(data.get("email")), _s(data.get("fax")), _s(data.get("role"))))
     conn.commit()
     return get_customer(conn, customer_id)
 
@@ -338,6 +340,7 @@ class CustomerIn(BaseModel):
     gstin: str = ""
     address_billing: str = ""
     address_shipping: str = ""
+    country: str = ""       # printed on the quotation; picks the currency
     payment_terms: str = ""
     notes: str = ""
 
@@ -353,6 +356,7 @@ class ContactIn(BaseModel):
     name: str
     phone: str = ""
     email: str = ""
+    fax: str = ""           # the ack's CONTACTS block prints one
     role: str = ""
 
 

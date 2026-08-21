@@ -71,14 +71,24 @@ def _check_date(v, label: str, required: bool = False):
     return v
 
 
-def _check_num(v, label: str, positive: bool = False) -> float:
+# A unit RATE keeps three decimals, a money AMOUNT keeps two (CONVENTIONS §5:
+# the Thermosense quotation prices at £0.534 / 0.675 / 0.320 and totals at
+# 64,080.00).  Rounding a rate to 2dp here silently reprices the job — £0.534
+# became £0.53 and the line total went out by £7 per 1,000 pieces — so the two
+# have separate precisions and only the rate fields ask for RATE_PLACES.
+RATE_PLACES = 3
+MONEY_PLACES = 2
+
+
+def _check_num(v, label: str, positive: bool = False,
+               places: int = MONEY_PLACES) -> float:
     try:
         f = float(v)
     except (TypeError, ValueError):
         raise ValueError(f"{label} must be a number")
     if not math.isfinite(f) or f < 0 or f > 1e12 or (positive and f <= 0):
         raise ValueError(f"{label} must be a normal{'  positive' if positive else ''} number")
-    return round(f, 2)
+    return round(f, places)
 
 
 # --------------------------------------------------------------------------- #
@@ -143,7 +153,8 @@ def _validate_lines(lines: list[dict]) -> list[dict]:
             "description": _s(ln.get("description")),
             "qty": _check_num(ln.get("qty"), f"Line {i} quantity", positive=True),
             "unit": _s(ln.get("unit")) or "Nos",
-            "rate": _check_num(ln.get("rate") or 0, f"Line {i} rate"),
+            "rate": _check_num(ln.get("rate") or 0, f"Line {i} rate",
+                               places=RATE_PLACES),
         })
     return out
 

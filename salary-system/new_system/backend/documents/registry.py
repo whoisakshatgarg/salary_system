@@ -600,3 +600,16 @@ def kinds():
 
 def filename(kind, payload):
     return entry(kind)["filename"](payload)
+
+
+def stem(kind, payload):
+    """``filename`` without its extension.
+
+    The COC has no counter of its own — it is *identified* by the file the
+    office hands over (``COC-PO-02940-EI-122``, CONVENTIONS §3), so its
+    ``paper_no`` is this string and the two cannot drift: change the naming
+    lambda above and the number follows.
+    """
+    name = filename(kind, payload)
+    base, dot, _ext = name.rpartition(".")
+    return base if dot else name

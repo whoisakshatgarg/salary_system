@@ -102,14 +102,23 @@
             </thead>
             <tbody class="divide-y divide-slate-100">
               <template x-for="d in data.rows" :key="d.id">
+                <!-- a superseded document is history: it stays readable but
+                     stops competing with the revision that replaced it -->
                 <tr @click="open(d.id)"
-                    class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
-                  <td class="px-4 py-2.5 font-mono text-xs font-semibold text-brand-700 whitespace-nowrap" x-text="d.doc_no"></td>
+                    class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer"
+                    :class="d.superseded_by ? 'opacity-60' : ''">
+                  <td class="px-4 py-2.5 font-mono text-xs font-semibold whitespace-nowrap"
+                      :class="d.superseded_by ? 'text-slate-400' : 'text-brand-700'" x-text="d.doc_no"></td>
                   <td class="px-3 py-2.5">
                     <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
                           :class="kindClass(d.kind)">
                       <span class="w-1.5 h-1.5 rounded-full" :class="qiKindDot(d.kind)"></span>
                       <span x-text="kindLabel(d.kind)"></span>
+                    </span>
+                    <span x-show="d.superseded_by"
+                          class="ml-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap
+                                 bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                      <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>superseded
                     </span>
                   </td>
                   <td class="px-3 py-2.5 whitespace-nowrap tabular-nums text-slate-600" x-text="fmtDate(d.doc_date)"></td>
@@ -160,8 +169,10 @@
   <template x-if="detail">
   <div class="fixed inset-0 z-40 bg-slate-900/50 flex items-start justify-center p-4 overflow-auto">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-4 overflow-hidden">
-      <div class="flex items-start gap-3 px-6 py-4 border-b border-slate-200">
-        <div class="min-w-0">
+      <!-- title first, actions on their own row: six buttons and a document
+           number do not fit on one line at this width -->
+      <div class="flex flex-wrap items-start gap-3 px-6 py-4 border-b border-slate-200">
+        <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="text-xl font-bold font-mono text-slate-900 leading-none" x-text="detail.doc_no"></span>
             <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
@@ -178,19 +189,46 @@
           <div class="text-xs text-slate-500 mt-1.5"
                x-text="[detail.customer_name, detail.customer_code, fmtDate(detail.doc_date)].filter(Boolean).join(' · ')"></div>
         </div>
-        <div class="ml-auto flex items-center gap-2 shrink-0">
+        <div class="w-full flex flex-wrap items-center justify-end gap-2">
           <button @click="print(detail)"
                   class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm
                          px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
             Print / Save as PDF
           </button>
+          <button @click="exportPaper()" :disabled="busy"
+                  title="The export-format document this one prints as"
+                  class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">Export paper</button>
           <button @click="editDoc()"
                   class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">Edit</button>
+          <button @click="reviseDoc()" :disabled="busy" x-show="!detail.superseded_by"
+                  title="A new draft keeping this number, with a revision marker"
+                  class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">Revise</button>
           <button @click="remove(detail)"
                   class="border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">Delete</button>
           <button @click="closeDetail()" class="text-slate-400 hover:text-slate-600 px-1 text-xl leading-none transition-colors">✕</button>
         </div>
       </div>
+
+      <!-- the revision chain: active highlighted, superseded dimmed -->
+      <template x-if="revRail.length">
+        <div class="px-6 py-3 border-b border-slate-200 flex items-center gap-2 flex-wrap">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mr-1">Revisions</div>
+          <template x-for="(r, i) in revRail" :key="r.id">
+            <span class="flex items-center gap-2">
+              <span x-show="i > 0" class="text-slate-300">→</span>
+              <button @click="open(r.id)"
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono transition-colors"
+                      :class="r.id === detail.id
+                              ? 'bg-slate-900 text-white'
+                              : (r.active ? 'bg-white text-brand-700 ring-1 ring-slate-200 hover:bg-brand-50'
+                                          : 'bg-slate-50 text-slate-400 ring-1 ring-slate-200')">
+                <span x-text="r.doc_no"></span>
+                <span class="opacity-60" x-text="r.status"></span>
+              </button>
+            </span>
+          </template>
+        </div>
+      </template>
 
       <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 flex items-center gap-2 flex-wrap">
         <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mr-1">Mark as</div>
@@ -226,7 +264,7 @@
                       </td>
                       <td class="px-3 py-2.5 text-right tabular-nums text-slate-600" x-text="l.qty"></td>
                       <td class="px-3 py-2.5 text-slate-400" x-text="l.unit"></td>
-                      <td class="px-3 py-2.5 text-right tabular-nums text-slate-600" x-text="money(l.rate)"></td>
+                      <td class="px-3 py-2.5 text-right tabular-nums text-slate-600" x-text="qiRate(l.rate)"></td>
                       <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(l.amount)"></td>
                     </tr>
                   </template>
@@ -405,7 +443,8 @@
                                     focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
                     </td>
                     <td class="px-2 py-2">
-                      <input type="number" min="0" step="0.01" x-model="l.rate" placeholder="₹ rate"
+                      <input type="number" min="0" step="0.001" x-model="l.rate" placeholder="₹ rate"
+                             title="Unit rates carry three decimals (£0.534)"
                              class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white text-right tabular-nums
                                     focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
                     </td>

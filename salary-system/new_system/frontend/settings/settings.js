@@ -53,12 +53,43 @@ function st() {
         this.authed = !!(mods.modules || []).find((m) => m.key === "settings" && m.granted);
       } catch (_) { this.authed = false; }
       if (!this.authed) { window.location.href = "/"; return; }
-      try { await this.load(); } catch (e) { this.fail(e); }
+      try { await this.load(); await this.loadCounters(); } catch (e) { this.fail(e); }
       this.booted = true;
     },
     async load() {
       this.data = await api("/api/settings");
       this.fmt = this.data.order_number_format;
+    },
+
+    // ---- document numbering (CONVENTIONS §3) -------------------------------- //
+    // The counters the paperwork spends. Writes are admin-only on the server
+    // too — this page just doesn't offer the button to anyone else.
+    counters: [],
+    newCounter: { scope: "", next_seq: "" },
+    async loadCounters() {
+      try { this.counters = await api("/api/settings/numbering"); }
+      catch (e) { this.fail(e); }
+    },
+    async saveCounter(c) {
+      const next = Number(c.next_seq);
+      if (!(next >= 1)) return this.fail(new Error("The next number starts at 1"));
+      try {
+        this.counters = await api("/api/settings/numbering", {
+          method: "PUT", body: { scope: c.scope, next_seq: next } });
+        this.flash(`${c.scope} → ${next}`);
+      } catch (e) { this.fail(e); this.loadCounters(); }
+    },
+    async addCounter() {
+      const scope = (this.newCounter.scope || "").trim();
+      const next = Number(this.newCounter.next_seq);
+      if (!scope) return this.fail(new Error("Name the counter, e.g. qtn:R01"));
+      if (!(next >= 1)) return this.fail(new Error("The next number starts at 1"));
+      try {
+        this.counters = await api("/api/settings/numbering", {
+          method: "PUT", body: { scope, next_seq: next } });
+        this.newCounter = { scope: "", next_seq: "" };
+        this.flash(`${scope} seeded at ${next}`);
+      } catch (e) { this.fail(e); }
     },
     get filteredUnits() {
       const q = this.unitQ.toLowerCase();

@@ -11,9 +11,8 @@ this file has to keep:
   quietly loses half a payload — hence ``PaperOptsIn`` naming each option
   instead of taking a free ``dict``.
 
-NOT MOUNTED YET: ``main.py`` is owned by another wave and does not
-``include_router`` this one; the wiring wave adds it alongside the four SOP
-module keys (see the guard below).
+Mounted by ``main.py`` alongside the other module routers; the frontend is
+``/papers/`` (SOP-DESIGN §8).
 """
 
 from __future__ import annotations
@@ -29,19 +28,15 @@ from . import service
 
 # ---------------------------------------------------------------------------
 # Module guard.  SOP-DESIGN §7/§10: the papers backend accepts ANY of the four
-# new SOP grants — acks / production_docs / shipping_docs / quality_docs.
-# Those keys are added to core/registry.MODULES by a LATER wave, and
-# require_module validates its arguments at IMPORT time, so asking for them
-# before they exist would make this module unimportable.  Until they land the
-# guard falls back to 'orders' (every SOP tile hangs off an order anyway) and
-# flips itself the moment the keys appear.
-#
-# TODO(wiring wave): once acks/production_docs/shipping_docs/quality_docs are
-# registered, this resolves to the four keys on its own — delete the fallback.
+# SOP grants — acks / production_docs / shipping_docs / quality_docs — the same
+# way inventory's /api/material router is shared by several tiles.  All four
+# are registered in core/registry.MODULES, so the comprehension resolves to the
+# full set; it is kept as a comprehension (rather than SOP_KEYS verbatim) so a
+# key renamed in the registry fails the guard test instead of failing at import.
 # ---------------------------------------------------------------------------
 SOP_KEYS = ("acks", "production_docs", "shipping_docs", "quality_docs")
-GUARD_KEYS = tuple(k for k in SOP_KEYS if k in ALL_KEYS) or ("orders",)
-GUARD_IS_FALLBACK = GUARD_KEYS == ("orders",)
+GUARD_KEYS = tuple(k for k in SOP_KEYS if k in ALL_KEYS)
+GUARD_IS_FALLBACK = GUARD_KEYS != SOP_KEYS
 
 router = APIRouter(prefix="/api/papers",
                    dependencies=[Depends(require_module(*GUARD_KEYS))])

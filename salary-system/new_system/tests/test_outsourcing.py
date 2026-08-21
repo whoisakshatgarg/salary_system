@@ -902,7 +902,10 @@ class Registry(OutsourcingBase):
         entry = next(m for m in MODULES if m["key"] == "outsourcing")
         self.assertEqual(entry["path"], "/outsourcing/")
         self.assertTrue(entry["built"])
-        self.assertLess(ALL_KEYS.index("customers"), ALL_KEYS.index("outsourcing"))
+        # Wave 3 reordered the launcher to read like the SOP (SOP-DESIGN §7):
+        # outsourcing closes the paperwork run, ahead of the standing masters.
+        self.assertLess(ALL_KEYS.index("quality_docs"), ALL_KEYS.index("outsourcing"))
+        self.assertLess(ALL_KEYS.index("outsourcing"), ALL_KEYS.index("inventory"))
         self.assertLess(ALL_KEYS.index("outsourcing"), ALL_KEYS.index("settings"))
 
     def test_the_page_exists(self):

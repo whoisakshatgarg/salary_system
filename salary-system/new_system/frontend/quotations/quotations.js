@@ -44,6 +44,13 @@ function qi() {
       if (n === null || n === undefined || n === "") return "—";
       return "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
     },
+    // A unit RATE keeps three decimals (CONVENTIONS §5): £0.534 is the price on
+    // the reference quotation, and money()'s two places would print it as 0.53 —
+    // the figure stored is right, so the figure shown has to be too.
+    qiRate(n) {
+      if (n === null || n === undefined || n === "") return "—";
+      return "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 3 });
+    },
     fmtDate(d) {
       if (!d) return "—";
       const [y, m, dd] = d.split("-").map(Number);
@@ -127,6 +134,51 @@ function qi() {
       if (!window.confirm(`Delete ${d.doc_no}?`)) return;
       try { await api(`/api/quotations/${d.id}`, { method: "DELETE" }); this.detail = null;
             await this.load(); this.flash("Deleted"); } catch (e) { this.fail(e); }
+    },
+
+    // ---- revisions (SOP-DESIGN §2, CONVENTIONS §9-B) ------------------------ //
+    // A revision keeps the base number and adds ' Rev-A'; the parent is marked
+    // superseded and only the newest revision is the live one.
+    busy: false,
+    async reviseDoc() {
+      const d = this.detail;
+      if (!window.confirm(
+        `Revise ${d.doc_no}? A new draft opens as ${d.doc_no} Rev-`
+        + `${d.doc_no.match(/Rev-([A-Z]+)$/) ? "…" : "A"} and this one is marked superseded.`)) return;
+      this.busy = true;
+      try {
+        const fresh = await api(`/api/quotations/${d.id}/revise`, { method: "POST" });
+        this.detail = fresh;
+        await this.load();
+        this.flash(`${fresh.doc_no} opened`);
+      } catch (e) { this.fail(e); } finally { this.busy = false; }
+    },
+    get revRail() { return (this.detail && this.detail.revisions) || []; },
+
+    // ---- the generated paper (SOP-DESIGN §8) -------------------------------- //
+    // One button, both cases: open the paper this document already has, or
+    // raise it. A quotation's paper prints the export format; an invoice's is
+    // the export invoice that travels with the shipment.
+    async exportPaper() {
+      const d = this.detail;
+      this.busy = true;
+      try {
+        const kind = d.kind === "invoice" ? "invoice" : "quotation";
+        const found = await api(
+          `/api/papers?kind=${kind}&q=${encodeURIComponent(d.doc_no)}`);
+        const hit = (found.rows || []).find(
+          (p) => p.paper_no === d.doc_no
+                 || (p.display_no || p.paper_no) === d.doc_no);
+        if (hit) { window.location = `/papers/?open=${hit.id}`; return; }
+        if (!d.order_id) {
+          this.fail(new Error(
+            "A paper hangs off an order — link this document to one first"));
+          return;
+        }
+        const made = await api("/api/papers", { method: "POST", body: {
+          kind, order_id: d.order_id, opts: { document_id: d.id } } });
+        window.location = `/papers/?open=${made.id}`;
+      } catch (e) { this.fail(e); } finally { this.busy = false; }
     },
 
     blankLine() { return { drawing_id: "", description: "", qty: "", unit: "Nos", rate: "" }; },

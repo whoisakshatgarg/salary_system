@@ -226,7 +226,20 @@ def _take_number(conn, kind, order_id, order, opts, payload):
             raise ValueError("That invoice has no number yet")
         return number, "", None
 
-    if kind in ("coc", "test_cert"):
+    if kind == "coc":
+        # No counter: a COC is identified by the file it produces, so the
+        # number is the registry's own filename stem and the two are one
+        # string (CONVENTIONS §3).  The PO and the invoice are what that name
+        # is made of, so a missing one is a missing identity, not a blank.
+        if not _s(payload.get("po")) or not _s(payload.get("invoice_no")):
+            raise ValueError(
+                "A certificate needs the customer's PO number and the invoice's "
+                "— fill those in on the order and the invoice first")
+        number = registry.stem("coc", payload)
+        payload["number"] = number
+        return number, "", None
+
+    if kind == "test_cert":
         number = _s(payload.get("number"))
         if not number:
             raise ValueError(

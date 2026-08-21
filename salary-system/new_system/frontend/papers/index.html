@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOP Documents — APEX THERMOCON</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png" />
+  <script src="/vendor/tailwind.js"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { brand: {
+      50: "#eff6ff", 100: "#dbeafe", 500: "#3b82f6",
+      600: "#1d4ed8", 700: "#1e40af", 800: "#1e3a8a" } } } } };
+  </script>
+  <script defer src="papers.js"></script>
+  <script defer src="/vendor/alpine.js"></script>
+  <style>
+    /* Real CSS, never @apply: the vendored Tailwind Play build does not
+       process @apply in a <style> block (UI-STYLE §8). This page carries a few
+       hundred inputs, so the field styling earns a class of its own. */
+    [x-cloak] { display: none !important; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    input, select, textarea { outline: none; }
+
+    .lbl { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+           color:#94a3b8; font-weight:600; margin-bottom:.25rem; }
+    .fld { width:100%; border:1px solid #cbd5e1; border-radius:.5rem; padding:.4rem .625rem;
+           font-size:.875rem; background:#fff; color:#1e293b;
+           transition:border-color .15s, box-shadow .15s; }
+    .fld:focus { border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,.2); }
+    .fld[readonly] { background:#f1f5f9; color:#475569; cursor:default; }
+    .fld[readonly]:focus { border-color:#cbd5e1; box-shadow:none; }
+    .fld.mono { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                font-size:.8125rem; }
+    textarea.fld { line-height:1.45; resize:vertical; }
+
+    /* grid cells: quiet until you touch them, so a 20-row items table still
+       reads as a table and not as a wall of boxes */
+    .cel { width:100%; border:1px solid transparent; border-radius:.375rem;
+           padding:.2rem .35rem; font-size:.8125rem; background:transparent;
+           color:#1e293b; transition:border-color .12s, background .12s; }
+    .cel:hover { border-color:#e2e8f0; background:#fff; }
+    .cel:focus { border-color:#3b82f6; background:#fff;
+                 box-shadow:0 0 0 2px rgba(59,130,246,.15); }
+    .cel.num { text-align:right; font-variant-numeric:tabular-nums; }
+    .cel.mono { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                font-size:.75rem; }
+    .cel[readonly] { color:#64748b; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800" x-data="pw()" x-init="boot()" x-cloak>
+
+  <div x-show="toast.show" x-transition
+       class="fixed top-4 right-4 z-[70] px-4 py-3 rounded-lg shadow-lg text-white text-sm"
+       :class="toast.kind === 'err' ? 'bg-rose-600' : 'bg-emerald-600'" x-text="toast.msg"></div>
+
+  <div x-show="booted && authed" class="min-h-screen flex flex-col">
+
+    <!-- ============================== HEADER ============================== -->
+    <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
+      <a href="/" title="Back to all modules"
+         class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors no-underline">
+        <span class="text-base leading-none">⌂</span> Home
+      </a>
+      <img src="/assets/logo-mark.png" alt="APEX logo"
+           class="w-9 h-9 rounded-lg bg-white ring-1 ring-white/15 shrink-0 -mr-1" />
+      <div class="shrink-0">
+        <div class="text-white font-bold leading-tight">SOP Documents</div>
+        <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-semibold">Apex Thermocon</div>
+      </div>
+      <!-- real links carrying the filter: right-click "open in new tab" works,
+           a left click switches in place -->
+      <nav class="flex items-center gap-0.5 ml-3 bg-slate-800/80 rounded-xl p-1 flex-wrap">
+        <template x-for="n in nav" :key="n.kind">
+          <a :href="navHref(n.kind)" @click.prevent="goKind(n.kind)"
+             class="px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors no-underline whitespace-nowrap"
+             :class="navActive(n.kind) ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'"
+             x-text="n.label"></a>
+        </template>
+      </nav>
+      <div class="ml-auto flex items-center gap-4 text-xs text-slate-400 shrink-0">
+        <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-auto p-6 max-w-6xl w-full mx-auto">
+
+      <!-- =============================== LIST =============================== -->
+      <section x-show="view === 'list'">
+        <div class="flex items-baseline gap-3 mb-4">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Generated paperwork</div>
+            <h1 class="text-xl font-bold text-slate-900 leading-tight" x-text="filterTitle"></h1>
+          </div>
+        </div>
+
+        <!-- ONE toolbar row (UI-STYLE §4) -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-4 flex flex-wrap items-center gap-3">
+          <label class="sr-only" for="pp-q">Search documents</label>
+          <input id="pp-q" x-model="q" @input.debounce.400ms="load()"
+                 placeholder="Number, order or customer"
+                 class="flex-1 min-w-[240px] border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" />
+          <div class="inline-flex items-center gap-0.5 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+            <button @click="statusFilter = ''; load()"
+                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                    :class="statusFilter === '' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'">All</button>
+            <template x-for="s in refs.statuses" :key="s">
+              <button @click="statusFilter = s; load()"
+                      class="px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors"
+                      :class="statusFilter === s ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'"
+                      x-text="s"></button>
+            </template>
+          </div>
+          <span class="text-xs text-slate-400 tabular-nums ml-auto">
+            <span x-text="data.rows.length"></span> shown</span>
+          <button @click="startCreate()"
+                  class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm
+                         transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
+            + New paper
+          </button>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-b-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">Number</th>
+                  <th class="px-3 py-2.5">Document</th>
+                  <th class="px-3 py-2.5">Status</th>
+                  <th class="px-3 py-2.5">Order</th>
+                  <th class="px-3 py-2.5">Customer</th>
+                  <th class="px-3 py-2.5">Dated</th>
+                  <th class="px-3 py-2.5">Updated</th>
+                </tr>
+              </thead>
+              <!-- odd: under a <template> — Alpine leaves the template as the
+                   tbody's first child, so odd: is what keeps row 1 white -->
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="p in data.rows" :key="p.id">
+                  <tr @click="openPaper(p.id)"
+                      class="odd:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
+                    <td class="px-4 py-2.5 whitespace-nowrap">
+                      <span class="font-mono text-xs font-semibold text-brand-700" x-text="p.paper_no"></span>
+                      <span x-show="p.revision"
+                            class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold
+                                   bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20"
+                            x-text="'Rev-' + p.revision"></span>
+                    </td>
+                    <td class="px-3 py-2.5">
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+                            :class="pwKindClass(p.kind)">
+                        <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="pwKindDot(p.kind)"></span>
+                        <span x-text="p.label"></span>
+                      </span>
+                    </td>
+                    <td class="px-3 py-2.5">
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium capitalize whitespace-nowrap"
+                            :class="pwStatusClass(p.status)">
+                        <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="pwStatusDot(p.status)"></span>
+                        <span x-text="p.status"></span>
+                      </span>
+                    </td>
+                    <td class="px-3 py-2.5">
+                      <a :href="'/orders/?open=' + p.order_id" @click.stop
+                         title="Open this order"
+                         class="font-mono text-xs text-brand-700 hover:underline" x-text="p.order_no"></a>
+                    </td>
+                    <td class="px-3 py-2.5" :class="p.customer_name ? 'text-slate-700' : 'text-slate-300'"
+                        x-text="p.customer_name || '—'"></td>
+                    <td class="px-3 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(p.paper_date)"></td>
+                    <td class="px-3 py-2.5 whitespace-nowrap text-slate-400 text-xs" x-text="fmtWhen(p.updated_at)"></td>
+                  </tr>
+                </template>
+                <tr x-show="!data.rows.length">
+                  <td colspan="7" class="px-4 py-12 text-center">
+                    <div class="text-3xl opacity-25 leading-none mb-2">🗎</div>
+                    <div class="text-sm text-slate-400 mb-3">No documents here yet.</div>
+                    <button @click="startCreate()"
+                            class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm transition-colors">
+                      + New paper
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-400 tabular-nums">
+            <span x-text="data.rows.length"></span> shown ·
+            <span x-text="kindCount('')"></span> documents on file
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================== EDITOR ==============================
+           A full page, never a modal (owner brief). Every field is editable:
+           nothing here is locked except the document's own number, which the
+           counter already spent. -->
+      <template x-if="view === 'editor' && ed">
+        <section>
+
+          <!-- header strip -->
+          <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4 mb-4">
+            <div class="flex flex-wrap items-center gap-3">
+              <a :href="backHref()" @click.prevent="backToList()"
+                 class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors no-underline">
+                ← Back to list
+              </a>
+              <div class="min-w-0">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold"
+                     x-text="ed.label"></div>
+                <div class="font-mono text-base font-bold text-slate-900 leading-tight truncate"
+                     x-text="ed.display_no"></div>
+              </div>
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+                    :class="pwKindClass(ed.kind)">
+                <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="pwKindDot(ed.kind)"></span>
+                <span x-text="ed.label"></span>
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium capitalize whitespace-nowrap"
+                    :class="pwStatusClass(ed.status)">
+                <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="pwStatusDot(ed.status)"></span>
+                <span x-text="ed.status"></span>
+              </span>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100">
+              <button x-show="isDraft" @click="save()" :disabled="edBusy"
+                      class="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm transition-colors">
+                Save draft
+              </button>
+              <button x-show="isDraft" @click="refillPaper()" :disabled="edBusy"
+                      title="Rebuild this draft from the order — hand edits are replaced"
+                      class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">
+                Refill from order
+              </button>
+              <button x-show="can('final')" @click="finalise()" :disabled="edBusy"
+                      class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">
+                Finalize
+              </button>
+              <button x-show="can('sent')" @click="setStatus('sent')" :disabled="edBusy"
+                      class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">
+                Mark sent
+              </button>
+              <button x-show="['final','sent'].includes(ed.status)" @click="revisePaper()" :disabled="edBusy"
+                      class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">
+                Revise
+              </button>
+              <button @click="download()"
+                      class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">
+                Download
+              </button>
+              <div class="ml-auto flex items-center gap-2">
+                <button x-show="can('void')" @click="setStatus('void', 'Void ' + ed.display_no + '? The number stays spent — it is never handed out again.')"
+                        class="text-rose-700 hover:underline text-sm font-medium px-2">Void</button>
+                <button x-show="isDraft" @click="removePaper()"
+                        class="text-rose-700 hover:underline text-sm font-medium px-2">Delete</button>
+              </div>
+            </div>
+            <div x-show="!isDraft" class="mt-2 text-xs text-slate-400">
+              A <span x-text="ed.status"></span> paper is frozen — revise it to make changes.
+            </div>
+          </div>
+
+          <!-- revision rail -->
+          <template x-if="hasRail">
+            <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4 mb-4">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Revisions</div>
+              <div class="flex flex-wrap items-center gap-2">
+                <template x-for="(r, i) in revRail" :key="r.id">
+                  <span class="flex items-center gap-2">
+                    <span x-show="i > 0" class="text-slate-300">→</span>
+                    <a :href="'?open=' + r.id" @click.prevent="openPaper(r.id)"
+                       class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono no-underline transition-colors"
+                       :class="r.id === ed.id
+                               ? 'bg-slate-900 text-white'
+                               : (r.active ? 'bg-white text-brand-700 ring-1 ring-slate-200 hover:bg-brand-50'
+                                           : 'bg-slate-50 text-slate-400 ring-1 ring-slate-200')">
+                      <span x-text="r.revision ? 'Rev-' + r.revision : 'Original'"></span>
+                      <span class="opacity-60" x-text="r.status"></span>
+                    </a>
+                  </span>
+                </template>
+              </div>
+            </div>
+          </template>
+          <template x-if="!hasRail && ed.based_on_id">
+            <div class="rounded-xl border border-slate-200 bg-white shadow-sm px-4 py-3 mb-4 text-sm">
+              <span class="text-slate-500">Revision <b class="font-mono" x-text="ed.revision || '—'"></b> of</span>
+              <a :href="'?open=' + ed.based_on_id" @click.prevent="openPaper(ed.based_on_id)"
+                 class="font-mono text-brand-700 hover:underline ml-1" x-text="ed.paper_no"></a>
+            </div>
+          </template>
+
+          <!-- ---------------------- COMMON: who and when ---------------------- -->
+          <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4 mb-4">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Document</div>
+            <div class="grid grid-cols-4 gap-3">
+              <div>
+                <label class="lbl">Number</label>
+                <input class="fld mono" readonly :value="ed.payload.number"
+                       title="The counter already spent this number — it is the paper's own" />
+              </div>
+              <div>
+                <label class="lbl">Date</label>
+                <input type="date" class="fld" x-model="ed.payload.date_iso" />
+              </div>
+              <div>
+                <label class="lbl">Order</label>
+                <div class="flex items-center gap-2">
+                  <input class="fld mono" x-model="ed.payload.order_no" />
+                  <a :href="'/orders/?open=' + ed.order_id" title="Open this order"
+                     class="shrink-0 text-brand-700 hover:underline text-sm no-underline">↗</a>
+                </div>
+              </div>
+              <div>
+                <label class="lbl">Customer</label>
+                <input class="fld" x-model="ed.payload.customer.name" />
+              </div>
+            </div>
+            <div class="grid grid-cols-4 gap-3 mt-3">
+              <div>
+                <label class="lbl">Country</label>
+                <input class="fld" x-model="ed.payload.customer.country" />
+              </div>
+              <div class="col-span-3">
+                <label class="lbl">Address lines</label>
+                <textarea rows="2" class="fld"
+                          :value="lines(ed.payload.customer, 'address_lines')"
+                          @input="setLines(ed.payload.customer, 'address_lines', $event.target.value)"></textarea>
+              </div>
+            </div>
+            <div class="grid grid-cols-4 gap-3 mt-3">
+              <div>
+                <label class="lbl">Contact</label>
+                <input class="fld" x-model="ed.payload.customer.contact.name" />
+              </div>
+              <div>
+                <label class="lbl">E-mail</label>
+                <input class="fld" x-model="ed.payload.customer.contact.email" />
+              </div>
+              <div>
+                <label class="lbl">Tel</label>
+                <input class="fld mono" x-model="ed.payload.customer.contact.tel" />
+              </div>
+              <div>
+                <label class="lbl">Fax</label>
+                <input class="fld mono" x-model="ed.payload.customer.contact.fax" />
+              </div>
+            </div>
+            <div class="grid grid-cols-4 gap-3 mt-3">
+              <div>
+                <label class="lbl">Currency</label>
+                <input class="fld mono" x-model="ed.payload.currency.code" />
+              </div>
+              <div>
+                <label class="lbl">Symbol</label>
+                <input class="fld mono" x-model="ed.payload.currency.symbol" />
+              </div>
+              <div :class="'head' in ed.payload.currency ? '' : 'col-span-2'">
+                <label class="lbl">Price column header</label>
+                <input class="fld" x-model="ed.payload.currency.header" />
+              </div>
+              <div x-show="'head' in ed.payload.currency">
+                <label class="lbl">Currency head</label>
+                <input class="fld" x-model="ed.payload.currency.head" />
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================ QUOTATION ============================ -->
+          <template x-if="ed.kind === 'quotation'">
+            <div class="space-y-4">
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Enquiry</div>
+                <div class="grid grid-cols-4 gap-3">
+                  <div><label class="lbl">RFQ ref.</label><input class="fld" x-model="ed.payload.rfq_ref" /></div>
+                  <div><label class="lbl">RFQ date</label><input type="date" class="fld" x-model="ed.payload.rfq_date_iso" /></div>
+                  <div><label class="lbl">Client code</label><input class="fld mono" x-model="ed.payload.client_code" /></div>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div class="px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200 flex items-center">
+                  <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Items</span>
+                  <button @click="recalcAll()" class="ml-auto text-xs text-slate-400 hover:text-brand-700 transition-colors">Recalculate</button>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-2 py-2 w-10">#</th>
+                        <th class="px-2 py-2 w-40">Product code</th>
+                        <th class="px-2 py-2">Description</th>
+                        <th class="px-2 py-2 w-24 text-right">Qty</th>
+                        <th class="px-2 py-2 w-20">Unit</th>
+                        <th class="px-2 py-2 w-28 text-right">Unit price</th>
+                        <th class="px-2 py-2 w-28 text-right">Total</th>
+                        <th class="px-2 py-2 w-8"></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="(it, i) in ed.payload.items" :key="i">
+                        <tr class="odd:bg-slate-50/60">
+                          <td class="px-2 py-1"><input class="cel num" x-model="it.sno" /></td>
+                          <td class="px-2 py-1"><input class="cel mono" x-model="it.code" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.description" /></td>
+                          <td class="px-2 py-1"><input class="cel num" x-model="it.qty" @input="lineTotal(it, i)" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.unit" /></td>
+                          <td class="px-2 py-1">
+                            <input class="cel num" x-model="it.unit_price" step="0.001"
+                                   title="Unit rates carry three decimals (£0.534)"
+                                   @input="lineTotal(it, i)" /></td>
+                          <td class="px-2 py-1">
+                            <input class="cel num" x-model="it.total" @input="markManual('t' + i)" /></td>
+                          <td class="px-2 py-1 text-right">
+                            <button @click="removeItem(i)" title="Remove line"
+                                    class="text-slate-300 hover:text-rose-600 transition-colors">✕</button></td>
+                        </tr>
+                      </template>
+                      <tr x-show="!ed.payload.items.length">
+                        <td colspan="8" class="px-4 py-6 text-center text-sm text-slate-400">No lines yet</td>
+                      </tr>
+                    </tbody>
+                    <tfoot>
+                      <tr class="bg-slate-50 border-t-2 border-slate-200 font-semibold">
+                        <td colspan="6" class="px-2 py-2 text-right text-slate-500 text-xs uppercase tracking-wider">Total quotation value</td>
+                        <td class="px-2 py-2">
+                          <input class="cel num" x-model="ed.payload.total" @input="markManual('total')" /></td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center">
+                  <span class="text-xs text-slate-400 tabular-nums">
+                    <span x-text="ed.payload.items.length"></span> lines</span>
+                  <button @click="addItem()"
+                          class="ml-auto border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-colors">+ Add line</button>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Terms</div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div><label class="lbl">Price basis</label><input class="fld" x-model="ed.payload.price_basis" /></div>
+                  <div><label class="lbl">Lead time</label><input class="fld" x-model="ed.payload.lead_time" /></div>
+                  <div><label class="lbl">Payment terms</label><input class="fld" x-model="ed.payload.payment_terms" /></div>
+                  <div><label class="lbl">Guarantee</label><input class="fld" x-model="ed.payload.guarantee" /></div>
+                  <div><label class="lbl">Taxes &amp; duties</label><input class="fld" x-model="ed.payload.taxes_duties" /></div>
+                  <div><label class="lbl">Note</label><input class="fld" x-model="ed.payload.note" /></div>
+                  <div class="col-span-2"><label class="lbl">Validity line</label><input class="fld" x-model="ed.payload.validity_line" /></div>
+                  <div><label class="lbl">Approved by</label><input class="fld" x-model="ed.payload.approved_by" /></div>
+                  <div><label class="lbl">Prepared by</label><input class="fld" x-model="ed.payload.prepared_by" /></div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- =============================== ACK =============================== -->
+          <template x-if="ed.kind === 'ack'">
+            <div class="space-y-4">
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Addresses</div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="lbl">Bill to</label>
+                    <textarea rows="5" class="fld" :value="lines(ed.payload, 'bill_to_lines')"
+                              @input="setLines(ed.payload, 'bill_to_lines', $event.target.value)"></textarea>
+                  </div>
+                  <div>
+                    <label class="lbl">Ship to</label>
+                    <textarea rows="5" class="fld" :value="lines(ed.payload, 'ship_to_lines')"
+                              @input="setLines(ed.payload, 'ship_to_lines', $event.target.value)"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">The order we are confirming</div>
+                <div class="grid grid-cols-4 gap-3">
+                  <div><label class="lbl">Cust. P.O. no.</label><input class="fld mono" x-model="ed.payload.cust_po" /></div>
+                  <div><label class="lbl">P.O. date</label><input type="date" class="fld" x-model="ed.payload.po_date_iso" /></div>
+                  <div class="col-span-2">
+                    <label class="lbl">Quotation ref.</label>
+                    <div class="flex items-center gap-2">
+                      <input class="fld mono" x-model="ed.payload.quotation_ref" />
+                      <button @click="ed.payload.quotation_ref = 'Repeat PO'"
+                              title="A re-order against a quotation already given"
+                              class="shrink-0 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-2.5 py-2 text-xs font-medium shadow-sm transition-colors whitespace-nowrap">Repeat PO</button>
+                    </div>
+                  </div>
+                  <div><label class="lbl">Client code</label><input class="fld mono" x-model="ed.payload.client_code" /></div>
+                  <div>
+                    <label class="lbl">Ackn. ref.</label>
+                    <input class="fld mono" readonly :value="ed.payload.ack_ref" />
+                  </div>
+                  <div><label class="lbl">Ackn. date</label><input type="date" class="fld" x-model="ed.payload.ack_date_iso" /></div>
+                  <div>
+                    <label class="lbl">Work order no.</label>
+                    <input class="fld mono" readonly :value="ed.payload.wo_no_long"
+                           title="Reserved with this acknowledgement — the work order reuses it" />
+                  </div>
+                  <div><label class="lbl">Price basis</label><input class="fld" x-model="ed.payload.price_basis" /></div>
+                  <div><label class="lbl">Payment terms</label><input class="fld" x-model="ed.payload.payment_terms" /></div>
+                  <div><label class="lbl">Ship date</label><input type="date" class="fld" x-model="ed.payload.ship_date_iso" /></div>
+                  <div><label class="lbl">Currency header</label><input class="fld" x-model="ed.payload.currency_header" /></div>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Contacts</div>
+                <div class="grid grid-cols-4 gap-3">
+                  <div><label class="lbl">Name</label><input class="fld" x-model="ed.payload.contacts.name" /></div>
+                  <div><label class="lbl">E-mail</label><input class="fld" x-model="ed.payload.contacts.email" /></div>
+                  <div><label class="lbl">Tel</label><input class="fld mono" x-model="ed.payload.contacts.tel" /></div>
+                  <div><label class="lbl">Fax</label><input class="fld mono" x-model="ed.payload.contacts.fax" /></div>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div class="px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200 flex items-center">
+                  <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Items</span>
+                  <button @click="recalcAll()" class="ml-auto text-xs text-slate-400 hover:text-brand-700 transition-colors">Recalculate</button>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-2 py-2 w-10">#</th>
+                        <th class="px-2 py-2 w-36">Product code</th>
+                        <th class="px-2 py-2">Description</th>
+                        <th class="px-2 py-2 w-32">Matl.</th>
+                        <th class="px-2 py-2 w-20 text-right">Qty</th>
+                        <th class="px-2 py-2 w-16">Unit</th>
+                        <th class="px-2 py-2 w-24 text-right">Unit price</th>
+                        <th class="px-2 py-2 w-24 text-right">Total</th>
+                        <th class="px-2 py-2 w-8"></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="(it, i) in ed.payload.items" :key="i">
+                        <tr class="odd:bg-slate-50/60">
+                          <td class="px-2 py-1"><input class="cel num" x-model="it.sno" /></td>
+                          <td class="px-2 py-1"><input class="cel mono" x-model="it.code" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.description" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.material" /></td>
+                          <td class="px-2 py-1"><input class="cel num" x-model="it.qty" @input="lineTotal(it, i)" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.unit" /></td>
+                          <td class="px-2 py-1"><input class="cel num" x-model="it.unit_price" @input="lineTotal(it, i)" /></td>
+                          <td class="px-2 py-1"><input class="cel num" x-model="it.total" @input="markManual('t' + i)" /></td>
+                          <td class="px-2 py-1 text-right">
+                            <button @click="removeItem(i)" title="Remove line"
+                                    class="text-slate-300 hover:text-rose-600 transition-colors">✕</button></td>
+                        </tr>
+                      </template>
+                      <tr x-show="!ed.payload.items.length">
+                        <td colspan="9" class="px-4 py-6 text-center text-sm text-slate-400">No lines yet</td>
+                      </tr>
+                    </tbody>
+                    <tfoot>
+                      <tr class="bg-slate-50 border-t-2 border-slate-200 font-semibold">
+                        <td colspan="7" class="px-2 py-2 text-right text-slate-500 text-xs uppercase tracking-wider">Total P.O. value</td>
+                        <td class="px-2 py-2"><input class="cel num" x-model="ed.payload.total" @input="markManual('total')" /></td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center">
+                  <span class="text-xs text-slate-400 tabular-nums"><span x-text="ed.payload.items.length"></span> lines</span>
+                  <button @click="addItem()"
+                          class="ml-auto border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-colors">+ Add line</button>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Remittance</div>
+                <textarea rows="4" class="fld" x-model="ed.payload.remittance_block"></textarea>
+              </div>
+            </div>
+          </template>
+
+          <!-- ============================ WORK ORDER ============================ -->
+          <template x-if="ed.kind === 'work_order'">
+            <div class="space-y-4">
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">The job</div>
+                <div class="grid grid-cols-4 gap-3">
+                  <div>
+                    <label class="lbl">W/O no.</label>
+                    <input class="fld mono" readonly :value="ed.payload.wo_no_short"
+                           title="Reserved by this order's acknowledgement" />
+                  </div>
+                  <div><label class="lbl">Client code</label><input class="fld mono" x-model="ed.payload.client_code" /></div>
+                  <div><label class="lbl">P.O. no.</label><input class="fld mono" x-model="ed.payload.cust_po" /></div>
+                  <div><label class="lbl">Date</label><input type="date" class="fld" x-model="ed.payload.date_iso" /></div>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div class="px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200">
+                  <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">What the floor makes</span>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-2 py-2 w-10">#</th>
+                        <th class="px-2 py-2 w-40">Part / Drg. no.</th>
+                        <th class="px-2 py-2">Item</th>
+                        <th class="px-2 py-2 w-20 text-right">Qty</th>
+                        <th class="px-2 py-2 w-36">Matl.</th>
+                        <th class="px-2 py-2 w-24">Marking</th>
+                        <th class="px-2 py-2 w-36">Remarks</th>
+                        <th class="px-2 py-2 w-8"></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="(it, i) in ed.payload.items" :key="i">
+                        <tr class="odd:bg-slate-50/60">
+                          <td class="px-2 py-1"><input class="cel num" x-model="it.sno" /></td>
+                          <td class="px-2 py-1"><input class="cel mono" x-model="it.part_no" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.item" /></td>
+                          <td class="px-2 py-1"><input class="cel num" x-model="it.qty" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.material" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.marking" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.remarks" /></td>
+                          <td class="px-2 py-1 text-right">
+                            <button @click="removeItem(i)" title="Remove line"
+                                    class="text-slate-300 hover:text-rose-600 transition-colors">✕</button></td>
+                        </tr>
+                      </template>
+                      <tr x-show="!ed.payload.items.length">
+                        <td colspan="8" class="px-4 py-6 text-center text-sm text-slate-400">No lines yet</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center">
+                  <span class="text-xs text-slate-400 tabular-nums"><span x-text="ed.payload.items.length"></span> lines</span>
+                  <button @click="addItem()"
+                          class="ml-auto border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-colors">+ Add line</button>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- ============================== INVOICE ============================== -->
+          <template x-if="ed.kind === 'invoice' || ed.kind === 'packing_list'">
+            <div class="space-y-4">
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Invoice</div>
+                <div class="grid grid-cols-4 gap-3">
+                  <div>
+                    <label class="lbl">Invoice no.</label>
+                    <input class="fld mono" readonly :value="ed.payload.invoice_no" />
+                  </div>
+                  <div><label class="lbl">IEC code</label><input class="fld mono" x-model="ed.payload.iec" /></div>
+                  <div class="col-span-2"><label class="lbl">AD code</label><input class="fld mono" x-model="ed.payload.ad_code" /></div>
+                </div>
+
+                <div class="mt-4">
+                  <div class="flex items-center mb-1.5">
+                    <span class="lbl mb-0">Buyer's order no. &amp; date</span>
+                    <button @click="addPo()"
+                            class="ml-auto text-xs text-brand-700 hover:underline">+ Add PO</button>
+                  </div>
+                  <div class="space-y-2">
+                    <template x-for="(po, i) in ed.payload.buyer_po_block" :key="i">
+                      <div class="flex items-center gap-2">
+                        <input class="fld mono" x-model="po.po" placeholder="PO number" />
+                        <input type="date" class="fld" x-model="po.date_iso" />
+                        <button @click="removePo(i)" title="Remove"
+                                class="shrink-0 text-slate-300 hover:text-rose-600 transition-colors px-1">✕</button>
+                      </div>
+                    </template>
+                    <div x-show="!ed.payload.buyer_po_block.length" class="text-xs text-slate-400">No customer POs listed</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Consignee &amp; buyer</div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="lbl">Consignee</label>
+                    <textarea rows="5" class="fld" :value="lines(ed.payload, 'consignee_lines')"
+                              @input="setLines(ed.payload, 'consignee_lines', $event.target.value)"></textarea>
+                  </div>
+                  <div>
+                    <label class="lbl">Buyer</label>
+                    <textarea rows="5" class="fld" :value="lines(ed.payload, 'buyer_lines')"
+                              @input="setLines(ed.payload, 'buyer_lines', $event.target.value)"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Shipping</div>
+                <div class="grid grid-cols-4 gap-3">
+                  <div><label class="lbl">Pre-carriage by</label><input class="fld" x-model="ed.payload.pre_carriage" /></div>
+                  <div><label class="lbl">Place of receipt</label><input class="fld" x-model="ed.payload.place_receipt" /></div>
+                  <div><label class="lbl">Vessel / flight</label><input class="fld" x-model="ed.payload.vessel" /></div>
+                  <div><label class="lbl">Port of loading</label><input class="fld" x-model="ed.payload.port_loading" /></div>
+                  <div><label class="lbl">Port of discharge</label><input class="fld" x-model="ed.payload.port_discharge" /></div>
+                  <div><label class="lbl">Country of origin</label><input class="fld" x-model="ed.payload.origin_country" /></div>
+                  <div><label class="lbl">Final destination</label><input class="fld" x-model="ed.payload.final_destination" /></div>
+                  <div><label class="lbl">Terms</label><input class="fld" x-model="ed.payload.terms" /></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label class="lbl">Marks &amp; numbers</label>
+                    <textarea rows="3" class="fld" :value="lines(ed.payload, 'marks_lines')"
+                              @input="setLines(ed.payload, 'marks_lines', $event.target.value)"></textarea>
+                  </div>
+                  <div>
+                    <label class="lbl">Description / H.T. code line</label>
+                    <textarea rows="3" class="fld" x-model="ed.payload.hts_line"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- invoice goods grid -->
+              <template x-if="ed.kind === 'invoice'">
+                <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                  <div class="px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200 flex items-center">
+                    <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Goods</span>
+                    <span class="ml-3 text-[11px] text-slate-400">a free replacement line prints “-” in rate and amount</span>
+                    <button @click="recalcAll()" class="ml-auto text-xs text-slate-400 hover:text-brand-700 transition-colors">Recalculate</button>
+                  </div>
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                      <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                          <th class="px-2 py-2 w-10">#</th>
+                          <th class="px-2 py-2">Code &amp; description</th>
+                          <th class="px-2 py-2 w-32">Order no.</th>
+                          <th class="px-2 py-2 w-20 text-right">Qty</th>
+                          <th class="px-2 py-2 w-24 text-right">Net wt.</th>
+                          <th class="px-2 py-2 w-24 text-right">Rate</th>
+                          <th class="px-2 py-2 w-28 text-right">Amount</th>
+                          <th class="px-2 py-2 w-8"></th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        <template x-for="(it, i) in ed.payload.items" :key="i">
+                          <tr class="odd:bg-slate-50/60">
+                            <td class="px-2 py-1"><input class="cel num" x-model="it.sno" /></td>
+                            <td class="px-2 py-1"><input class="cel" x-model="it.code_desc" /></td>
+                            <td class="px-2 py-1"><input class="cel mono" x-model="it.po" /></td>
+                            <td class="px-2 py-1"><input class="cel num" x-model="it.qty" @input="invoiceTotals()" /></td>
+                            <td class="px-2 py-1"><input class="cel num" x-model="it.net_wt" @input="invoiceTotals()" /></td>
+                            <td class="px-2 py-1"><input class="cel num" x-model="it.rate" /></td>
+                            <td class="px-2 py-1"><input class="cel num" x-model="it.amount" @input="invoiceTotals()" /></td>
+                            <td class="px-2 py-1 text-right">
+                              <button @click="removeItem(i); invoiceTotals()" title="Remove line"
+                                      class="text-slate-300 hover:text-rose-600 transition-colors">✕</button></td>
+                          </tr>
+                        </template>
+                        <tr x-show="!ed.payload.items.length">
+                          <td colspan="8" class="px-4 py-6 text-center text-sm text-slate-400">No lines yet</td>
+                        </tr>
+                      </tbody>
+                      <tfoot>
+                        <tr class="bg-slate-50 border-t-2 border-slate-200 font-semibold">
+                          <td colspan="3" class="px-2 py-2 text-right text-slate-500 text-xs uppercase tracking-wider">Totals</td>
+                          <td class="px-2 py-2"><input class="cel num" x-model="ed.payload.totals.qty" @input="markManual('tqty')" /></td>
+                          <td class="px-2 py-2"><input class="cel num" x-model="ed.payload.totals.net_wt" @input="markManual('twt')" /></td>
+                          <td></td>
+                          <td class="px-2 py-2"><input class="cel num" x-model="ed.payload.totals.amount" @input="markManual('tamt')" /></td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                  <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center">
+                    <span class="text-xs text-slate-400 tabular-nums"><span x-text="ed.payload.items.length"></span> lines</span>
+                    <button @click="addItem()"
+                            class="ml-auto border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-colors">+ Add line</button>
+                  </div>
+                </div>
+              </template>
+
+              <!-- packing list boxes -->
+              <template x-if="ed.kind === 'packing_list'">
+                <div class="space-y-4">
+                  <template x-for="(box, bi) in ed.payload.boxes" :key="bi">
+                    <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                      <div class="px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200 flex flex-wrap items-center gap-2">
+                        <input class="fld mono" style="width:9rem" x-model="box.box_label" />
+                        <input class="fld" style="width:11rem" x-model="box.size" placeholder='16" x 11" x 10"' />
+                        <input class="fld num" style="width:7rem" x-model="box.net_wt" @input="boxTotals()" placeholder="Net wt." />
+                        <input class="fld num" style="width:7rem" x-model="box.gross_wt" @input="boxTotals()" placeholder="Gross wt." />
+                        <button @click="removeBox(bi)" title="Remove this box — its lines move to the first box"
+                                class="ml-auto text-rose-700 hover:underline text-xs font-medium">Remove box</button>
+                      </div>
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                          <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                              <th class="px-2 py-2 w-10">#</th>
+                              <th class="px-2 py-2">Code &amp; description</th>
+                              <th class="px-2 py-2 w-24 text-right">Qty</th>
+                              <th class="px-2 py-2 w-40">Move to</th>
+                              <th class="px-2 py-2 w-8"></th>
+                            </tr>
+                          </thead>
+                          <tbody class="divide-y divide-slate-100">
+                            <template x-for="(it, i) in box.items" :key="i">
+                              <tr class="odd:bg-slate-50/60">
+                                <td class="px-2 py-1"><input class="cel num" x-model="it.sno" /></td>
+                                <td class="px-2 py-1"><input class="cel" x-model="it.code_desc" /></td>
+                                <td class="px-2 py-1"><input class="cel num" x-model="it.qty" @input="boxTotals()" /></td>
+                                <td class="px-2 py-1">
+                                  <select class="cel" @change="moveItemToBox(box, i, $event.target.value); $event.target.value = ''">
+                                    <option value="">—</option>
+                                    <template x-for="(b2, j) in ed.payload.boxes" :key="j">
+                                      <option x-show="j !== bi" :value="j" x-text="b2.box_label || ('Box ' + (j + 1))"></option>
+                                    </template>
+                                  </select>
+                                </td>
+                                <td class="px-2 py-1 text-right">
+                                  <button @click="removeBoxItem(box, i)" title="Remove line"
+                                          class="text-slate-300 hover:text-rose-600 transition-colors">✕</button></td>
+                              </tr>
+                            </template>
+                            <tr x-show="!box.items.length">
+                              <td colspan="5" class="px-4 py-4 text-center text-sm text-slate-400">This box is empty</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center">
+                        <span class="text-xs text-slate-400 tabular-nums"><span x-text="box.items.length"></span> lines</span>
+                        <button @click="addBoxItem(box)"
+                                class="ml-auto border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-colors">+ Add line</button>
+                      </div>
+                    </div>
+                  </template>
+                  <div class="flex items-center gap-3">
+                    <button @click="addBox()"
+                            class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">+ Add box</button>
+                    <button @click="recalcAll()" class="text-xs text-slate-400 hover:text-brand-700 transition-colors">Recalculate totals</button>
+                  </div>
+                  <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                    <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Totals</div>
+                    <div class="grid grid-cols-3 gap-3">
+                      <div><label class="lbl">Quantity</label><input class="fld" x-model="ed.payload.totals.qty" @input="markManual('tqty')" /></div>
+                      <div><label class="lbl">Net wt.</label><input class="fld" x-model="ed.payload.totals.net_wt" @input="markManual('twt')" /></div>
+                      <div><label class="lbl">Gross wt.</label><input class="fld" x-model="ed.payload.totals.gross_wt" @input="markManual('tgross')" /></div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Footer</div>
+                <div class="space-y-3">
+                  <div>
+                    <label class="lbl">Total weight line</label>
+                    <input class="fld" x-model="ed.payload.total_weight_line" />
+                  </div>
+                  <template x-if="ed.kind === 'invoice'">
+                    <div class="space-y-3">
+                      <div>
+                        <label class="lbl">GSP duty line</label>
+                        <input class="fld" x-model="ed.payload.gsp_line" />
+                      </div>
+                      <div>
+                        <div class="flex items-center mb-1">
+                          <span class="lbl mb-0">Amount in words</span>
+                          <button @click="suggestWords()"
+                                  class="ml-auto text-xs text-brand-700 hover:underline">Suggest from total</button>
+                        </div>
+                        <input class="fld" x-model="ed.payload.amount_words" />
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- ================================ COC ================================ -->
+          <template x-if="ed.kind === 'coc'">
+            <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Certificate of conformance</div>
+              <div class="grid grid-cols-2 gap-3">
+                <div><label class="lbl">Customer (in caps)</label><input class="fld" x-model="ed.payload.customer_caps" /></div>
+                <div><label class="lbl">Customer short name</label><input class="fld" x-model="ed.payload.customer_short" /></div>
+                <div><label class="lbl">P.O. number</label><input class="fld mono" x-model="ed.payload.po" /></div>
+                <div><label class="lbl">Invoice number</label><input class="fld mono" x-model="ed.payload.invoice_no" /></div>
+                <div><label class="lbl">Invoice date</label><input type="date" class="fld" x-model="ed.payload.invoice_date_iso" /></div>
+                <div><label class="lbl">Date shipped</label><input type="date" class="fld" x-model="ed.payload.date_shipped_iso" /></div>
+                <div><label class="lbl">Part no. / description</label><input class="fld" x-model="ed.payload.part_desc" /></div>
+                <div><label class="lbl">Material</label><input class="fld" x-model="ed.payload.material" /></div>
+                <div><label class="lbl">Plating process</label><input class="fld" x-model="ed.payload.plating" /></div>
+                <div><label class="lbl">Finishing process</label><input class="fld" x-model="ed.payload.finishing" /></div>
+                <div><label class="lbl">Quantity shipped</label><input class="fld" x-model="ed.payload.qty_shipped" /></div>
+                <div><label class="lbl">Authenticator's name</label><input class="fld" x-model="ed.payload.authenticator" /></div>
+              </div>
+            </div>
+          </template>
+
+          <!-- ============================ TEST CERT ============================ -->
+          <template x-if="ed.kind === 'test_cert'">
+            <div class="space-y-4">
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Certificate</div>
+                <div class="grid grid-cols-4 gap-3">
+                  <div>
+                    <label class="lbl">Certificate no.</label>
+                    <input class="fld mono" readonly :value="ed.payload.cert_no"
+                           title="Derived from the customer PO and the invoice it certifies" />
+                  </div>
+                  <div><label class="lbl">Certificate date</label><input type="date" class="fld" x-model="ed.payload.cert_date_iso" /></div>
+                  <div class="col-span-2"><label class="lbl">Customer</label><input class="fld" x-model="ed.payload.customer_line" /></div>
+                  <div><label class="lbl">P.O. no.</label><input class="fld mono" x-model="ed.payload.po" /></div>
+                  <div><label class="lbl">P.O. date</label><input type="date" class="fld" x-model="ed.payload.po_date_iso" /></div>
+                  <div><label class="lbl">Invoice no.</label><input class="fld mono" x-model="ed.payload.invoice_no" /></div>
+                  <div><label class="lbl">Invoice date</label><input type="date" class="fld" x-model="ed.payload.invoice_date_iso" /></div>
+                </div>
+                <div class="mt-4">
+                  <label class="lbl">Extra element columns</label>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <template x-for="n in [1,2,3,4,5]" :key="n">
+                      <input class="fld mono" style="width:6rem" :value="extraHead(n)"
+                             @input="setExtraHead(n, $event.target.value)" :placeholder="'Spare ' + n" />
+                    </template>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div class="px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200">
+                  <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Analysis</span>
+                </div>
+                <!-- 21 columns: the grid scrolls inside its frame rather than
+                     squeezing every analysis figure down to four characters -->
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm" style="min-width:1560px">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-2 py-2 w-10">#</th>
+                        <th class="px-2 py-2 w-36">Item</th>
+                        <th class="px-2 py-2 w-28">Size of matl.</th>
+                        <th class="px-2 py-2 w-16 text-right">Qty</th>
+                        <th class="px-2 py-2 w-20">Component</th>
+                        <th class="px-2 py-2 w-24">Heat no.</th>
+                        <th class="px-2 py-2 w-28">Material</th>
+                        <template x-for="el in chem" :key="el">
+                          <th class="px-1 py-2 w-14 text-right" x-text="el + '%'"></th>
+                        </template>
+                        <template x-for="n in [1,2,3,4,5]" :key="'h' + n">
+                          <th class="px-1 py-2 w-14 text-right"
+                              :class="extraHead(n) ? 'text-slate-500' : 'text-slate-300'"
+                              x-text="extraHead(n) || '–'"></th>
+                        </template>
+                        <th class="px-2 py-2 w-8"></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="(it, i) in ed.payload.items" :key="i">
+                        <tr class="odd:bg-slate-50/60">
+                          <td class="px-2 py-1"><input class="cel num" x-model="it.sno" /></td>
+                          <td class="px-2 py-1"><input class="cel mono" x-model="it.item" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.size" /></td>
+                          <td class="px-2 py-1"><input class="cel num" x-model="it.qty" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.component" /></td>
+                          <td class="px-2 py-1"><input class="cel mono" x-model="it.heat_no" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.material" /></td>
+                          <template x-for="el in chem" :key="el">
+                            <td class="px-1 py-1">
+                              <input class="cel num" :value="chemOf(it, el)"
+                                     @input="setChem(it, el, $event.target.value)" /></td>
+                          </template>
+                          <template x-for="n in [1,2,3,4,5]" :key="'s' + n">
+                            <td class="px-1 py-1"><input class="cel num" x-model="it['spare_' + n]" /></td>
+                          </template>
+                          <td class="px-2 py-1 text-right">
+                            <button @click="removeItem(i)" title="Remove line"
+                                    class="text-slate-300 hover:text-rose-600 transition-colors">✕</button></td>
+                        </tr>
+                      </template>
+                      <tr x-show="!ed.payload.items.length">
+                        <td colspan="21" class="px-4 py-6 text-center text-sm text-slate-400">No lines yet</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center">
+                  <span class="text-xs text-slate-400 tabular-nums"><span x-text="ed.payload.items.length"></span> lines</span>
+                  <button @click="addItem()"
+                          class="ml-auto border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-colors">+ Add line</button>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- ================================ BOM ================================ -->
+          <template x-if="ed.kind === 'bom'">
+            <div class="space-y-4">
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Bill of materials</div>
+                <div class="grid grid-cols-4 gap-3">
+                  <div>
+                    <label class="lbl">BOM no.</label>
+                    <input class="fld mono" readonly :value="ed.payload.bom_no" />
+                  </div>
+                  <div class="col-span-2"><label class="lbl">Customer</label><input class="fld" x-model="ed.payload.customer_line" /></div>
+                  <div><label class="lbl">Date</label><input type="date" class="fld" x-model="ed.payload.date_iso" /></div>
+                  <div><label class="lbl">P.O. no.</label><input class="fld mono" x-model="ed.payload.po" /></div>
+                  <div><label class="lbl">P.O. date</label><input type="date" class="fld" x-model="ed.payload.po_date_iso" /></div>
+                  <div><label class="lbl">W/O no.</label><input class="fld mono" x-model="ed.payload.wo_no" /></div>
+                  <div><label class="lbl">Part / assy.</label><input class="fld" x-model="ed.payload.part_assy" /></div>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div class="px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200">
+                  <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Materials</span>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm" style="min-width:1320px">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-2 py-2 w-10">#</th>
+                        <th class="px-2 py-2 w-32">Part / Drg. no.</th>
+                        <th class="px-2 py-2">Component</th>
+                        <th class="px-2 py-2 w-28">Size</th>
+                        <th class="px-2 py-2 w-28">Material</th>
+                        <th class="px-2 py-2 w-28">Heat / OS ID</th>
+                        <th class="px-2 py-2 w-32">Source</th>
+                        <th class="px-2 py-2 w-20 text-right">Qty/assy</th>
+                        <th class="px-2 py-2 w-20 text-right">Total qty</th>
+                        <th class="px-2 py-2 w-16">Unit</th>
+                        <th class="px-2 py-2 w-28">Remarks</th>
+                        <th class="px-2 py-2 w-8"></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      <template x-for="(it, i) in ed.payload.items" :key="i">
+                        <tr class="odd:bg-slate-50/60">
+                          <td class="px-2 py-1"><input class="cel num" x-model="it.sno" /></td>
+                          <td class="px-2 py-1"><input class="cel mono" x-model="it.part_no" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.description" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.size" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.material" /></td>
+                          <td class="px-2 py-1"><input class="cel mono" x-model="it.heat_or_os" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.source" /></td>
+                          <td class="px-2 py-1"><input class="cel num" x-model="it.qty_per" /></td>
+                          <td class="px-2 py-1"><input class="cel num" x-model="it.total_qty" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.unit" /></td>
+                          <td class="px-2 py-1"><input class="cel" x-model="it.remarks" /></td>
+                          <td class="px-2 py-1 text-right">
+                            <button @click="removeItem(i)" title="Remove line"
+                                    class="text-slate-300 hover:text-rose-600 transition-colors">✕</button></td>
+                        </tr>
+                      </template>
+                      <tr x-show="!ed.payload.items.length">
+                        <td colspan="12" class="px-4 py-6 text-center text-sm text-slate-400">No lines yet</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center">
+                  <span class="text-xs text-slate-400 tabular-nums"><span x-text="ed.payload.items.length"></span> lines</span>
+                  <button @click="addItem()"
+                          class="ml-auto border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-colors">+ Add line</button>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <div class="h-8"></div>
+        </section>
+      </template>
+
+      <!-- ============================== CREATE ============================== -->
+      <template x-if="view === 'create' && form">
+        <section class="max-w-3xl">
+          <div class="flex items-center gap-3 mb-4">
+            <a :href="backHref()" @click.prevent="backToList()"
+               class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors no-underline">
+              ← Back to list
+            </a>
+            <div>
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">New document</div>
+              <h1 class="text-xl font-bold text-slate-900 leading-tight">Raise a paper</h1>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4 space-y-4">
+            <div x-show="form.error"
+                 class="bg-rose-50 border border-rose-200 text-rose-700 rounded-lg px-3 py-2 text-sm"
+                 x-text="form.error"></div>
+
+            <div>
+              <label class="lbl">Document</label>
+              <select class="fld" x-model="form.kind">
+                <option value="">Choose…</option>
+                <template x-for="k in refs.kinds" :key="k.kind">
+                  <option :value="k.kind" x-text="k.label"></option>
+                </template>
+              </select>
+            </div>
+
+            <!-- order -->
+            <div>
+              <label class="lbl">Order</label>
+              <template x-if="!form.order">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <input class="fld" x-model="form.orderQ" @keydown.enter.prevent="findOrder()"
+                           placeholder="Order number, customer or PO" />
+                    <button @click="findOrder()"
+                            class="shrink-0 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">Find</button>
+                  </div>
+                  <div x-show="form.hits && form.hits.length" class="mt-2 rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+                    <template x-for="o in (form.hits || [])" :key="o.id">
+                      <button @click="pickOrder(o.id)"
+                              class="w-full text-left px-3 py-2 hover:bg-brand-50/60 transition-colors flex items-center gap-2">
+                        <span class="font-mono text-xs font-semibold text-brand-700" x-text="o.order_no"></span>
+                        <span class="text-sm text-slate-700" x-text="o.customer_name"></span>
+                        <span class="ml-auto text-xs text-slate-400 font-mono" x-text="o.customer_po || ''"></span>
+                      </button>
+                    </template>
+                  </div>
+                </div>
+              </template>
+              <template x-if="form.order">
+                <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <span class="font-mono text-xs font-semibold text-brand-700" x-text="form.order.order_no"></span>
+                  <span class="text-sm text-slate-700" x-text="form.order.customer_name"></span>
+                  <span class="text-xs text-slate-400 font-mono" x-text="form.order.customer_po || ''"></span>
+                  <button @click="clearOrder()" class="ml-auto text-slate-400 hover:text-rose-600 transition-colors">✕</button>
+                </div>
+              </template>
+            </div>
+
+            <!-- kind-specific options -->
+            <template x-if="form.order && form.kind === 'quotation'">
+              <div>
+                <label class="lbl">Which quotation does this print?</label>
+                <select class="fld" x-model="form.document_id">
+                  <option value="">Choose the ledger quotation…</option>
+                  <template x-for="d in (form.quotationDocs || [])" :key="d.id">
+                    <option :value="d.id" x-text="d.doc_no + ' · ' + d.status"></option>
+                  </template>
+                </select>
+                <div x-show="!(form.quotationDocs || []).length" class="text-xs text-slate-400 mt-1">
+                  This order has no quotation in the ledger yet — raise one in Quotations first.
+                </div>
+              </div>
+            </template>
+
+            <template x-if="form.order && form.kind === 'ack'">
+              <div class="space-y-3">
+                <div>
+                  <label class="lbl">Quotation reference</label>
+                  <select class="fld" x-model="form.quotation_paper_id" :disabled="form.repeat_po">
+                    <option value="">None</option>
+                    <template x-for="p in (form.quotationPapers || [])" :key="p.id">
+                      <option :value="p.id" x-text="p.display_no"></option>
+                    </template>
+                  </select>
+                </div>
+                <div x-show="!form.quotation_paper_id">
+                  <label class="lbl">…or a ledger quotation</label>
+                  <select class="fld" x-model="form.document_id" :disabled="form.repeat_po">
+                    <option value="">None</option>
+                    <template x-for="d in (form.quotationDocs || [])" :key="d.id">
+                      <option :value="d.id" x-text="d.doc_no"></option>
+                    </template>
+                  </select>
+                </div>
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="checkbox" x-model="form.repeat_po"
+                         class="rounded border-slate-300 text-brand-600 focus:ring-brand-500/30" />
+                  Repeat PO — print the literal words instead of a number
+                </label>
+              </div>
+            </template>
+
+            <template x-if="form.order && form.kind === 'invoice'">
+              <div>
+                <label class="lbl">Also bill these orders</label>
+                <div class="flex items-center gap-2">
+                  <input class="fld" x-model="form.extraQ" @keydown.enter.prevent="addExtraOrder()"
+                         placeholder="Order number — one invoice may cover several POs" />
+                  <button @click="addExtraOrder()"
+                          class="shrink-0 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">Add</button>
+                </div>
+                <div x-show="form.extra_orders.length" class="mt-2 flex flex-wrap gap-2">
+                  <template x-for="(o, i) in form.extra_orders" :key="o.id">
+                    <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs">
+                      <span class="font-mono text-brand-700" x-text="o.order_no"></span>
+                      <button @click="removeExtraOrder(i)" class="text-slate-400 hover:text-rose-600">✕</button>
+                    </span>
+                  </template>
+                </div>
+              </div>
+            </template>
+
+            <template x-if="form.order && ['packing_list','coc','test_cert'].includes(form.kind)">
+              <div>
+                <label class="lbl">Which invoice does this cover?</label>
+                <select class="fld" x-model="form.invoice_paper_id">
+                  <option value="">Choose the invoice…</option>
+                  <template x-for="p in (form.invoicePapers || [])" :key="p.id">
+                    <option :value="p.id" x-text="p.display_no"></option>
+                  </template>
+                </select>
+                <div x-show="!(form.invoicePapers || []).length" class="text-xs text-slate-400 mt-1">
+                  This order has no invoice yet — raise the invoice first.
+                </div>
+              </div>
+            </template>
+
+            <template x-if="form.order && ['work_order','bom'].includes(form.kind)">
+              <div class="text-xs text-slate-400">Nothing else to choose — this one is built from the order.</div>
+            </template>
+
+            <div class="flex items-center gap-3 pt-2 border-t border-slate-100">
+              <button @click="createPaper()" :disabled="!createReady || form.busy"
+                      class="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm transition-colors">
+                Create draft
+              </button>
+              <a :href="backHref()" @click.prevent="backToList()"
+                 class="text-slate-500 hover:text-slate-800 text-sm transition-colors no-underline">Cancel</a>
+            </div>
+          </div>
+        </section>
+      </template>
+
+    </main>
+  </div>
+
+  <div x-show="booted && !authed" class="min-h-screen flex items-center justify-center text-slate-500">
+    Redirecting…
+  </div>
+</body>
+</html>

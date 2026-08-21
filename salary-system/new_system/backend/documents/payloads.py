@@ -301,21 +301,37 @@ def customer_row(conn, customer_id):
 def primary_contact(conn, customer_id) -> dict:
     """The first contact on the customer — the ack's CONTACTS block.
 
-    ``customer_contact`` has no fax column, so fax comes back blank and is
-    typed on the paper (the two reference documents both print one).
+    Fax is a real column now (both reference documents print one); a contact
+    saved before it existed simply has none, and the field stays editable on
+    the paper.
     """
     row = conn.execute(
-        "SELECT name, email, phone FROM customer_contact WHERE customer_id=?"
+        "SELECT name, email, phone, fax FROM customer_contact WHERE customer_id=?"
         " ORDER BY id LIMIT 1", (customer_id,)).fetchone()
     if not row:
         return {"name": "", "email": "", "tel": "", "fax": ""}
     return {"name": _s(row["name"]), "email": _s(row["email"]),
-            "tel": _s(row["phone"]), "fax": ""}
+            "tel": _s(row["phone"]), "fax": _s(row["fax"])}
+
+
+def customer_country(customer_row_) -> tuple[list[str], str]:
+    """``(address lines, country)`` — the FIELD first, the heuristic second.
+
+    ``customer.country`` is what the office typed, so it wins; when it is
+    blank we still read the tail of the address, which is where every
+    reference document puts the country.  When the field IS set the address
+    keeps all its lines: dropping the last one would delete a street.
+    """
+    text = customer_row_["address_billing"]
+    typed = _s(customer_row_["country"] if "country" in customer_row_.keys() else "")
+    if typed:
+        return address_lines(text), typed
+    return split_country(text)
 
 
 def customer_block(conn, customer_id) -> dict:
     c = customer_row(conn, customer_id)
-    lines, country = split_country(c["address_billing"])
+    lines, country = customer_country(c)
     return {"name": _s(c["name"]), "country": country, "address_lines": lines,
             "contact": primary_contact(conn, customer_id)}
 
@@ -755,11 +771,16 @@ def build_coc(conn, order_id: int, opts: dict) -> dict:
 
 
 def coc_no(po: str, invoice_no: str) -> str:
-    """``COC-PO02940-EI-122`` — the COC has no counter, it is named after the
-    PO and invoice it certifies (CONVENTIONS §3); that pair is what makes it
-    unique in the paper table."""
-    serial = registry._serial(invoice_no)
-    return f"COC-{_s(po) or 'PO'}-EI-{serial or '000'}"
+    """``COC-PO-02940-EI-122`` — the COC has no counter: it is named after the
+    PO and the invoice it certifies (CONVENTIONS §3), and that pair is what
+    makes it unique in the paper table.
+
+    The number is the FILE's name minus its extension, taken from the registry
+    rather than re-spelled here — the office identifies a COC by the document
+    they hand over, so a number that read differently from the filename would
+    be a second, wrong identity for the same piece of paper.
+    """
+    return registry.stem("coc", {"po": _s(po), "invoice_no": _s(invoice_no)})
 
 
 def build_test_cert(conn, order_id: int, opts: dict) -> dict:

@@ -206,6 +206,7 @@ function od() {
       { k: "material",  label: "Material" },
       { k: "shipments", label: "Shipments & history" },
       { k: "documents", label: "Documents" },
+      { k: "intake",    label: "Intake" },
     ],
     segCount(k) {
       const d = this.detail;
@@ -213,8 +214,102 @@ function od() {
       if (k === "items") return d.items.length;
       if (k === "material") return (this.bom?.summary || []).length;
       if (k === "shipments") return d.consignments.length;
-      if (k === "documents") return (d.documents || []).length;
+      if (k === "documents") return (d.documents || []).length + (d.papers || []).length;
+      if (k === "intake") return (d.attachments || []).length;
       return 0;
+    },
+
+    // ---- the pipeline strip (SOP-DESIGN §6) --------------------------------- //
+    // Which stage issues which paperwork. Enquiry and payment issue none — the
+    // enquiry has nothing to send yet and payment is the ledger's business.
+    stagePaperKinds: {
+      quote: ["quotation"],
+      po: ["ack"],
+      production: ["work_order", "bom"],
+      qc: ["coc", "test_cert"],
+      dispatch: ["invoice", "packing_list"],
+    },
+    stageKinds(key) { return this.stagePaperKinds[key] || []; },
+    // A voided paper is not the stage's paper any more, but it stays in the
+    // register — it just no longer counts as "this stage is covered".
+    stagePapers(key) {
+      const kinds = this.stageKinds(key);
+      return (this.detail?.papers || [])
+        .filter((p) => kinds.includes(p.kind) && p.status !== "void")
+        .slice().reverse();
+    },
+    stageMissing(key) {
+      const have = new Set(this.stagePapers(key).map((p) => p.kind));
+      return this.stageKinds(key).filter((k) => !have.has(k));
+    },
+    odPaperShort(kind) {
+      return { quotation: "Quote", ack: "Ack", work_order: "WO", bom: "BOM",
+               invoice: "Invoice", packing_list: "Packing", coc: "COC",
+               test_cert: "TC" }[kind] || kind;
+    },
+    odPaperName(kind) {
+      return { quotation: "quotation", ack: "acknowledgement", work_order: "work order",
+               bom: "bill of materials", invoice: "export invoice",
+               packing_list: "packing list", coc: "certificate of conformance",
+               test_cert: "test certificate" }[kind] || kind;
+    },
+    odPaperClass(st) {
+      return {
+        draft:      "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20",
+        final:      "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20",
+        sent:       "bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-600/20",
+        superseded: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20",
+        void:       "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20",
+      }[st] || "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20";
+    },
+    odPaperDot(st) {
+      return { draft: "bg-slate-400", final: "bg-emerald-500", sent: "bg-brand-600",
+               superseded: "bg-amber-500", void: "bg-rose-500" }[st] || "bg-slate-400";
+    },
+
+    // ---- intake: what the customer sent us ---------------------------------- //
+    att: { label: "", files: null, busy: false },
+    async uploadAttachments() {
+      const input = document.getElementById("od-att-files");
+      const files = input && input.files;
+      if (!files || !files.length) return this.flash("Choose at least one file", "err");
+      const fd = new FormData();
+      fd.append("label", this.att.label || "");
+      for (const f of files) fd.append("files", f);
+      this.att.busy = true;
+      try {
+        const res = await fetch(`/api/orders/${this.detail.id}/attachments`, {
+          method: "POST", headers: { "X-Requested-With": "apex-payroll" }, body: fd });
+        if (!res.ok) {
+          let detail = res.statusText;
+          try { detail = (await res.json()).detail || detail; } catch (_) {}
+          throw new Error(detail);
+        }
+        this.att.label = "";
+        input.value = "";
+        this.detail = await api(`/api/orders/${this.detail.id}`);
+        this.flash("Paperwork attached");
+      } catch (e) { this.fail(e); } finally { this.att.busy = false; }
+    },
+    async removeAttachment(a) {
+      if (!window.confirm(`Delete ${a.filename}?`)) return;
+      try {
+        await api(`/api/orders/attachments/${a.id}`, { method: "DELETE" });
+        this.detail = await api(`/api/orders/${this.detail.id}`);
+        this.flash("Attachment deleted");
+      } catch (e) { this.fail(e); }
+    },
+    fileSize(b) {
+      if (!b) return "";
+      return b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.round(b / 1024) + " KB";
+    },
+    itemLabel(it) {
+      return it.drawing_no
+        ? it.drawing_no + (it.revision ? ` rev ${it.revision}` : "")
+        : (it.description || "item");
+    },
+    get drawingRows() {
+      return (this.detail?.items || []).filter((i) => (i.drawing_files || []).length);
     },
     // quotation/invoice chips on the order record — same colours Quotations uses
     odDocClass(kind) {

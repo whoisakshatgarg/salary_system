@@ -24,7 +24,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from backend.core import db, numbering                              # noqa: E402
+from backend.core import db, numbering, paths                       # noqa: E402
 from backend.documents import payloads, registry, router, service   # noqa: E402
 from backend.modules import customers, orders, parts, quotations, settings  # noqa: E402
 
@@ -539,8 +539,32 @@ class CocPaper(PapersBase):
         self.assertEqual((p["plating"], p["finishing"]), ("NA", "NA"))
         self.assertEqual(p["qty_shipped"], 900)
         self.assertEqual(p["authenticator"], "Q.A. MANAGER")
-        self.assertEqual(coc["paper_no"], f"COC-PO03864-EI-"
+        self.assertEqual(coc["paper_no"], f"COC-PO-03864-EI-"
                                           f"{inv['paper_no'].rsplit('/', 1)[1]}")
+
+    def test_the_number_is_the_filename(self):
+        """A COC has no counter — the document IS its identity (CONV §3), so
+        the number the register holds and the file the office sends out must
+        be the same string, not two spellings of it."""
+        inv = self.invoice(self.order_a)
+        coc = self.make("coc", invoice_paper_id=inv["id"])
+        stem, _, ext = coc["filename"].rpartition(".")
+        self.assertEqual(ext, "docx")
+        self.assertEqual(coc["paper_no"], stem)
+        self.assertEqual(coc["payload"]["number"], stem)
+        self.assertEqual(coc["display_no"], stem)
+        self.assertTrue(stem.startswith("COC-PO-"), stem)
+
+    def test_a_certificate_without_a_po_says_so(self):
+        order = orders.create_order(self.conn, {
+            "customer_id": self.cust, "customer_po": "",
+            "order_date": "2026-08-01", "due_date": "2026-09-01",
+            "items": [{"drawing_id": self.drg_a, "qty": 10, "unit": "EA",
+                       "rate": 5}]})
+        inv = self.make("invoice", order_id=order)
+        with self.assertRaises(ValueError) as e:
+            self.make("coc", order_id=order, invoice_paper_id=inv["id"])
+        self.assertIn("PO number", str(e.exception))
 
     def test_short_name_heuristic(self):
         self.assertEqual(payloads.customer_short("SELCO Products Company"), "SELCO")
@@ -937,16 +961,200 @@ class RouterSurface(unittest.TestCase):
         self.assertEqual(by_kind["invoice"]["format"], "docx")
         self.assertIn("draft", refs["statuses"])
 
-    def test_the_guard_falls_back_until_the_sop_module_keys_exist(self):
-        """TODO(wiring wave): flip to the four SOP keys — see router.py."""
+    def test_the_guard_is_the_four_sop_module_keys(self):
+        """SOP-DESIGN §7/§10: any ONE of the four SOP grants opens /api/papers.
+
+        Wave 3 registered the keys, so the fallback the router shipped with is
+        gone; this pins that it stays gone.
+        """
         from backend.core.registry import ALL_KEYS
-        present = [k for k in router.SOP_KEYS if k in ALL_KEYS]
-        if present:
-            self.assertEqual(list(router.GUARD_KEYS), present)
-            self.assertFalse(router.GUARD_IS_FALLBACK)
-        else:
-            self.assertEqual(router.GUARD_KEYS, ("orders",))
-            self.assertTrue(router.GUARD_IS_FALLBACK)
+        self.assertEqual(router.SOP_KEYS,
+                         ("acks", "production_docs", "shipping_docs", "quality_docs"))
+        for key in router.SOP_KEYS:
+            self.assertIn(key, ALL_KEYS)
+        self.assertEqual(router.GUARD_KEYS, router.SOP_KEYS)
+        self.assertFalse(router.GUARD_IS_FALLBACK)
+        self.assertNotIn("orders", router.GUARD_KEYS)
+
+    def test_the_router_is_mounted_on_the_app(self):
+        """A router nobody includes is a router nobody can call."""
+        from backend.main import app
+        served = set(app.openapi()["paths"])
+        for path in ("/api/papers", "/api/papers/refs", "/api/papers/{paper_id}",
+                     "/api/papers/{paper_id}/file", "/api/papers/{paper_id}/refill",
+                     "/api/papers/{paper_id}/status", "/api/papers/{paper_id}/revise"):
+            self.assertIn(path, served)
+
+
+# --------------------------------------------------------------------------- #
+class LauncherRegistry(unittest.TestCase):
+    """The homepage tiles read like the SOP, in this exact order (§7)."""
+
+    SOP_ORDER = ["orders", "quotations", "acks", "production_docs",
+                 "shipping_docs", "quality_docs", "outsourcing", "inventory",
+                 "parts", "customers", "employees", "salary", "settings"]
+
+    def test_the_tiles_are_in_sop_order(self):
+        from backend.core.registry import ALL_KEYS, MODULES
+        self.assertEqual(ALL_KEYS, self.SOP_ORDER)
+        self.assertEqual([m["key"] for m in MODULES], self.SOP_ORDER)
+
+    def test_the_four_sop_tiles_open_papers_pre_filtered(self):
+        from backend.core.registry import MODULES
+        by_key = {m["key"]: m for m in MODULES}
+        want = {
+            "acks": ("PO Acknowledgements", "/papers/?kind=ack"),
+            "production_docs": ("Production — WO & BOM",
+                                "/papers/?kind=work_order,bom"),
+            "shipping_docs": ("Shipping — Invoice & Packing",
+                              "/papers/?kind=invoice,packing_list"),
+            "quality_docs": ("Quality — COC & Test Certs",
+                             "/papers/?kind=coc,test_cert"),
+        }
+        for key, (label, path) in want.items():
+            entry = by_key[key]
+            self.assertEqual(entry["label"], label)
+            self.assertEqual(entry["path"], path)
+            self.assertTrue(entry["built"])
+            self.assertTrue(entry["icon"].strip(), f"{key} needs a glyph")
+            self.assertTrue(entry["desc"].strip(), f"{key} needs a description")
+        # every kind the papers engine knows is reachable from some tile
+        filtered = {k for _, path in want.values()
+                    for k in path.split("kind=")[1].split(",")}
+        self.assertEqual(filtered | {"quotation"}, set(payloads.KINDS))
+
+    def test_the_older_tiles_kept_their_identity(self):
+        """Reordering must not have rewritten anything else."""
+        from backend.core.registry import MODULES
+        by_key = {m["key"]: m for m in MODULES}
+        for key, label, path in (
+                ("orders", "Order Tracking", "/orders/"),
+                ("quotations", "Quotations & Invoices", "/quotations/"),
+                ("outsourcing", "Outsourcing", "/outsourcing/"),
+                ("inventory", "Raw Material Inventory", "/inventory/"),
+                ("parts", "Parts & Pricing", "/parts/"),
+                ("customers", "Customers", "/customers/"),
+                ("employees", "Employee Management", "/employees/"),
+                ("salary", "Salary & Attendance", "/payroll/"),
+                ("settings", "Settings", "/settings/")):
+            self.assertEqual(by_key[key]["label"], label)
+            self.assertEqual(by_key[key]["path"], path)
+
+    def test_the_papers_page_exists(self):
+        page = paths.frontend_dir() / "papers"
+        self.assertTrue((page / "index.html").is_file())
+        self.assertTrue((page / "papers.js").is_file())
+
+    def test_a_tile_path_with_a_querystring_survives_the_shell(self):
+        """The shell navigates with the path verbatim — no split, no encode."""
+        shell = (paths.frontend_dir() / "shell" / "shell.js").read_text("utf-8")
+        self.assertIn("window.location.href = m.path", shell)
+        home = (paths.frontend_dir() / "index.html").read_text("utf-8")
+        self.assertIn(':href="m.built && m.path ? m.path : null"', home)
+
+
+# --------------------------------------------------------------------------- #
+class Screens(unittest.TestCase):
+    """The surfaces wave 3 built, pinned so a refactor can't quietly drop one.
+
+    Cheap string checks on purpose — the behaviour is proved by the E2E walk;
+    what this guards is that the wiring between pages still EXISTS (a renamed
+    helper or a dropped deep-link param is invisible until someone clicks it).
+    """
+
+    def page(self, *parts):
+        return (paths.frontend_dir().joinpath(*parts)).read_text("utf-8")
+
+    def test_the_papers_workspace_reads_its_deep_links(self):
+        js = self.page("papers", "papers.js")
+        for param in ('qs.get("kind")', 'qs.get("open")', 'qs.get("new")',
+                      'qs.get("order")'):
+            self.assertIn(param, js)
+        self.assertIn("window.history.replaceState", js)
+        # any ONE of the four grants opens it — same set as the backend guard
+        self.assertIn('PAPER_KEYS = ["acks", "production_docs", "shipping_docs", '
+                      '"quality_docs"]', js)
+        self.assertEqual(sorted(router.SOP_KEYS),
+                         sorted(["acks", "production_docs", "shipping_docs",
+                                 "quality_docs"]))
+
+    def test_the_papers_editor_covers_every_kind(self):
+        html = self.page("papers", "index.html")
+        for kind in payloads.KINDS:
+            self.assertIn(f"'{kind}'", html, f"no editor branch for {kind}")
+        # a full page, never a modal (owner brief)
+        self.assertNotIn("bg-slate-900/50", html)
+
+    def test_the_papers_editor_keeps_numbers_numeric(self):
+        """A payload string in a money cell writes TEXT into the spreadsheet."""
+        js = self.page("papers", "papers.js")
+        self.assertIn("NUM_FIELDS", js)
+        for kind in payloads.KINDS:
+            self.assertIn(f"{kind}:", js.split("NUM_FIELDS")[1][:900],
+                          f"{kind} has no numeric-field spec")
+
+    def test_the_order_pipeline_strip_links_to_papers(self):
+        js = self.page("orders", "orders.js")
+        html = self.page("orders", "index.html")
+        self.assertIn("stagePaperKinds", js)
+        strip = js.split("stagePaperKinds")[1][:400]
+        for stage, kind in (("quote", "quotation"), ("po", "ack"),
+                            ("production", "work_order"), ("qc", "coc"),
+                            ("dispatch", "invoice")):
+            self.assertIn(f"{stage}:", strip)
+            self.assertIn(kind, strip)
+        self.assertIn("'/papers/?open=' + p.id", html)
+        self.assertIn("'/papers/?new=' + k + '&order=' + detail.id", html)
+
+    def test_the_order_intake_card_uploads_and_lists(self):
+        js = self.page("orders", "orders.js")
+        html = self.page("orders", "index.html")
+        self.assertIn("/attachments", js)
+        self.assertIn("uploadAttachments", js)
+        self.assertIn("removeAttachment", js)
+        self.assertIn("'/api/orders/attachments/' + a.id", html)
+        self.assertIn("'/api/parts/files/' + f.id", html)   # drawings on the order
+        self.assertIn('{ k: "intake"', js)
+
+    def test_the_widest_grids_scroll_instead_of_clipping(self):
+        """21 analysis columns in 1100px showed '0.0' where the heat says
+        0.021 — a wide grid scrolls inside its frame (UI-STYLE §2)."""
+        html = self.page("papers", "index.html")
+        for grid in ("min-width:1560px", "min-width:1320px"):   # test cert, BOM
+            self.assertIn(grid, html)
+        self.assertEqual(html.count("overflow-x-auto"), html.count("<table"))
+
+    def test_a_three_decimal_rate_is_shown_with_three_decimals(self):
+        """money() caps at 2dp; a unit rate needs 3 or £0.534 reads £0.53."""
+        js = self.page("quotations", "quotations.js")
+        html = self.page("quotations", "index.html")
+        self.assertIn("maximumFractionDigits: 3", js)
+        self.assertIn('x-text="qiRate(l.rate)"', html)
+        self.assertIn('step="0.001"', html)
+
+    def test_quotations_can_revise_and_export(self):
+        js = self.page("quotations", "quotations.js")
+        html = self.page("quotations", "index.html")
+        self.assertIn("/revise", js)
+        self.assertIn("exportPaper", js)
+        self.assertIn("/api/papers?kind=", js)          # look before you create
+        self.assertIn("d.superseded_by", html)          # dimmed + amber chip
+        self.assertIn("revRail", html)
+
+    def test_settings_edits_the_document_counters(self):
+        js = self.page("settings", "settings.js")
+        html = self.page("settings", "index.html")
+        self.assertIn("/api/settings/numbering", js)
+        self.assertIn("saveCounter", js)
+        self.assertIn("Counters follow the paperwork", html)
+
+    def test_customers_carries_country_and_fax(self):
+        html = self.page("customers", "index.html")
+        js = self.page("customers", "customers.js")
+        self.assertIn('x-model="form.country"', html)
+        self.assertIn('x-model="contact.fax"', html)
+        self.assertIn("country:", js)
+        self.assertIn("fax:", js)
 
 
 if __name__ == "__main__":

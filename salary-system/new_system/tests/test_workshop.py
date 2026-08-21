@@ -1438,3 +1438,96 @@ class OutsourcedLineFields(WorkshopBase):
             (numbering.os_item_id(self.conn), "Bought-out bush", 10))
         self.conn.commit()
         return cur.lastrowid
+
+
+# --------------------------------------------------------------------------- #
+class UnitRatePrecision(WorkshopBase):
+    """CONVENTIONS §5: a unit RATE keeps three decimals, MONEY keeps two.
+
+    The Thermosense quotation prices at £0.534 / 0.675 / 0.320. Rounding the
+    rate to 2dp on the way in silently reprices the job — and no amount of
+    care further down can recover the third decimal once it is gone.
+    """
+
+    def doc(self, rate, qty=120000):
+        return quotations.get_doc(self.conn, quotations.create_doc(
+            self.conn, "quotation",
+            {"customer_id": self.cust, "doc_date": "2026-08-14", "tax_pct": 0,
+             "lines": [{"description": "Collar Assy.", "qty": qty,
+                        "unit": "EA", "rate": rate}]}))
+
+    def test_a_three_decimal_rate_survives_the_round_trip(self):
+        for rate in (0.534, 0.675, 0.32, 12.125):
+            with self.subTest(rate=rate):
+                self.assertEqual(self.doc(rate)["lines"][0]["rate"], rate)
+
+    def test_the_reference_rate_is_not_rounded_to_pennies(self):
+        d = self.doc(0.534)
+        self.assertNotEqual(d["lines"][0]["rate"], 0.53)
+        self.assertEqual(d["lines"][0]["amount"], 64080.00)   # 120000 × 0.534
+        self.assertEqual(d["total"], 64080.00)
+
+    def test_a_fourth_decimal_is_still_rounded_away(self):
+        """Three places, not 'whatever was typed' — the format is a contract."""
+        self.assertEqual(self.doc(0.5344)["lines"][0]["rate"], 0.534)
+        self.assertEqual(self.doc(0.5346)["lines"][0]["rate"], 0.535)
+
+    def test_money_stays_at_two_places(self):
+        self.assertEqual(quotations.RATE_PLACES, 3)
+        self.assertEqual(quotations.MONEY_PLACES, 2)
+        self.assertEqual(quotations._check_num(1.005, "x"), 1.0)
+        self.assertEqual(quotations._check_num(1.0055, "x", places=3), 1.006)
+        # the amount of a 3dp rate is still money: two places
+        d = self.doc(0.675, qty=7)
+        self.assertEqual(d["lines"][0]["amount"], 4.73)       # 4.725 -> 4.73
+
+    def test_an_edit_keeps_the_third_decimal_too(self):
+        did = quotations.create_doc(self.conn, "quotation", {
+            "customer_id": self.cust, "doc_date": "2026-08-14",
+            "lines": [{"description": "Collar Assy.", "qty": 10, "rate": 1}]})
+        quotations.update_doc(self.conn, did, {
+            "customer_id": self.cust, "doc_date": "2026-08-14",
+            "lines": [{"description": "Collar Assy.", "qty": 10, "rate": 0.534}]})
+        self.assertEqual(quotations.get_doc(self.conn, did)["lines"][0]["rate"], 0.534)
+
+
+# --------------------------------------------------------------------------- #
+class CustomerCountryAndFax(WorkshopBase):
+    """Two fields the paperwork needs and the master didn't have.
+
+    The quotation prints the country on its own line and the currency defaults
+    from it (CONVENTIONS §9-D); the ack's CONTACTS block prints a fax.
+    """
+
+    def test_the_columns_exist_in_all_three_places(self):
+        cols = {t: {r["name"] for r in self.conn.execute(f"PRAGMA table_info({t})")}
+                for t in ("customer", "customer_contact")}
+        self.assertIn("country", cols["customer"])
+        self.assertIn("fax", cols["customer_contact"])
+        self.assertIn("country", db._MIGRATIONS["customer"])
+        self.assertIn("fax", db._MIGRATIONS["customer_contact"])
+        self.assertIn("country", customers.CustomerIn.model_fields)
+        self.assertIn("fax", customers.ContactIn.model_fields)
+
+    def test_the_route_models_default_to_blank_not_none(self):
+        """The silent-drop trap: an undeclared field never reaches save()."""
+        self.assertEqual(customers.CustomerIn(name="X").country, "")
+        self.assertEqual(customers.ContactIn(name="X").fax, "")
+        self.assertEqual(customers.CustomerIn(name="X", country="USA").country, "USA")
+        self.assertEqual(customers.ContactIn(name="X", fax="91-120").fax, "91-120")
+
+    def test_country_saves_and_reloads(self):
+        customers.save_customer(self.conn, {"name": "Acme Pumps", "country": "England"},
+                                self.cust)
+        self.assertEqual(customers.get_customer(self.conn, self.cust)["country"],
+                         "England")
+
+    def test_fax_saves_and_reloads(self):
+        c = customers.add_contact(self.conn, self.cust, {
+            "name": "Ryan Davis", "phone": "44-1234", "email": "ryan@x.co.uk",
+            "fax": "91-120-4167561"})
+        self.assertEqual(c["contacts"][0]["fax"], "91-120-4167561")
+
+
+if __name__ == "__main__":
+    unittest.main()

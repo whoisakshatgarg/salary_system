@@ -44,7 +44,7 @@ function cu() {
     tab: "profile",       // 'profile' | 'business'
     form: null,
     formError: "",
-    contact: { name: "", phone: "", email: "", role: "" },
+    contact: { name: "", phone: "", email: "", fax: "", role: "" },
 
     money(n) {
       if (n === null || n === undefined || n === "") return "—";
@@ -202,14 +202,14 @@ function cu() {
         ]);
         this.detail = detail;
         this.biz = biz;
-        this.contact = { name: "", phone: "", email: "", role: "" };
+        this.contact = { name: "", phone: "", email: "", fax: "", role: "" };
       } catch (e) { this.fail(e); }
     },
     closeDetail() { this.detail = null; this.biz = null; this.load(); },
 
     newCust() {
       this.form = { id: null, name: "", abbr: "", gstin: "", address_billing: "",
-                    address_shipping: "", payment_terms: "", notes: "" };
+                    address_shipping: "", country: "", payment_terms: "", notes: "" };
       this.formError = "";
     },
     // live preview of the code the server will assign: first letter of the name
@@ -266,7 +266,7 @@ function cu() {
       try {
         this.detail = await api(`/api/customers/${this.detail.id}/contacts`,
                                 { method: "POST", body: this.contact });
-        this.contact = { name: "", phone: "", email: "", role: "" };
+        this.contact = { name: "", phone: "", email: "", fax: "", role: "" };
       } catch (e) { this.fail(e); }
     },
     async removeContact(k) {

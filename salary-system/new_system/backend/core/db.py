@@ -259,6 +259,8 @@ CREATE TABLE IF NOT EXISTS customer (
     gstin            TEXT,
     address_billing  TEXT,
     address_shipping TEXT,
+    country          TEXT,                         -- printed on the quotation; also
+                                                   -- picks the currency (CONV §9-D)
     payment_terms    TEXT,
     notes            TEXT,
     active           INTEGER NOT NULL DEFAULT 1,
@@ -271,6 +273,7 @@ CREATE TABLE IF NOT EXISTS customer_contact (
     name        TEXT NOT NULL,
     phone       TEXT,
     email       TEXT,
+    fax         TEXT,                              -- the ack's CONTACTS block (CONV §6)
     role        TEXT
 );
 
@@ -712,6 +715,13 @@ def connect(db_path: str | Path | None = None) -> sqlite3.Connection:
 _MIGRATIONS = {
     "customer": {
         "code": "TEXT",
+        # The country was read off the tail of the address until the papers
+        # needed it as a field of its own (CONVENTIONS §6): the quotation
+        # prints it on its own line and the currency defaults from it.
+        "country": "TEXT",
+    },
+    "customer_contact": {
+        "fax": "TEXT",              # both reference documents print one
     },
     "drawing": {
         "part_type": "TEXT",
