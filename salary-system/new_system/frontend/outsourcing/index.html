@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Outsourcing — APEX THERMOCON</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png" />
+  <script src="/vendor/tailwind.js"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { brand: {
+      50: "#eff6ff", 100: "#dbeafe", 500: "#3b82f6",
+      600: "#1d4ed8", 700: "#1e40af", 800: "#1e3a8a" } } } } };
+  </script>
+  <script defer src="outsourcing.js"></script>
+  <script defer src="/vendor/alpine.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    input, select, textarea { outline: none; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800" x-data="osw()" x-init="boot()" x-cloak>
+
+  <div x-show="toast.show" x-transition
+       class="fixed top-4 right-4 z-[70] px-4 py-3 rounded-lg shadow-lg text-white text-sm"
+       :class="toast.kind === 'err' ? 'bg-rose-600' : 'bg-emerald-600'" x-text="toast.msg"></div>
+
+  <div x-show="booted && authed" class="min-h-screen flex flex-col">
+    <header class="bg-slate-900 text-slate-300 px-6 py-3 flex items-center gap-4 shrink-0">
+      <a href="/" title="Back to all modules"
+         class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
+        <span class="text-base leading-none">⌂</span> Home
+      </a>
+      <img src="/assets/logo-mark.png" alt="APEX logo"
+           class="w-9 h-9 rounded-lg bg-white ring-1 ring-white/15 shrink-0 -mr-1" />
+      <div>
+        <div class="text-white font-bold leading-tight">Outsourcing</div>
+        <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-semibold">Apex Thermocon</div>
+      </div>
+      <!-- real links: right-click "open in new tab" works; a normal click is
+           intercepted and switches in place without a reload -->
+      <nav class="inline-flex items-center gap-0.5 ml-4 bg-slate-800/80 rounded-xl p-1">
+        <a href="?tab=outgoing" @click.prevent="goTab('outgoing')"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+           :class="tab === 'outgoing' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Outgoing</a>
+        <a href="?tab=receipts" @click.prevent="goTab('receipts')"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+           :class="tab === 'receipts' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Receipts</a>
+        <a href="?tab=stock" @click.prevent="goTab('stock')"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+           :class="tab === 'stock' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Stock</a>
+        <a href="?tab=vendors" @click.prevent="goTab('vendors')"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+           :class="tab === 'vendors' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Vendors</a>
+        <a href="?tab=documents" @click.prevent="goTab('documents'); loadOrderOptions()"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+           :class="tab === 'documents' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'">Documents</a>
+      </nav>
+      <div class="ml-auto flex items-center gap-4 text-xs text-slate-400">
+        <span>Signed in as <span class="text-white" x-text="user?.username"></span></span>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-auto p-6 max-w-6xl w-full mx-auto">
+
+      <!-- ============================ OUTGOING ============================ -->
+      <section x-show="tab === 'outgoing'">
+
+        <!-- ================= WHAT IS STILL OUT THERE =================
+             The same three columns as the Home deadline panel, over the
+             vendors' promised dates instead of the customers'. -->
+        <template x-if="due && dueCount()">
+          <div class="mb-6">
+            <div class="flex items-center mb-3">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Out at a vendor</div>
+              <button @click="loadDue()"
+                      class="ml-auto text-xs text-slate-400 hover:text-brand-700 transition-colors">Refresh</button>
+            </div>
+            <div class="grid grid-cols-3 gap-4 items-start">
+
+              <div class="rounded-xl border border-slate-200 border-l-4 border-l-rose-500 bg-white shadow-sm overflow-hidden">
+                <div class="flex items-center px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200">
+                  <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Overdue</span>
+                  <span class="ml-auto text-[11px] tabular-nums font-semibold"
+                        :class="due.overdue.length ? 'text-rose-600' : 'text-slate-300'"
+                        x-text="due.overdue.length"></span>
+                </div>
+                <div class="divide-y divide-slate-100">
+                  <template x-for="o in due.overdue" :key="o.id">
+                    <a :href="'?tab=outgoing&open=' + o.id" @click.prevent="open(o.id)"
+                       title="Open this job order"
+                       class="block px-4 py-2 hover:bg-brand-50/60 transition-colors cursor-pointer no-underline">
+                      <div class="flex items-center gap-2">
+                        <span class="font-mono text-xs font-semibold text-brand-700 shrink-0" x-text="o.os_no"></span>
+                        <span class="text-sm text-slate-800 truncate min-w-0" x-text="o.vendor_name"></span>
+                        <span class="ml-auto shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium tabular-nums
+                                     bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20 whitespace-nowrap">
+                          <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span><span x-text="(-o.days_left) + 'd late'"></span>
+                        </span>
+                      </div>
+                      <div class="text-[11px] text-slate-400 tabular-nums mt-0.5"
+                           x-text="[o.purpose, o.qty_pending + ' to come'].filter(Boolean).join(' · ')"></div>
+                    </a>
+                  </template>
+                  <div x-show="!due.overdue.length" class="px-4 py-3 text-xs text-slate-300">Nothing overdue</div>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-slate-200 border-l-4 border-l-amber-500 bg-white shadow-sm overflow-hidden">
+                <div class="flex items-center px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200">
+                  <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Next 7 days</span>
+                  <span class="ml-auto text-[11px] tabular-nums font-semibold"
+                        :class="due.this_week.length ? 'text-amber-600' : 'text-slate-300'"
+                        x-text="due.this_week.length"></span>
+                </div>
+                <div class="divide-y divide-slate-100">
+                  <template x-for="o in due.this_week" :key="o.id">
+                    <a :href="'?tab=outgoing&open=' + o.id" @click.prevent="open(o.id)"
+                       title="Open this job order"
+                       class="block px-4 py-2 hover:bg-brand-50/60 transition-colors cursor-pointer no-underline">
+                      <div class="flex items-center gap-2">
+                        <span class="font-mono text-xs font-semibold text-brand-700 shrink-0" x-text="o.os_no"></span>
+                        <span class="text-sm text-slate-800 truncate min-w-0" x-text="o.vendor_name"></span>
+                        <span class="ml-auto shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium tabular-nums
+                                     bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 whitespace-nowrap">
+                          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                          <span x-text="o.days_left === 0 ? 'today' : ('in ' + o.days_left + 'd')"></span>
+                        </span>
+                      </div>
+                      <div class="text-[11px] text-slate-400 tabular-nums mt-0.5"
+                           x-text="[o.purpose, o.qty_pending + ' to come'].filter(Boolean).join(' · ')"></div>
+                    </a>
+                  </template>
+                  <div x-show="!due.this_week.length" class="px-4 py-3 text-xs text-slate-300">Nothing due</div>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-slate-200 border-l-4 border-l-slate-400 bg-white shadow-sm overflow-hidden">
+                <div class="flex items-center px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200">
+                  <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Next 31 days</span>
+                  <span class="ml-auto text-[11px] tabular-nums font-semibold"
+                        :class="due.this_month.length ? 'text-slate-600' : 'text-slate-300'"
+                        x-text="due.this_month.length"></span>
+                </div>
+                <div class="divide-y divide-slate-100">
+                  <template x-for="o in due.this_month" :key="o.id">
+                    <a :href="'?tab=outgoing&open=' + o.id" @click.prevent="open(o.id)"
+                       title="Open this job order"
+                       class="block px-4 py-2 hover:bg-brand-50/60 transition-colors cursor-pointer no-underline">
+                      <div class="flex items-center gap-2">
+                        <span class="font-mono text-xs font-semibold text-brand-700 shrink-0" x-text="o.os_no"></span>
+                        <span class="text-sm text-slate-800 truncate min-w-0" x-text="o.vendor_name"></span>
+                        <span class="ml-auto shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium tabular-nums
+                                     bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-900/10 whitespace-nowrap">
+                          <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span><span x-text="'in ' + o.days_left + 'd'"></span>
+                        </span>
+                      </div>
+                      <div class="text-[11px] text-slate-400 tabular-nums mt-0.5"
+                           x-text="[o.purpose, o.qty_pending + ' to come'].filter(Boolean).join(' · ')"></div>
+                    </a>
+                  </template>
+                  <div x-show="!due.this_month.length" class="px-4 py-3 text-xs text-slate-300">Nothing due</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </template>
+
+        <!-- status filter — one segmented control, counts inline -->
+        <div class="inline-flex flex-wrap items-center gap-0.5 bg-white border border-slate-200 rounded-xl p-1 shadow-sm mb-4">
+          <button @click="statusFilter = ''; load()"
+                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                  :class="!statusFilter ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'">
+            All <span class="text-[11px] opacity-70 tabular-nums"
+                      x-text="Object.values(data.status_counts).reduce((a, b) => a + b, 0)"></span>
+          </button>
+          <template x-for="s in lists.statuses" :key="s.key">
+            <button @click="statusFilter = s.key; load()"
+                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                    :class="statusFilter === s.key ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'">
+              <span x-text="s.label"></span>
+              <span class="text-[11px] opacity-70 tabular-nums" x-text="data.status_counts[s.key] || 0"></span>
+            </button>
+          </template>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-4 flex flex-wrap items-center gap-3">
+          <label class="sr-only" for="os-q">Search outgoing orders</label>
+          <input id="os-q" x-model="q" @input.debounce.400ms="load()"
+                 placeholder="OS no / vendor / purpose / part"
+                 class="flex-1 min-w-[240px] border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+          <label class="sr-only" for="os-vendor">Vendor</label>
+          <select id="os-vendor" x-model="vendorFilter" @change="load()"
+                  class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                         focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+            <option value="">All vendors</option>
+            <template x-for="v in lists.vendors" :key="v.id">
+              <option :value="v.id" x-text="v.name"></option>
+            </template>
+          </select>
+          <span class="text-xs text-slate-400 tabular-nums ml-auto">
+            <span x-text="data.rows.length"></span> shown</span>
+          <button @click="newOrder()"
+                  class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm
+                         transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
+            + New outgoing order
+          </button>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-b-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">OS no.</th>
+                  <th class="px-3 py-2.5">Vendor</th>
+                  <th class="px-3 py-2.5">Purpose</th>
+                  <th class="px-3 py-2.5">Sent</th>
+                  <th class="px-3 py-2.5">Deadline</th>
+                  <th class="px-3 py-2.5 w-40">Received</th>
+                  <th class="px-3 py-2.5">Status</th>
+                </tr>
+              </thead>
+              <!-- odd: under a <template> — Alpine leaves the template as the
+                   tbody's first child, so odd: is what keeps row 1 white -->
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="o in data.rows" :key="o.id">
+                  <tr @click="open(o.id)"
+                      class="odd:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
+                    <td class="px-4 py-2.5 font-mono text-xs font-semibold text-brand-700 whitespace-nowrap"
+                        x-text="o.os_no"></td>
+                    <td class="px-3 py-2.5">
+                      <div class="font-mono text-[11px] leading-tight text-slate-400" x-text="o.vendor_code"></div>
+                      <div class="font-medium text-slate-800 leading-tight" x-text="o.vendor_name"></div>
+                    </td>
+                    <td class="px-3 py-2.5" :class="o.purpose ? 'text-slate-600' : 'text-slate-300'"
+                        x-text="o.purpose || '—'"></td>
+                    <td class="px-3 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(o.date_sent)"></td>
+                    <td class="px-3 py-2.5 whitespace-nowrap">
+                      <div :class="osDueCell(o)" x-text="fmtDate(o.deadline)"></div>
+                      <div class="text-[11px] tabular-nums" :class="osDueCell(o)"
+                           x-show="o.deadline && osLive(o)" x-text="osDueLabel(o.days_left)"></div>
+                    </td>
+                    <td class="px-3 py-2.5">
+                      <div class="h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                        <div class="h-full rounded-full transition-all" :class="osBarFill(o.pct_received)"
+                             :style="'width:' + Math.min(o.pct_received, 100) + '%'"></div>
+                      </div>
+                      <div class="text-[11px] text-slate-400 mt-1 tabular-nums whitespace-nowrap"
+                           x-text="num(o.qty_received) + ' / ' + num(o.qty_total) + ' · ' + o.pct_received + '%'"></div>
+                    </td>
+                    <td class="px-3 py-2.5">
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+                            :class="osStatusClass(o.status)">
+                        <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="osStatusDot(o.status)"></span>
+                        <span x-text="osStatusLabel(o.status)"></span>
+                      </span>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="!data.rows.length">
+                  <td colspan="7" class="px-4 py-12 text-center">
+                    <div class="text-3xl opacity-25 leading-none mb-2">🚚</div>
+                    <div class="text-sm text-slate-400 mb-3">Nothing is out at a vendor.</div>
+                    <button @click="newOrder()"
+                            class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm transition-colors">
+                      + New outgoing order
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-400 tabular-nums">
+            <span x-text="data.rows.length"></span> job orders ·
+            <span x-text="money(data.rows.reduce((s, o) => s + (Number(o.value) || 0), 0))"></span> committed
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================ RECEIPTS ============================ -->
+      <section x-show="tab === 'receipts'">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-4 flex flex-wrap items-center gap-3">
+          <label class="sr-only" for="rec-q">Search receipts</label>
+          <input id="rec-q" x-model="rec.q" @input.debounce.400ms="loadReceipts()"
+                 placeholder="OS no / vendor / inspection note"
+                 class="flex-1 min-w-[240px] border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+          <span class="text-xs text-slate-400 tabular-nums ml-auto">
+            <span x-text="rec.rows.length"></span> shown</span>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-b-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">Date</th>
+                  <th class="px-3 py-2.5">OS no.</th>
+                  <th class="px-3 py-2.5">Vendor</th>
+                  <th class="px-3 py-2.5 text-right">Lines</th>
+                  <th class="px-3 py-2.5 text-right">Quantity</th>
+                  <th class="px-3 py-2.5">Inspection</th>
+                  <th class="px-3 py-2.5">Accepted</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="r in rec.rows" :key="r.id">
+                  <tr @click="openReceiptOrder(r)" title="Open the job order this closes out"
+                      class="odd:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
+                    <td class="px-4 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(r.receipt_date)"></td>
+                    <td class="px-3 py-2.5 font-mono text-xs font-semibold text-brand-700 whitespace-nowrap"
+                        x-text="r.os_no"></td>
+                    <td class="px-3 py-2.5 font-medium text-slate-800" x-text="r.vendor_name"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums"
+                        :class="r.lines ? 'text-slate-700' : 'text-slate-300'" x-text="r.lines"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900"
+                        x-text="num(r.qty)"></td>
+                    <td class="px-3 py-2.5 max-w-xs truncate"
+                        :class="r.inspection_notes ? 'text-slate-500' : 'text-slate-300'"
+                        :title="r.inspection_notes || ''"
+                        x-text="r.inspection_notes || '—'"></td>
+                    <td class="px-3 py-2.5">
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+                            :class="r.accepted
+                                    ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20'
+                                    : 'bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20'">
+                        <span class="w-1.5 h-1.5 rounded-full"
+                              :class="r.accepted ? 'bg-emerald-500' : 'bg-rose-500'"></span>
+                        <span x-text="r.accepted ? 'Accepted' : 'Rejected'"></span>
+                      </span>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="!rec.rows.length">
+                  <td colspan="7" class="px-4 py-12 text-center">
+                    <div class="text-3xl opacity-25 leading-none mb-2">📦</div>
+                    <div class="text-sm text-slate-400">Nothing has come back yet — record a receipt from a job order.</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-400 tabular-nums">
+            <span x-text="rec.rows.length"></span> receipts ·
+            <span x-text="rec.rows.filter(r => !r.accepted).length"></span> rejected
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================= STOCK ============================== -->
+      <section x-show="tab === 'stock'">
+        <div class="grid grid-cols-3 gap-3 mb-4">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Items</div>
+            <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="stock.stats?.items ?? 0"></div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">On hand</div>
+            <div class="text-2xl font-bold tabular-nums"
+                 :class="stock.stats?.qty ? 'text-slate-900' : 'text-slate-300'"
+                 x-text="stock.stats?.qty ?? 0"></div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Value</div>
+            <div class="text-2xl font-bold tabular-nums"
+                 :class="stock.stats?.value ? 'text-slate-900' : 'text-slate-300'"
+                 x-text="money(stock.stats?.value ?? 0)"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-4 flex flex-wrap items-center gap-3">
+          <label class="sr-only" for="stk-q">Search outsourced stock</label>
+          <input id="stk-q" x-model="stock.q" @input.debounce.400ms="loadStock()"
+                 placeholder="OS ID / description / part code / material / vendor"
+                 class="flex-1 min-w-[240px] border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+          <span class="text-xs text-slate-400 tabular-nums ml-auto">
+            <span x-text="stock.rows.length"></span> shown</span>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-b-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">OS ID</th>
+                  <th class="px-3 py-2.5">Description</th>
+                  <th class="px-3 py-2.5">Part / matl. / size</th>
+                  <th class="px-3 py-2.5 text-right">On hand</th>
+                  <th class="px-3 py-2.5 text-right">Unit cost</th>
+                  <th class="px-3 py-2.5">Vendor</th>
+                  <th class="px-3 py-2.5">From</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="i in stock.rows" :key="i.id">
+                  <tr @click="openItem(i.id)"
+                      class="odd:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
+                    <td class="px-4 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="i.os_id"></td>
+                    <td class="px-3 py-2.5 font-medium text-slate-800" x-text="i.description"></td>
+                    <td class="px-3 py-2.5 text-xs"
+                        :class="(i.part_code || i.material || i.size_section) ? 'text-slate-500' : 'text-slate-300'"
+                        x-text="[i.part_code, i.material, i.size_section].filter(Boolean).join(' · ') || '—'"></td>
+                    <td class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums">
+                      <span class="font-semibold" :class="i.qty > 0 ? 'text-slate-900' : 'text-slate-300'"
+                            x-text="num(i.qty)"></span>
+                      <span class="text-slate-400" x-text="i.unit || ''"></span>
+                    </td>
+                    <td class="px-3 py-2.5 text-right tabular-nums"
+                        :class="i.unit_cost ? 'text-slate-700' : 'text-slate-300'"
+                        x-text="i.unit_cost ? money(i.unit_cost) : '—'"></td>
+                    <td class="px-3 py-2.5" :class="i.vendor_name ? 'text-slate-600' : 'text-slate-300'"
+                        x-text="i.vendor_name || '—'"></td>
+                    <td class="px-3 py-2.5 font-mono text-xs"
+                        :class="i.source_os_no ? 'text-slate-500' : 'text-slate-300'"
+                        x-text="i.source_os_no || '—'"></td>
+                  </tr>
+                </template>
+                <tr x-show="!stock.rows.length">
+                  <td colspan="7" class="px-4 py-12 text-center">
+                    <div class="text-3xl opacity-25 leading-none mb-2">⛭</div>
+                    <div class="text-sm text-slate-400">No outsourced stock yet — it appears when a receipt is recorded.</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-400 tabular-nums">
+            <span x-text="stock.rows.length"></span> items ·
+            <span x-text="stock.stats?.qty ?? 0"></span> on hand ·
+            <span x-text="money(stock.stats?.value ?? 0)"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================ VENDORS ============================= -->
+      <section x-show="tab === 'vendors'">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-4 flex flex-wrap items-center gap-3">
+          <label class="sr-only" for="ven-q">Search vendors</label>
+          <input id="ven-q" x-model="ven.q" @input.debounce.400ms="loadVendors()"
+                 placeholder="Name / code / services / contact"
+                 class="flex-1 min-w-[240px] border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white
+                        focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+          <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+            <input type="checkbox" x-model="ven.active" @change="loadVendors()" class="w-4 h-4 accent-brand-600" />
+            Active only
+          </label>
+          <span class="text-xs text-slate-400 tabular-nums ml-auto">
+            <span x-text="ven.rows.length"></span> shown</span>
+          <button @click="newVendor()"
+                  class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm
+                         transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">
+            + New vendor
+          </button>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-b-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">Code</th>
+                  <th class="px-3 py-2.5">Vendor</th>
+                  <th class="px-3 py-2.5">Services</th>
+                  <th class="px-3 py-2.5">Contact</th>
+                  <th class="px-3 py-2.5 text-right">Open jobs</th>
+                  <th class="px-3 py-2.5 text-right">Stock</th>
+                  <th class="px-3 py-2.5">Active</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="v in ven.rows" :key="v.id">
+                  <tr @click="openVendor(v.id)"
+                      class="odd:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
+                    <td class="px-4 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="v.code || '—'"></td>
+                    <td class="px-3 py-2.5 font-medium text-slate-800" x-text="v.name"></td>
+                    <td class="px-3 py-2.5" :class="v.services ? 'text-slate-600' : 'text-slate-300'"
+                        x-text="v.services || '—'"></td>
+                    <td class="px-3 py-2.5 text-xs">
+                      <div :class="v.phone ? 'text-slate-600' : 'text-slate-300'" x-text="v.phone || '—'"></div>
+                      <div class="text-slate-400" x-show="v.email" x-text="v.email"></div>
+                    </td>
+                    <td class="px-3 py-2.5 text-right tabular-nums font-semibold"
+                        :class="v.open_jobs ? 'text-amber-700' : 'text-slate-300'" x-text="v.open_jobs"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums"
+                        :class="v.stock_items ? 'text-slate-700' : 'text-slate-300'" x-text="v.stock_items"></td>
+                    <td class="px-3 py-2.5">
+                      <!-- every active vendor would wear the same pill, so only
+                           the exceptional state keeps one (UI-STYLE §3) -->
+                      <template x-if="v.active">
+                        <span class="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
+                        </span>
+                      </template>
+                      <template x-if="!v.active">
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium
+                                     bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20">
+                          <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Inactive
+                        </span>
+                      </template>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="!ven.rows.length">
+                  <td colspan="7" class="px-4 py-12 text-center">
+                    <div class="text-3xl opacity-25 leading-none mb-2">🏭</div>
+                    <div class="text-sm text-slate-400 mb-3">No vendors yet.</div>
+                    <button @click="newVendor()"
+                            class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm transition-colors">
+                      + New vendor
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-400 tabular-nums">
+            <span x-text="ven.rows.length"></span> vendors ·
+            <span x-text="ven.rows.reduce((s, v) => s + v.open_jobs, 0)"></span> jobs out
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================== DOCUMENTS ============================ -->
+      <section x-show="tab === 'documents'">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">File vendor paperwork</div>
+          <div class="grid grid-cols-4 gap-3 items-end">
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Vendor</label>
+              <select x-model="up.vendor_id"
+                      class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+                <option value="">—</option>
+                <template x-for="v in lists.vendors" :key="v.id">
+                  <option :value="v.id" x-text="v.code + ' · ' + v.name"></option>
+                </template>
+              </select></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Outgoing order</label>
+              <select x-model="up.os_order_id"
+                      class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+                <option value="">—</option>
+                <template x-for="o in osOrderOptions" :key="o.id">
+                  <option :value="o.id" x-text="o.os_no + ' · ' + o.vendor_name"></option>
+                </template>
+              </select></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Label</label>
+              <input x-model="up.label" placeholder="Challan, invoice, rate card"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+            <label class="cursor-pointer text-center border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors"
+                   title="Images or PDF — big photos are compressed automatically">
+              <span x-text="up.busy ? 'Uploading…' : '+ Add files'"></span>
+              <input type="file" multiple accept="image/*,application/pdf" class="hidden"
+                     :disabled="up.busy" @change="pickDocs($event)" />
+            </label>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-b-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">Label</th>
+                  <th class="px-3 py-2.5">File</th>
+                  <th class="px-3 py-2.5 text-right">Size</th>
+                  <th class="px-3 py-2.5">Vendor</th>
+                  <th class="px-3 py-2.5">OS no.</th>
+                  <th class="px-3 py-2.5">Uploaded</th>
+                  <th class="px-3 py-2.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="d in docs.rows" :key="d.id">
+                  <tr class="odd:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
+                    <td class="px-4 py-2.5 font-medium"
+                        :class="d.label ? 'text-slate-800' : 'text-slate-300'"
+                        x-text="d.label || '—'"></td>
+                    <td class="px-3 py-2.5">
+                      <button @click="viewDoc(d)"
+                              class="text-brand-700 hover:underline text-left truncate max-w-xs"
+                              x-text="d.filename"></button>
+                    </td>
+                    <td class="px-3 py-2.5 text-right tabular-nums text-slate-500" x-text="sizeLabel(d.size_bytes)"></td>
+                    <td class="px-3 py-2.5" :class="d.vendor_name ? 'text-slate-600' : 'text-slate-300'"
+                        x-text="d.vendor_name || '—'"></td>
+                    <td class="px-3 py-2.5 font-mono text-xs"
+                        :class="d.os_no ? 'text-slate-600' : 'text-slate-300'" x-text="d.os_no || '—'"></td>
+                    <td class="px-3 py-2.5 whitespace-nowrap text-slate-500"
+                        x-text="(d.uploaded_at || '').slice(0, 10)"></td>
+                    <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                      <button @click="downloadDoc(d)" title="Download"
+                              class="text-slate-400 hover:text-slate-700 px-1 transition-colors">⬇</button>
+                      <button @click="deleteDoc(d)" title="Delete"
+                              class="text-slate-300 hover:text-rose-600 px-1 transition-colors">✕</button>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="!docs.rows.length">
+                  <td colspan="7" class="px-4 py-12 text-center">
+                    <div class="text-3xl opacity-25 leading-none mb-2">📎</div>
+                    <div class="text-sm text-slate-400">No vendor paperwork filed yet.</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-400 tabular-nums">
+            <span x-text="docs.rows.length"></span> documents
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ===================== ONE JOB ORDER (FULL WINDOW) =====================
+       A job order carries lines, receipts and paperwork — a dialog was never
+       going to hold it. Same treatment as the customer and order records. -->
+  <template x-if="detail">
+  <div class="fixed inset-0 z-40 bg-slate-100 flex flex-col">
+    <div class="bg-slate-900 text-slate-300 flex items-center gap-3 px-6 py-3 shrink-0">
+      <button @click="closeDetail()" title="Back to all job orders"
+              class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
+        <span class="text-base leading-none">←</span> Back
+      </button>
+      <div>
+        <div class="text-xl font-bold font-mono tracking-tight text-white" x-text="detail.os_no"></div>
+        <div class="text-xs text-slate-400"
+             x-text="[detail.vendor_code + ' ' + detail.vendor_name, detail.purpose,
+                      'sent ' + fmtDate(detail.date_sent)].filter(Boolean).join(' · ')"></div>
+      </div>
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+            :class="osStatusClass(detail.status)">
+        <span class="w-1.5 h-1.5 rounded-full" :class="osStatusDot(detail.status)"></span>
+        <span x-text="osStatusLabel(detail.status)"></span>
+      </span>
+      <span x-show="detail.deadline"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium tabular-nums"
+            :class="osDueChip(detail)">
+        <span class="w-1.5 h-1.5 rounded-full" :class="osDueChipDot(detail)"></span>
+        <span x-text="osDueChipText(detail)"></span>
+      </span>
+      <div class="ml-auto flex gap-2">
+        <!-- not offered on a closed or cancelled job: recording a delivery there
+             would (correctly) leave the decision untouched, so Reopen first -->
+        <button @click="newReceipt()"
+                x-show="osLive(detail) && detail.qty_received < detail.qty_total"
+                class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-3 py-1.5 text-sm transition-colors">
+          📦 Record receipt
+        </button>
+        <button @click="editOrder()"
+                class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">Edit</button>
+        <!-- a live job can be ended by hand; an ended one can be taken back,
+             and re-derives from what has come back -->
+        <template x-if="osLive(detail)">
+          <span class="flex gap-2">
+            <button @click="setStatus('closed')" title="Nothing more is expected from this job"
+                    class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">Close</button>
+            <button @click="setStatus('cancelled')"
+                    class="border border-rose-400/60 text-rose-300 hover:bg-rose-900/40 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+          </span>
+        </template>
+        <template x-if="!osLive(detail)">
+          <button @click="reopen()" title="Back to following the quantities received"
+                  class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">Reopen</button>
+        </template>
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-auto">
+      <div class="max-w-6xl mx-auto p-6 space-y-4">
+
+        <div class="grid grid-cols-4 gap-3">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Sent out</div>
+            <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="num(detail.qty_total)"></div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Back</div>
+            <div class="text-2xl font-bold tabular-nums"
+                 :class="detail.qty_received > 0 ? 'text-emerald-600' : 'text-slate-300'"
+                 x-text="num(detail.qty_received)"></div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Still out</div>
+            <div class="text-2xl font-bold tabular-nums"
+                 :class="detail.qty_pending > 0 ? 'text-amber-600' : 'text-slate-300'"
+                 x-text="num(detail.qty_pending)"></div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Job value</div>
+            <div class="text-2xl font-bold tabular-nums"
+                 :class="detail.value ? 'text-slate-900' : 'text-slate-300'" x-text="money(detail.value)"></div>
+          </div>
+        </div>
+
+        <!-- the internal order this job serves, when it serves one -->
+        <template x-if="detail.order">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 flex items-center gap-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Against order</div>
+            <a :href="'/orders/?open=' + detail.order.id" target="_blank"
+               title="Open in Order Tracking"
+               class="font-mono text-xs font-semibold text-brand-700 hover:underline"
+               x-text="detail.order.order_no"></a>
+            <span class="text-sm text-slate-600" x-text="detail.order.customer_name"></span>
+          </div>
+        </template>
+
+        <div class="inline-flex items-center gap-0.5 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+          <template x-for="seg in dsegs" :key="seg.k">
+            <a :href="'?tab=outgoing&open=' + detail.id" @click.prevent="dseg = seg.k"
+               class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors no-underline"
+               :class="dseg === seg.k ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'">
+              <span x-text="seg.label"></span>
+              <span x-show="dsegCount(seg.k)" class="text-[11px] opacity-70 tabular-nums"
+                    x-text="dsegCount(seg.k)"></span>
+            </a>
+          </template>
+        </div>
+
+        <!-- LINES -->
+        <div x-show="dseg === 'items'" class="space-y-4">
+          <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b-2 border-slate-200">
+                  <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    <th class="px-4 py-2.5">Item</th>
+                    <th class="px-3 py-2.5">Part code</th>
+                    <th class="px-3 py-2.5 text-right">Sent</th>
+                    <th class="px-3 py-2.5 text-right">Back</th>
+                    <th class="px-3 py-2.5 text-right">Still out</th>
+                    <th class="px-3 py-2.5 w-32">Progress</th>
+                    <th class="px-3 py-2.5 text-right">Rate</th>
+                    <th class="px-3 py-2.5 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="it in detail.items" :key="it.id">
+                    <tr class="odd:bg-slate-50/60">
+                      <td class="px-4 py-2.5">
+                        <div class="font-medium text-slate-800" x-text="it.description || '—'"></div>
+                        <div class="text-[11px] text-slate-400" x-show="it.order_item_description"
+                             x-text="'from the order: ' + it.order_item_description"></div>
+                      </td>
+                      <td class="px-3 py-2.5 font-mono text-xs"
+                          :class="it.part_code ? 'text-slate-600' : 'text-slate-300'"
+                          x-text="it.part_code || '—'"></td>
+                      <td class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums">
+                        <span class="font-semibold text-slate-900" x-text="num(it.qty)"></span>
+                        <span class="text-slate-400" x-text="it.unit || ''"></span>
+                      </td>
+                      <td class="px-3 py-2.5 text-right tabular-nums font-medium"
+                          :class="it.received >= it.qty ? 'text-emerald-600' : (it.received ? 'text-slate-600' : 'text-slate-300')"
+                          x-text="num(it.received)"></td>
+                      <td class="px-3 py-2.5 text-right font-semibold tabular-nums"
+                          :class="it.pending > 0 ? 'text-amber-700' : 'text-slate-300'"
+                          x-text="num(it.pending)"></td>
+                      <td class="px-3 py-2.5">
+                        <div class="h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                          <div class="h-full rounded-full transition-all" :class="osBarFill(it.pct_received)"
+                               :style="'width:' + Math.min(it.pct_received, 100) + '%'"></div>
+                        </div>
+                      </td>
+                      <td class="px-3 py-2.5 text-right tabular-nums"
+                          :class="it.unit_cost ? 'text-slate-600' : 'text-slate-300'"
+                          x-text="it.unit_cost ? money(it.unit_cost) : '—'"></td>
+                      <td class="px-3 py-2.5 text-right tabular-nums font-semibold"
+                          :class="it.amount ? 'text-slate-900' : 'text-slate-300'"
+                          x-text="it.amount ? money(it.amount) : '—'"></td>
+                    </tr>
+                  </template>
+                </tbody>
+                <tfoot>
+                  <tr class="bg-slate-50 border-t-2 border-slate-200 font-semibold">
+                    <td class="px-4 py-2.5 text-[11px] uppercase tracking-wider text-slate-500" colspan="2">Total</td>
+                    <td class="px-3 py-2.5 text-right tabular-nums text-slate-900" x-text="num(detail.qty_total)"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums"
+                        :class="detail.qty_received > 0 ? 'text-emerald-700' : 'text-slate-300'"
+                        x-text="num(detail.qty_received)"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums"
+                        :class="detail.qty_pending > 0 ? 'text-amber-700' : 'text-slate-300'"
+                        x-text="num(detail.qty_pending)"></td>
+                    <td colspan="2"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums text-slate-900" x-text="money(detail.value)"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <div x-show="detail.notes" class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-amber-700/70 font-semibold mb-0.5">Notes</div>
+            <div class="text-sm text-amber-900" x-text="detail.notes"></div>
+          </div>
+        </div>
+
+        <!-- RECEIPTS -->
+        <div x-show="dseg === 'receipts'" class="space-y-4">
+          <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b-2 border-slate-200">
+                  <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    <th class="px-4 py-2.5">Date</th>
+                    <th class="px-3 py-2.5 text-right">Lines</th>
+                    <th class="px-3 py-2.5 text-right">Quantity</th>
+                    <th class="px-3 py-2.5">Inspection</th>
+                    <th class="px-3 py-2.5">Accepted</th>
+                    <th class="px-3 py-2.5 text-right"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="r in detail.receipts" :key="r.id">
+                    <tr class="odd:bg-slate-50/60">
+                      <td class="px-4 py-2.5 whitespace-nowrap text-slate-700" x-text="fmtDate(r.receipt_date)"></td>
+                      <td class="px-3 py-2.5 text-right tabular-nums text-slate-600" x-text="r.lines"></td>
+                      <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="num(r.qty)"></td>
+                      <td class="px-3 py-2.5" :class="r.inspection_notes ? 'text-slate-500' : 'text-slate-300'"
+                          x-text="r.inspection_notes || '—'"></td>
+                      <td class="px-3 py-2.5">
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                              :class="r.accepted
+                                      ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20'
+                                      : 'bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20'">
+                          <span class="w-1.5 h-1.5 rounded-full"
+                                :class="r.accepted ? 'bg-emerald-500' : 'bg-rose-500'"></span>
+                          <span x-text="r.accepted ? 'Accepted' : 'Rejected'"></span>
+                        </span>
+                      </td>
+                      <td class="px-3 py-2.5 text-right">
+                        <button @click="removeReceipt(r)"
+                                class="text-brand-700 hover:underline text-xs font-medium">Delete</button>
+                      </td>
+                    </tr>
+                  </template>
+                  <tr x-show="!detail.receipts.length">
+                    <td colspan="6" class="px-4 py-8 text-center text-sm text-slate-400">
+                      Nothing back yet.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- DOCUMENTS -->
+        <div x-show="dseg === 'documents'" class="space-y-4">
+          <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="flex items-center gap-3 px-4 pt-3 pb-2">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Paperwork for this job</div>
+              <label class="ml-auto cursor-pointer border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-colors"
+                     title="Images or PDF — big photos are compressed automatically">
+                <span x-text="up.busy ? 'Uploading…' : '+ Add files'"></span>
+                <input type="file" multiple accept="image/*,application/pdf" class="hidden"
+                       :disabled="up.busy"
+                       @change="pickDocs($event, { os_order_id: detail.id, vendor_id: detail.vendor_id, label: 'Vendor paperwork' })" />
+              </label>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-y-2 border-slate-200">
+                  <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    <th class="px-4 py-2.5">Label</th>
+                    <th class="px-3 py-2.5">File</th>
+                    <th class="px-3 py-2.5 text-right">Size</th>
+                    <th class="px-3 py-2.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="d in detail.documents" :key="d.id">
+                    <tr class="odd:bg-slate-50/60">
+                      <td class="px-4 py-2.5" :class="d.label ? 'text-slate-800' : 'text-slate-300'"
+                          x-text="d.label || '—'"></td>
+                      <td class="px-3 py-2.5">
+                        <button @click="viewDoc(d)" class="text-brand-700 hover:underline text-left truncate max-w-xs"
+                                x-text="d.filename"></button>
+                      </td>
+                      <td class="px-3 py-2.5 text-right tabular-nums text-slate-500" x-text="sizeLabel(d.size_bytes)"></td>
+                      <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                        <button @click="downloadDoc(d)" title="Download"
+                                class="text-slate-400 hover:text-slate-700 px-1 transition-colors">⬇</button>
+                        <button @click="deleteDoc(d)" title="Delete"
+                                class="text-slate-300 hover:text-rose-600 px-1 transition-colors">✕</button>
+                      </td>
+                    </tr>
+                  </template>
+                  <tr x-show="!detail.documents.length">
+                    <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-400">
+                      No paperwork filed against this job.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  </template>
+
+  <!-- ===================== ONE VENDOR (FULL WINDOW) ===================== -->
+  <template x-if="vendor">
+  <div class="fixed inset-0 z-40 bg-slate-100 flex flex-col">
+    <div class="bg-slate-900 text-slate-300 flex items-center gap-3 px-6 py-3 shrink-0">
+      <button @click="closeVendor()" title="Back to all vendors"
+              class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
+        <span class="text-base leading-none">←</span> Back
+      </button>
+      <div>
+        <div class="text-xl font-bold tracking-tight text-white" x-text="vendor.name"></div>
+        <div class="text-xs font-mono text-slate-400" x-text="vendor.code"></div>
+      </div>
+      <template x-if="!vendor.active">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+                     bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Inactive
+        </span>
+      </template>
+      <div class="ml-auto flex gap-2">
+        <button @click="editVendor()"
+                class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">Edit</button>
+        <button @click="toggleVendorActive(vendor)"
+                class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                x-text="vendor.active ? 'Deactivate' : 'Reactivate'"></button>
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-auto">
+      <div class="max-w-6xl mx-auto p-6 space-y-4">
+
+        <div class="grid grid-cols-3 gap-4 items-start">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-2">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Profile</div>
+            <div class="grid grid-cols-3 gap-x-3 gap-y-1.5 text-sm">
+              <div class="text-slate-400 text-xs pt-0.5">Contact</div>
+              <div class="col-span-2" :class="vendor.contact_name ? 'text-slate-700' : 'text-slate-300'"
+                   x-text="vendor.contact_name || '—'"></div>
+              <div class="text-slate-400 text-xs pt-0.5">Phone</div>
+              <div class="col-span-2 tabular-nums" :class="vendor.phone ? 'text-slate-700' : 'text-slate-300'"
+                   x-text="vendor.phone || '—'"></div>
+              <div class="text-slate-400 text-xs pt-0.5">E-mail</div>
+              <div class="col-span-2 truncate" :class="vendor.email ? 'text-slate-700' : 'text-slate-300'"
+                   x-text="vendor.email || '—'"></div>
+              <div class="text-slate-400 text-xs pt-0.5">Services</div>
+              <div class="col-span-2" :class="vendor.services ? 'text-slate-700' : 'text-slate-300'"
+                   x-text="vendor.services || '—'"></div>
+              <div class="text-slate-400 text-xs pt-0.5">Address</div>
+              <div class="col-span-2 whitespace-pre-line"
+                   :class="vendor.address ? 'text-slate-700' : 'text-slate-300'"
+                   x-text="vendor.address || '—'"></div>
+              <div class="text-slate-400 text-xs pt-0.5" x-show="vendor.notes">Notes</div>
+              <div class="col-span-2 text-slate-700" x-show="vendor.notes" x-text="vendor.notes"></div>
+            </div>
+          </div>
+
+          <div class="col-span-2 grid grid-cols-3 gap-3">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Jobs sent</div>
+              <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="vendor.orders.length"></div>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Receipts</div>
+              <div class="text-2xl font-bold tabular-nums"
+                   :class="vendor.receipts ? 'text-slate-900' : 'text-slate-300'" x-text="vendor.receipts"></div>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Stock from them</div>
+              <div class="text-2xl font-bold tabular-nums"
+                   :class="vendor.stock.length ? 'text-slate-900' : 'text-slate-300'" x-text="vendor.stock.length"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="px-4 pt-3 pb-2 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Outgoing orders</div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-y-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">OS no.</th>
+                  <th class="px-3 py-2.5">Purpose</th>
+                  <th class="px-3 py-2.5">Sent</th>
+                  <th class="px-3 py-2.5">Deadline</th>
+                  <th class="px-3 py-2.5 text-right">Received</th>
+                  <th class="px-3 py-2.5">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="o in vendor.orders" :key="o.id">
+                  <tr @click="vendor = null; tab = 'outgoing'; open(o.id)"
+                      class="odd:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
+                    <td class="px-4 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="o.os_no"></td>
+                    <td class="px-3 py-2.5" :class="o.purpose ? 'text-slate-600' : 'text-slate-300'"
+                        x-text="o.purpose || '—'"></td>
+                    <td class="px-3 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(o.date_sent)"></td>
+                    <td class="px-3 py-2.5 whitespace-nowrap" :class="osDueCell(o)"
+                        x-text="fmtDate(o.deadline)"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
+                      <span class="font-semibold text-slate-900" x-text="num(o.qty_received)"></span>
+                      <span class="text-slate-400" x-text="' / ' + num(o.qty_total)"></span>
+                    </td>
+                    <td class="px-3 py-2.5">
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+                            :class="osStatusClass(o.status)">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="osStatusDot(o.status)"></span>
+                        <span x-text="osStatusLabel(o.status)"></span>
+                      </span>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="!vendor.orders.length">
+                  <td colspan="6" class="px-4 py-8 text-center text-sm text-slate-400">
+                    Nothing has been sent to this vendor yet.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="flex items-center gap-3 px-4 pt-3 pb-2">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Paperwork</div>
+            <label class="ml-auto cursor-pointer border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-colors"
+                   title="Images or PDF — big photos are compressed automatically">
+              <span x-text="up.busy ? 'Uploading…' : '+ Add files'"></span>
+              <input type="file" multiple accept="image/*,application/pdf" class="hidden"
+                     :disabled="up.busy"
+                     @change="pickDocs($event, { vendor_id: vendor.id, os_order_id: '', label: 'Vendor paperwork' })" />
+            </label>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-y-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">Label</th>
+                  <th class="px-3 py-2.5">File</th>
+                  <th class="px-3 py-2.5">OS no.</th>
+                  <th class="px-3 py-2.5 text-right">Size</th>
+                  <th class="px-3 py-2.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="d in vendor.documents" :key="d.id">
+                  <tr class="odd:bg-slate-50/60">
+                    <td class="px-4 py-2.5" :class="d.label ? 'text-slate-800' : 'text-slate-300'"
+                        x-text="d.label || '—'"></td>
+                    <td class="px-3 py-2.5">
+                      <button @click="viewDoc(d)" class="text-brand-700 hover:underline text-left truncate max-w-xs"
+                              x-text="d.filename"></button>
+                    </td>
+                    <td class="px-3 py-2.5 font-mono text-xs"
+                        :class="d.os_no ? 'text-slate-600' : 'text-slate-300'" x-text="d.os_no || '—'"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums text-slate-500" x-text="sizeLabel(d.size_bytes)"></td>
+                    <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                      <button @click="downloadDoc(d)" title="Download"
+                              class="text-slate-400 hover:text-slate-700 px-1 transition-colors">⬇</button>
+                      <button @click="deleteDoc(d)" title="Delete"
+                              class="text-slate-300 hover:text-rose-600 px-1 transition-colors">✕</button>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="!vendor.documents.length">
+                  <td colspan="5" class="px-4 py-8 text-center text-sm text-slate-400">
+                    Nothing filed for this vendor.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="px-4 pt-3 pb-2 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Stock from this vendor</div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-y-2 border-slate-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">OS ID</th>
+                  <th class="px-3 py-2.5">Description</th>
+                  <th class="px-3 py-2.5 text-right">On hand</th>
+                  <th class="px-3 py-2.5 text-right">Unit cost</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="s in vendor.stock" :key="s.id">
+                  <tr @click="vendor = null; tab = 'stock'; openItem(s.id)"
+                      class="odd:bg-slate-50/60 hover:bg-brand-50/60 transition-colors cursor-pointer">
+                    <td class="px-4 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="s.os_id"></td>
+                    <td class="px-3 py-2.5 text-slate-700" x-text="s.description"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums font-semibold"
+                        :class="s.qty > 0 ? 'text-slate-900' : 'text-slate-300'" x-text="num(s.qty)"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums"
+                        :class="s.unit_cost ? 'text-slate-700' : 'text-slate-300'"
+                        x-text="s.unit_cost ? money(s.unit_cost) : '—'"></td>
+                  </tr>
+                </template>
+                <tr x-show="!vendor.stock.length">
+                  <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-400">
+                    Nothing from this vendor is on the shelf.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  </template>
+
+  <!-- ================= ONE STOCK ITEM (FULL WINDOW) ================= -->
+  <template x-if="item">
+  <div class="fixed inset-0 z-40 bg-slate-100 flex flex-col">
+    <div class="bg-slate-900 text-slate-300 flex items-center gap-3 px-6 py-3 shrink-0">
+      <button @click="closeItem()" title="Back to outsourced stock"
+              class="flex items-center gap-1.5 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
+        <span class="text-base leading-none">←</span> Back
+      </button>
+      <div>
+        <div class="text-xl font-bold font-mono tracking-tight text-white" x-text="item.os_id"></div>
+        <div class="text-xs text-slate-400"
+             x-text="[item.description, item.vendor_name, item.source_os_no].filter(Boolean).join(' · ')"></div>
+      </div>
+      <template x-if="!item.active">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+                     bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Inactive
+        </span>
+      </template>
+      <div class="ml-auto flex gap-2">
+        <button @click="startIssue()"
+                class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-3 py-1.5 text-sm transition-colors">Issue</button>
+        <button @click="startAdjust()"
+                class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">Adjust</button>
+        <button @click="startItemEdit()"
+                class="border border-slate-600 text-slate-200 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">Edit</button>
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-auto">
+      <div class="max-w-5xl mx-auto p-6 space-y-4">
+
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">On hand</div>
+            <div class="text-2xl font-bold tabular-nums"
+                 :class="item.qty > 0 ? 'text-slate-900' : 'text-slate-300'">
+              <span x-text="num(item.qty)"></span>
+              <span class="text-base font-medium text-slate-400" x-text="item.unit || ''"></span>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Unit cost</div>
+            <div class="text-2xl font-bold tabular-nums"
+                 :class="item.unit_cost ? 'text-slate-900' : 'text-slate-300'"
+                 x-text="item.unit_cost ? money(item.unit_cost) : '—'"></div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Value</div>
+            <div class="text-2xl font-bold tabular-nums"
+                 :class="item.value ? 'text-slate-900' : 'text-slate-300'" x-text="money(item.value)"></div>
+          </div>
+        </div>
+
+        <!-- ISSUE (an inline form, not a dialog) -->
+        <template x-if="iss">
+          <div class="rounded-xl border border-brand-600 bg-white shadow-sm p-4">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Issue to a job</div>
+            <form @submit.prevent="saveIssue()" class="grid grid-cols-5 gap-3 items-end text-sm">
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Quantity</label>
+                <input type="number" min="0" step="0.001" x-model="iss.qty"
+                       class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full text-right tabular-nums
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Order ID</label>
+                <input x-model="iss.order_id" placeholder="ORD-26-27-004"
+                       class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Date</label>
+                <input type="date" x-model="iss.mv_date"
+                       class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Remarks</label>
+                <input x-model="iss.remarks"
+                       class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+              <div class="flex gap-2">
+                <button type="submit"
+                        class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-3 py-2 text-sm transition-colors">Issue</button>
+                <button type="button" @click="iss = null"
+                        class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </template>
+
+        <!-- ADJUST -->
+        <template x-if="adj">
+          <div class="rounded-xl border border-amber-300 bg-white shadow-sm p-4">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Correct the count</div>
+            <form @submit.prevent="saveAdjust()" class="grid grid-cols-4 gap-3 items-end text-sm">
+              <div><label class="block text-xs font-medium text-slate-500 mb-1"
+                          title="Negative to write stock off, positive when a piece turns up">Change (+ / −)</label>
+                <input type="number" step="0.001" x-model="adj.qty"
+                       class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full text-right tabular-nums
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Date</label>
+                <input type="date" x-model="adj.mv_date"
+                       class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Reason</label>
+                <input x-model="adj.remarks" placeholder="recount, breakage, found on the shelf"
+                       class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+              <div class="flex gap-2">
+                <button type="submit"
+                        class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-3 py-2 text-sm transition-colors">Adjust</button>
+                <button type="button" @click="adj = null"
+                        class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </template>
+
+        <!-- MASTER FIELDS -->
+        <template x-if="itemEdit">
+          <div class="rounded-xl border border-brand-600 bg-white shadow-sm p-4">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">Item master</div>
+            <form @submit.prevent="saveItem()" class="space-y-3 text-sm">
+              <div class="grid grid-cols-3 gap-3">
+                <div class="col-span-2"><label class="block text-xs font-medium text-slate-500 mb-1">Description *</label>
+                  <input x-model="itemEdit.description"
+                         class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                                focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+                <div><label class="block text-xs font-medium text-slate-500 mb-1">Part code</label>
+                  <input x-model="itemEdit.part_code"
+                         class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                                focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+                <div><label class="block text-xs font-medium text-slate-500 mb-1">Material</label>
+                  <input x-model="itemEdit.material"
+                         class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                                focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+                <div><label class="block text-xs font-medium text-slate-500 mb-1">Size / section</label>
+                  <input x-model="itemEdit.size_section"
+                         class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                                focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+                <div><label class="block text-xs font-medium text-slate-500 mb-1">Unit</label>
+                  <input x-model="itemEdit.unit" list="os-units"
+                         class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                                focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+                <div><label class="block text-xs font-medium text-slate-500 mb-1">Unit cost</label>
+                  <input type="number" min="0" step="0.001" x-model="itemEdit.unit_cost"
+                         class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full text-right tabular-nums
+                                focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+                <div><label class="block text-xs font-medium text-slate-500 mb-1">Vendor</label>
+                  <select x-model="itemEdit.vendor_id"
+                          x-effect="itemEdit.vendor_id && $nextTick(() => $el.value = itemEdit.vendor_id)"
+                          class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                                 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+                    <option value="">—</option>
+                    <template x-for="v in lists.vendors" :key="v.id">
+                      <option :value="v.id" x-text="v.name"></option>
+                    </template>
+                  </select></div>
+                <div class="col-span-2"><label class="block text-xs font-medium text-slate-500 mb-1">Notes</label>
+                  <input x-model="itemEdit.notes"
+                         class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                                focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+              </div>
+              <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                <input type="checkbox" x-model="itemEdit.active" class="w-4 h-4 accent-brand-600" />
+                Active — offered in the material picker
+              </label>
+              <div class="flex gap-3">
+                <button type="submit"
+                        class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm transition-colors">Save item</button>
+                <button type="button" @click="itemEdit = null"
+                        class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition-colors">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </template>
+
+        <template x-if="!itemEdit">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Item</div>
+            <div class="grid grid-cols-4 gap-x-4 gap-y-1.5 text-sm">
+              <div class="text-slate-400 text-xs pt-0.5">Part code</div>
+              <div class="font-mono text-xs" :class="item.part_code ? 'text-slate-700' : 'text-slate-300'"
+                   x-text="item.part_code || '—'"></div>
+              <div class="text-slate-400 text-xs pt-0.5">Material</div>
+              <div :class="item.material ? 'text-slate-700' : 'text-slate-300'" x-text="item.material || '—'"></div>
+              <div class="text-slate-400 text-xs pt-0.5">Size / section</div>
+              <div :class="item.size_section ? 'text-slate-700' : 'text-slate-300'" x-text="item.size_section || '—'"></div>
+              <div class="text-slate-400 text-xs pt-0.5">Received</div>
+              <div class="text-slate-700" x-text="fmtDate(item.received_date)"></div>
+              <div class="text-slate-400 text-xs pt-0.5">Vendor</div>
+              <div :class="item.vendor_name ? 'text-slate-700' : 'text-slate-300'" x-text="item.vendor_name || '—'"></div>
+              <div class="text-slate-400 text-xs pt-0.5">Came in on</div>
+              <div class="font-mono text-xs" :class="item.source_os_no ? 'text-slate-700' : 'text-slate-300'"
+                   x-text="item.source_os_no || '—'"></div>
+              <div class="text-slate-400 text-xs pt-0.5" x-show="item.notes">Notes</div>
+              <div class="col-span-3 text-slate-700" x-show="item.notes" x-text="item.notes"></div>
+            </div>
+          </div>
+        </template>
+
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="px-4 pt-3 pb-2 text-[11px] uppercase tracking-wider text-slate-400 font-semibold"
+               title="Signed: what came in, what went out, and every correction">Movements</div>
+          <div class="overflow-x-auto max-h-[50vh] overflow-y-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-y-2 border-slate-200 sticky top-0 z-10">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <th class="px-4 py-2.5">Date</th>
+                  <th class="px-3 py-2.5">Type</th>
+                  <th class="px-3 py-2.5 text-right">Change</th>
+                  <th class="px-3 py-2.5">Order ID</th>
+                  <th class="px-3 py-2.5">Remarks</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="m in item.movements" :key="m.id">
+                  <tr class="odd:bg-slate-50/60">
+                    <td class="px-4 py-2.5 whitespace-nowrap text-slate-600" x-text="fmtDate(m.mv_date)"></td>
+                    <td class="px-3 py-2.5 capitalize" :class="osMoveClass(m.type)" x-text="m.type"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums font-semibold"
+                        :class="m.qty > 0 ? 'text-emerald-700' : 'text-rose-700'"
+                        x-text="(m.qty > 0 ? '+' : '') + num(m.qty)"></td>
+                    <td class="px-3 py-2.5 font-mono text-xs"
+                        :class="m.order_id ? 'text-slate-600' : 'text-slate-300'" x-text="m.order_id || '—'"></td>
+                    <td class="px-3 py-2.5" :class="m.remarks ? 'text-slate-500' : 'text-slate-300'"
+                        x-text="m.remarks || '—'"></td>
+                  </tr>
+                </template>
+                <tr x-show="!item.movements.length">
+                  <td colspan="5" class="px-4 py-8 text-center text-sm text-slate-400">
+                    Nothing has moved yet.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-400 tabular-nums">
+            <span x-text="item.movements.length"></span> movements · they add up to
+            <span x-text="num(item.qty)"></span> on hand
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  </template>
+
+  <!-- ================= NEW / EDIT OUTGOING ORDER (FULL PAGE) ================= -->
+  <template x-if="form">
+  <div class="fixed inset-0 z-[60] bg-slate-100 overflow-auto">
+    <div class="bg-white min-h-full w-full max-w-5xl mx-auto shadow-sm">
+      <div class="px-6 py-4 flex items-center gap-3 bg-slate-900 text-white sticky top-0 z-10">
+        <button @click="closeForm()"
+                class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
+          <span class="text-base leading-none">←</span> Back
+        </button>
+        <div>
+          <div class="text-lg font-bold" x-text="form.id ? 'Edit outgoing order' : 'New outgoing order'"></div>
+          <div class="text-xs font-mono text-slate-400" x-show="form.os_no" x-text="form.os_no"></div>
+        </div>
+      </div>
+
+      <form @submit.prevent="saveOrder()" class="p-6 space-y-6 text-sm">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Job</div>
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <div class="flex items-baseline mb-1">
+                <label class="block text-xs font-medium text-slate-500">Vendor *</label>
+                <button type="button" @click="startVendor()" x-show="!inlineVendor"
+                        class="ml-auto text-xs font-medium text-brand-700 hover:underline">+ New vendor</button>
+              </div>
+              <select x-model="form.vendor_id"
+                      x-effect="form.vendor_id && $nextTick(() => $el.value = form.vendor_id)"
+                      class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+                <option value="">—</option>
+                <template x-for="v in lists.vendors" :key="v.id">
+                  <option :value="v.id" x-text="v.code + ' · ' + v.name"></option>
+                </template>
+              </select>
+            </div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Purpose</label>
+              <input x-model="form.purpose" list="os-purposes" placeholder="Zinc plating"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Against order</label>
+              <select x-model="form.order_id" @change="orderLinkChanged()"
+                      x-effect="form.order_id && $nextTick(() => $el.value = form.order_id)"
+                      class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+                <option value="">(none)</option>
+                <template x-for="o in lists.orders" :key="o.id">
+                  <option :value="o.id" x-text="o.order_no + ' · ' + o.customer_name"></option>
+                </template>
+              </select></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Date sent</label>
+              <input type="date" x-model="form.date_sent"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+            <div><label class="block text-xs font-medium text-slate-500 mb-1">Deadline</label>
+              <input type="date" x-model="form.deadline"
+                     class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+          </div>
+
+          <!-- inline vendor add: a row, not a dialog stacked on a page -->
+          <template x-if="inlineVendor">
+            <div class="mt-3 rounded-xl border border-brand-600 bg-brand-50/40 p-3 flex flex-wrap items-end gap-2">
+              <div class="flex-1 min-w-[12rem]">
+                <label class="block text-xs font-medium text-slate-500 mb-1">Vendor name *</label>
+                <input x-model="inlineVendor.name"
+                       class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+              </div>
+              <div class="flex-1 min-w-[10rem]">
+                <label class="block text-xs font-medium text-slate-500 mb-1">Services</label>
+                <input x-model="inlineVendor.services"
+                       class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+              </div>
+              <div class="w-40">
+                <label class="block text-xs font-medium text-slate-500 mb-1">Phone</label>
+                <input x-model="inlineVendor.phone"
+                       class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+              </div>
+              <button type="button" @click="saveInlineVendor()"
+                      class="bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm px-4 py-2 text-sm transition-colors">Add vendor</button>
+              <button type="button" @click="inlineVendor = null"
+                      class="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition-colors">Cancel</button>
+            </div>
+          </template>
+        </div>
+
+        <!-- part of an internal order can go to this vendor; the rest stays in -->
+        <template x-if="linkItems.length">
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">
+              Send part of this order out
+            </div>
+            <template x-for="it in linkItems" :key="it.id">
+              <div class="flex flex-wrap items-center gap-2 py-1">
+                <span class="flex-1 min-w-[14rem] truncate text-slate-700" x-text="linkLabel(it)"></span>
+                <span class="text-xs text-slate-400 tabular-nums"
+                      x-text="'on the order: ' + num(it.qty) + ' ' + (it.unit || '')"></span>
+                <input type="number" min="0" step="0.001" x-model="it.send" placeholder="qty"
+                       class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white w-24 text-right tabular-nums
+                              focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+                <button type="button" @click="sendPart(it)"
+                        class="border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-colors">
+                  Add as a line
+                </button>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <div>
+          <div class="flex items-baseline mb-2">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Lines</div>
+            <div class="ml-auto text-slate-500 tabular-nums" x-text="'Total ' + money(formTotal)"></div>
+          </div>
+          <template x-for="(l, i) in form.items" :key="i">
+            <div class="grid grid-cols-12 gap-2 mb-2 items-center">
+              <input x-model="l.description" placeholder="What is going out"
+                     class="col-span-4 border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+              <input x-model="l.part_code" placeholder="Part code"
+                     class="col-span-2 border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+              <input type="number" min="0" step="0.001" x-model="l.qty" placeholder="Qty"
+                     class="col-span-2 border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white text-right tabular-nums
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+              <input x-model="l.unit" list="os-units" placeholder="Unit"
+                     class="col-span-1 border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+              <input type="number" min="0" step="0.001" x-model="l.unit_cost" placeholder="₹ rate"
+                     title="The vendor's agreed rate — it follows the goods into stock"
+                     class="col-span-2 border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white text-right tabular-nums
+                            focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+              <button type="button" @click="removeLine(i)" title="Remove this line"
+                      class="col-span-1 text-slate-300 hover:text-rose-600 transition-colors">✕</button>
+            </div>
+          </template>
+          <datalist id="os-units">
+            <template x-for="u in lists.units" :key="u"><option :value="u"></option></template>
+          </datalist>
+          <datalist id="os-purposes">
+            <template x-for="p in lists.purposes" :key="p"><option :value="p"></option></template>
+          </datalist>
+          <button type="button" @click="addLine()"
+                  class="text-xs font-medium text-brand-700 hover:underline">+ Add line</button>
+        </div>
+
+        <div><label class="block text-xs font-medium text-slate-500 mb-1">Notes</label>
+          <textarea x-model="form.notes" rows="2"
+                    class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"></textarea></div>
+
+        <p x-show="formError" x-text="formError" class="text-rose-600 text-sm"></p>
+        <div class="flex gap-3">
+          <button type="submit"
+                  class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg shadow-sm text-sm
+                         transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">Save outgoing order</button>
+          <button type="button" @click="closeForm()"
+                  class="flex-1 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-colors">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  </template>
+
+  <!-- ===================== RECORD A RECEIPT (FULL PAGE) ===================== -->
+  <template x-if="recForm">
+  <div class="fixed inset-0 z-[60] bg-slate-100 overflow-auto">
+    <div class="bg-white min-h-full w-full max-w-5xl mx-auto shadow-sm">
+      <div class="px-6 py-4 flex items-center gap-3 bg-slate-900 text-white sticky top-0 z-10">
+        <button @click="recForm = null"
+                class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
+          <span class="text-base leading-none">←</span> Back
+        </button>
+        <div>
+          <div class="text-lg font-bold">Record receipt</div>
+          <div class="text-xs text-slate-400">
+            <span class="font-mono" x-text="recForm.os_no"></span>
+            <span x-text="' · ' + recForm.vendor_name"></span>
+          </div>
+        </div>
+      </div>
+
+      <form @submit.prevent="saveReceipt()" class="p-6 space-y-6 text-sm">
+        <div class="grid grid-cols-4 gap-3 items-end">
+          <div><label class="block text-xs font-medium text-slate-500 mb-1">Received on</label>
+            <input type="date" x-model="recForm.receipt_date"
+                   class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+          <div class="col-span-2"><label class="block text-xs font-medium text-slate-500 mb-1">Inspection notes</label>
+            <input x-model="recForm.inspection_notes" placeholder="What the check found"
+                   class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+          <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer pb-2">
+            <input type="checkbox" x-model="recForm.accepted" class="w-4 h-4 accent-brand-600" />
+            Accepted
+          </label>
+        </div>
+
+        <div>
+          <div class="flex items-baseline mb-2">
+            <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">What came back</div>
+            <div class="ml-auto text-slate-500 tabular-nums" x-text="num(recTotal()) + ' in total'"></div>
+          </div>
+          <div class="rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b-2 border-slate-200">
+                  <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    <th class="px-4 py-2.5">Line</th>
+                    <th class="px-3 py-2.5 text-right">Still out</th>
+                    <th class="px-3 py-2.5 text-right w-28">Received now</th>
+                    <th class="px-3 py-2.5 w-56">Into stock</th>
+                    <th class="px-3 py-2.5 text-right w-24">Rate</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="(l, i) in recForm.lines" :key="l.os_order_item_id">
+                    <tr class="odd:bg-slate-50/60">
+                      <td class="px-4 py-2.5">
+                        <div class="font-medium text-slate-800" x-text="l.label"></div>
+                        <div class="text-[11px] text-slate-400 tabular-nums"
+                             x-text="'ordered ' + num(l.ordered) + (l.already ? ' · ' + num(l.already) + ' already back' : '')"></div>
+                      </td>
+                      <td class="px-3 py-2.5 text-right tabular-nums font-semibold"
+                          :class="l.pending > 0 ? 'text-amber-700' : 'text-slate-300'"
+                          x-text="num(l.pending)"></td>
+                      <td class="px-3 py-2.5">
+                        <input type="number" min="0" step="0.001" x-model="l.qty"
+                               class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white w-full text-right tabular-nums
+                                      focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+                      </td>
+                      <td class="px-3 py-2.5">
+                        <select x-model="l.os_item_id"
+                                title="Leave as a new OS ID unless this tops up stock you already hold"
+                                class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white w-full
+                                       focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+                          <option value="">New OS ID</option>
+                          <template x-for="s in stockOptions" :key="s.id">
+                            <option :value="s.id" x-text="s.os_id + ' · ' + s.description"></option>
+                          </template>
+                        </select>
+                      </td>
+                      <td class="px-3 py-2.5">
+                        <input type="number" min="0" step="0.001" x-model="l.unit_cost"
+                               :disabled="!!l.os_item_id"
+                               class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white w-full text-right tabular-nums
+                                      disabled:bg-slate-100 disabled:text-slate-400
+                                      focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <p x-show="recError" x-text="recError" class="text-rose-600 text-sm"></p>
+        <div class="flex gap-3">
+          <button type="submit"
+                  class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg shadow-sm text-sm
+                         transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">Record receipt</button>
+          <button type="button" @click="recForm = null"
+                  class="flex-1 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-colors">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  </template>
+
+  <!-- ===================== VENDOR FORM (FULL PAGE) ===================== -->
+  <template x-if="vendorForm">
+  <div class="fixed inset-0 z-[60] bg-slate-100 overflow-auto">
+    <div class="bg-white min-h-full w-full max-w-3xl mx-auto shadow-sm">
+      <div class="px-6 py-4 flex items-center gap-3 bg-slate-900 text-white sticky top-0 z-10">
+        <button @click="vendorForm = null"
+                class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors">
+          <span class="text-base leading-none">←</span> Back
+        </button>
+        <div class="text-lg font-bold" x-text="vendorForm.id ? 'Edit vendor' : 'New vendor'"></div>
+      </div>
+      <form @submit.prevent="saveVendor()" class="p-6 space-y-4 text-sm">
+        <div class="grid grid-cols-3 gap-3">
+          <div><label class="block text-xs font-medium text-slate-500 mb-1">Code</label>
+            <input x-model="vendorForm.code" placeholder="V01"
+                   title="Left blank, the next code in the series is assigned"
+                   class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full font-mono
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+          <div class="col-span-2"><label class="block text-xs font-medium text-slate-500 mb-1">Name *</label>
+            <input x-model="vendorForm.name"
+                   class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+          <div><label class="block text-xs font-medium text-slate-500 mb-1">Contact</label>
+            <input x-model="vendorForm.contact_name"
+                   class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+          <div><label class="block text-xs font-medium text-slate-500 mb-1">Phone</label>
+            <input x-model="vendorForm.phone"
+                   class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+          <div><label class="block text-xs font-medium text-slate-500 mb-1">E-mail</label>
+            <input x-model="vendorForm.email" type="email"
+                   class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+          <div class="col-span-3"><label class="block text-xs font-medium text-slate-500 mb-1">Services</label>
+            <input x-model="vendorForm.services" placeholder="Zinc plating, heat treatment"
+                   class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                          focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" /></div>
+          <div class="col-span-3"><label class="block text-xs font-medium text-slate-500 mb-1">Address</label>
+            <textarea x-model="vendorForm.address" rows="2"
+                      class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"></textarea></div>
+          <div class="col-span-3"><label class="block text-xs font-medium text-slate-500 mb-1">Notes</label>
+            <textarea x-model="vendorForm.notes" rows="2"
+                      class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white w-full
+                             focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"></textarea></div>
+        </div>
+        <p x-show="vendorError" x-text="vendorError" class="text-rose-600 text-sm"></p>
+        <div class="flex gap-3">
+          <button type="submit"
+                  class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-lg shadow-sm text-sm
+                         transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40">Save vendor</button>
+          <button type="button" @click="vendorForm = null"
+                  class="flex-1 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-colors">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  </template>
+
+</body>
+</html>

@@ -598,13 +598,13 @@
         </div>
         <div x-show="!form.id">
           <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">
-            Customer code <span class="normal-case tracking-normal font-normal text-slate-400">— blank uses the initials</span>
+            Customer code <span class="normal-case tracking-normal font-normal text-slate-400">— blank uses the first letter</span>
           </label>
           <div class="flex items-center gap-2">
             <input x-model="form.abbr" placeholder="auto" maxlength="6"
                    class="border border-slate-300 rounded-lg px-3 py-2 w-28 font-mono uppercase bg-white
                           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition" />
-            <span class="text-xs text-slate-500" title="nn = the next free number for this abbreviation">will become
+            <span class="text-xs text-slate-500" title="nn = the next free number for this letter">will become
               <b class="font-mono text-slate-700" x-text="codePreview || '—'"></b></span>
           </div>
         </div>

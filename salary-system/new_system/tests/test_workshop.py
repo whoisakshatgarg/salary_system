@@ -9,9 +9,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from backend.core import db  # noqa: E402
+from backend.core import db, numbering  # noqa: E402
 from backend.modules import (customers, inventory, orders, parts, quotations,  # noqa: E402
                              settings)
+
+ADMIN = {"username": "admin", "role": "admin"}
 
 
 class WorkshopBase(unittest.TestCase):
@@ -241,26 +243,91 @@ class OrdersSpec(WorkshopBase):
 
 
 class CustomerCodes(WorkshopBase):
+    """The client code the company's documents are numbered with (CONVENTIONS
+    §2): one letter, two digits."""
+
     def test_abbreviation_rules(self):
-        cases = [("Acme Castings", "AC"), ("Bharat Hydraulics Pvt Ltd", "BH"),
-                 ("Sterling", "ST"), ("M/s Tata Steel", "TS"), ("", "XX")]
+        cases = [("Acme Castings", "A"), ("Bharat Hydraulics Pvt Ltd", "B"),
+                 ("Sterling", "S"), ("M/s Tata Steel", "T"), ("3M Company", "M"),
+                 ("", "X")]
         for name, expect in cases:
             self.assertEqual(customers.abbreviate(name), expect, name)
 
-    def test_serial_within_abbreviation(self):
+    def test_serial_within_the_letter(self):
+        # the fixture's 'Acme Pumps' already holds A01
         a = customers.save_customer(self.conn, {"name": "Acme Castings"})
         b = customers.save_customer(self.conn, {"name": "Anand Components"})
         c = customers.save_customer(self.conn, {"name": "Bharat Gears"})
         codes = {customers.get_customer(self.conn, i)["code"] for i in (a, b, c)}
-        self.assertEqual(codes, {"AC01", "AC02", "BG01"})
+        self.assertEqual(codes, {"A02", "A03", "B01"})
+        self.assertEqual(customers.get_customer(self.conn, self.cust)["code"], "A01")
 
-    def test_manual_abbreviation_and_backfill(self):
-        cid = customers.save_customer(self.conn, {"name": "Zenith Works", "abbr": "zw"})
-        self.assertEqual(customers.get_customer(self.conn, cid)["code"], "ZW01")
+    def test_manual_letter_and_backfill(self):
+        cid = customers.save_customer(self.conn, {"name": "Zenith Works", "abbr": "z"})
+        self.assertEqual(customers.get_customer(self.conn, cid)["code"], "Z01")
         self.conn.execute("UPDATE customer SET code=NULL WHERE id=?", (cid,))
         self.conn.commit()
         self.assertEqual(customers.backfill_codes(self.conn), 1)
         self.assertTrue(customers.get_customer(self.conn, cid)["code"])
+
+    def test_a_typed_code_is_taken_at_its_word(self):
+        cid = customers.save_customer(self.conn, {"name": "Thermosense", "code": "t04"})
+        self.assertEqual(customers.get_customer(self.conn, cid)["code"], "T04")
+        # …and the abbreviation box accepts a whole code too (it is labelled
+        # "Customer code" on the form)
+        other = customers.save_customer(self.conn, {"name": "East Coast", "abbr": "E01"})
+        self.assertEqual(customers.get_customer(self.conn, other)["code"], "E01")
+
+    def test_the_code_is_editable_and_unique(self):
+        customers.save_customer(self.conn, {"name": "Thermosense", "code": "T04"})
+        customers.save_customer(self.conn, {"name": "Acme Pumps", "code": "T09"}, self.cust)
+        self.assertEqual(customers.get_customer(self.conn, self.cust)["code"], "T09")
+        with self.assertRaises(ValueError) as e:                 # someone else's code
+            customers.save_customer(self.conn, {"name": "Acme Pumps", "code": "T04"},
+                                    self.cust)
+        self.assertIn("T04", str(e.exception))
+        self.assertIn("Thermosense", str(e.exception))
+        self.assertEqual(customers.get_customer(self.conn, self.cust)["code"], "T09")
+
+    def test_a_blank_code_leaves_an_existing_one_alone(self):
+        """Quotations are numbered under the code — an edit that doesn't
+        mention it must never reissue it."""
+        customers.save_customer(self.conn, {"name": "Acme Pumps", "notes": "x"}, self.cust)
+        self.assertEqual(customers.get_customer(self.conn, self.cust)["code"], "A01")
+
+    def test_a_blank_code_on_a_customer_without_one_assigns(self):
+        self.conn.execute("UPDATE customer SET code='' WHERE id=?", (self.cust,))
+        self.conn.commit()
+        customers.save_customer(self.conn, {"name": "Acme Pumps"}, self.cust)
+        self.assertEqual(customers.get_customer(self.conn, self.cust)["code"], "A01")
+
+    def test_the_route_model_carries_the_code(self):
+        """Pydantic drops what it doesn't declare — the code would vanish."""
+        self.assertEqual(customers.CustomerIn(name="X", code="T04").code, "T04")
+
+    def test_legacy_two_letter_codes_are_recoded_once(self):
+        a = customers.save_customer(self.conn, {"name": "Bharat Gears"})
+        b = customers.save_customer(self.conn, {"name": "Bright Metals"})
+        self.conn.execute("UPDATE customer SET code='BG01' WHERE id=?", (a,))
+        self.conn.execute("UPDATE customer SET code='BM01' WHERE id=?", (b,))
+        self.conn.execute("UPDATE customer SET code='AP01' WHERE id=?", (self.cust,))
+        self.conn.commit()
+        self.assertEqual(customers.recode_legacy_codes(self.conn), 3)
+        self.assertEqual(customers.get_customer(self.conn, self.cust)["code"], "A01")
+        # id order decides who gets B01; both keep a distinct conforming code
+        self.assertEqual(customers.get_customer(self.conn, a)["code"], "B01")
+        self.assertEqual(customers.get_customer(self.conn, b)["code"], "B02")
+        # idempotent: a second pass has nothing left to do
+        self.assertEqual(customers.recode_legacy_codes(self.conn), 0)
+
+    def test_recoding_never_collides_with_a_conforming_code(self):
+        keeper = customers.save_customer(self.conn, {"name": "Zenith", "code": "B01"})
+        legacy = customers.save_customer(self.conn, {"name": "Bharat Gears"})
+        self.conn.execute("UPDATE customer SET code='BG01' WHERE id=?", (legacy,))
+        self.conn.commit()
+        customers.recode_legacy_codes(self.conn)
+        self.assertEqual(customers.get_customer(self.conn, keeper)["code"], "B01")
+        self.assertEqual(customers.get_customer(self.conn, legacy)["code"], "B02")
 
     def test_business_view(self):
         self.order(); self.order()
@@ -352,15 +419,38 @@ class QuotationsAndInvoices(WorkshopBase):
         data.update(kw)
         return quotations.create_doc(self.conn, kind, data)
 
-    def test_numbering_per_kind_and_fy(self):
+    def test_numbering_follows_the_document_scheme(self):
+        """CONVENTIONS §3: quotations run per client code and never reset,
+        invoices run per fiscal year."""
         q1 = quotations.get_doc(self.conn, self.doc())
         q2 = quotations.get_doc(self.conn, self.doc())
         i1 = quotations.get_doc(self.conn, self.doc("invoice"))
-        self.assertEqual(q1["doc_no"], "QUO-26-27-001")
-        self.assertEqual(q2["doc_no"], "QUO-26-27-002")
-        self.assertEqual(i1["doc_no"], "INV-26-27-001")   # its own sequence
+        self.assertEqual(q1["doc_no"], "A01/AT/140826/1")
+        self.assertEqual(q2["doc_no"], "A01/AT/140826/2")
+        self.assertEqual(i1["doc_no"], "AT/EI/26-27/001")   # its own sequence
         nxt = quotations.get_doc(self.conn, self.doc(doc_date="2027-04-02"))
-        self.assertEqual(nxt["doc_no"], "QUO-27-28-001")  # new FY restarts
+        self.assertEqual(nxt["doc_no"], "A01/AT/020427/3")  # per client, no FY reset
+        inv2 = quotations.get_doc(self.conn, self.doc("invoice", doc_date="2027-04-02"))
+        self.assertEqual(inv2["doc_no"], "AT/EI/27-28/001")  # new FY restarts
+
+    def test_a_customer_without_a_code_gets_one_while_numbering(self):
+        self.conn.execute("UPDATE customer SET code=NULL WHERE id=?", (self.cust,))
+        self.conn.commit()
+        d = quotations.get_doc(self.conn, self.doc())
+        self.assertTrue(d["doc_no"].startswith("A01/AT/"))
+        self.assertEqual(customers.get_customer(self.conn, self.cust)["code"], "A01")
+
+    def test_the_seeded_counter_is_where_the_real_numbers_carry_on(self):
+        numbering.ensure_seeds(self.conn)
+        customers.save_customer(self.conn, {"name": "Thermosense", "code": "T04"})
+        tid = [c for c in customers.list_customers(self.conn)
+               if c["code"] == "T04"][0]["id"]
+        d = quotations.get_doc(self.conn, quotations.create_doc(self.conn, "quotation", {
+            "customer_id": tid, "doc_date": "2026-08-21",
+            "lines": [{"description": "Sensor", "qty": 1, "rate": 10}]}))
+        self.assertEqual(d["doc_no"], "T04/AT/210826/317")
+        inv = quotations.get_doc(self.conn, self.doc("invoice"))
+        self.assertEqual(inv["doc_no"], "AT/EI/26-27/169")
 
     def test_totals_with_tax(self):
         d = quotations.get_doc(self.conn, self.doc())
@@ -1021,7 +1111,7 @@ class OrderPaperTrail(WorkshopBase):
         d = o["documents"][0]
         self.assertEqual(d["kind"], "invoice")
         self.assertEqual(d["total"], round(10 * 250 * 1.18, 2))   # tax included
-        self.assertTrue(d["doc_no"].startswith("INV"))
+        self.assertTrue(d["doc_no"].startswith("AT/EI/"))
 
     def test_an_order_with_no_documents_says_so(self):
         self.assertEqual(orders.get_order(self.conn, self.order())["documents"], [])
@@ -1173,3 +1263,178 @@ class DeliverySegments(WorkshopBase):
 
     def test_no_orders_means_no_queries(self):
         self.assertEqual(orders._order_drops(self.conn, []), {})
+
+
+class QuotationRevisions(WorkshopBase):
+    """A revision is a copy that supersedes its parent; the chain is history."""
+
+    def quote(self, **kw):
+        data = {"customer_id": self.cust, "doc_date": "2026-08-14", "tax_pct": 18,
+                "lines": [{"description": "Shaft", "qty": 10, "unit": "Nos", "rate": 250},
+                          {"description": "Cover", "qty": 4, "unit": "Nos", "rate": 90}]}
+        data.update(kw)
+        return quotations.create_doc(self.conn, "quotation", data)
+
+    def test_the_letters_run_a_b_c_off_the_base_number(self):
+        base = self.quote()
+        base_no = quotations.get_doc(self.conn, base)["doc_no"]
+        a = quotations.revise_doc(self.conn, base)
+        b = quotations.revise_doc(self.conn, a)
+        self.assertEqual(quotations.get_doc(self.conn, a)["doc_no"], f"{base_no} Rev-A")
+        self.assertEqual(quotations.get_doc(self.conn, b)["doc_no"], f"{base_no} Rev-B")
+
+    def test_only_the_tip_can_be_revised(self):
+        base = self.quote()
+        quotations.revise_doc(self.conn, base)
+        with self.assertRaises(ValueError):
+            quotations.revise_doc(self.conn, base)
+
+    def test_the_copy_carries_the_header_and_every_line(self):
+        base = self.quote(reference="RFQ-9", notes="hand written")
+        rev = quotations.get_doc(self.conn, quotations.revise_doc(self.conn, base))
+        self.assertEqual(rev["status"], "draft")
+        self.assertEqual(rev["reference"], "RFQ-9")
+        self.assertEqual(rev["notes"], "hand written")
+        self.assertEqual([(l["description"], l["qty"], l["rate"]) for l in rev["lines"]],
+                         [("Shaft", 10.0, 250.0), ("Cover", 4.0, 90.0)])
+        self.assertEqual(rev["total"], quotations.get_doc(self.conn, base)["total"])
+        self.assertEqual(rev["revises_document_id"], base)
+
+    def test_the_parent_is_marked_superseded_and_the_chain_reads_forwards(self):
+        base = self.quote()
+        a = quotations.revise_doc(self.conn, base)
+        b = quotations.revise_doc(self.conn, a)
+        chain = quotations.get_doc(self.conn, base)["revisions"]
+        self.assertEqual([c["id"] for c in chain], [base, a, b])      # oldest first
+        self.assertEqual([c["active"] for c in chain], [False, False, True])
+        self.assertEqual(quotations.get_doc(self.conn, base)["superseded_by"], a)
+        # the same chain hangs off every member, not just the root
+        self.assertEqual([c["id"] for c in quotations.get_doc(self.conn, b)["revisions"]],
+                         [base, a, b])
+
+    def test_a_document_nobody_revised_has_no_chain(self):
+        self.assertEqual(quotations.get_doc(self.conn, self.quote())["revisions"], [])
+
+    def test_the_list_says_which_rows_are_superseded(self):
+        base = self.quote()
+        a = quotations.revise_doc(self.conn, base)
+        rows = {r["id"]: r for r in quotations.list_docs(self.conn)["rows"]}
+        self.assertEqual(rows[base]["superseded_by"], a)
+        self.assertIsNone(rows[a]["superseded_by"])
+
+    def test_editing_a_revision_leaves_the_original_alone(self):
+        base = self.quote()
+        rev = quotations.revise_doc(self.conn, base)
+        quotations.update_doc(self.conn, rev, {
+            "customer_id": self.cust, "doc_date": "2026-08-20",
+            "lines": [{"description": "Shaft", "qty": 10, "unit": "Nos", "rate": 300}]})
+        self.assertEqual(quotations.get_doc(self.conn, base)["total"], 3374.8)
+        self.assertEqual(len(quotations.get_doc(self.conn, base)["lines"]), 2)
+
+    def test_the_marker_never_stacks(self):
+        self.assertEqual(quotations._revision_base("T04/AT/130826/316 Rev-B"),
+                         "T04/AT/130826/316")
+        self.assertEqual([quotations._rev_letter(n) for n in (0, 1, 25, 26)],
+                         ["A", "B", "Z", "AA"])
+
+
+class OrderAttachments(WorkshopBase):
+    """The intake paperwork: what the customer sent us, filed on the order."""
+
+    def test_upload_shows_up_on_the_order(self):
+        oid = self.order()
+        saved = orders.save_order_attachments(self.conn, oid, "Enquiry e-mail", [
+            ("enquiry.pdf", "application/pdf", b"%PDF-1.4 enquiry")])
+        self.assertEqual(len(saved), 1)
+        att = orders.get_order(self.conn, oid)["attachments"]
+        self.assertEqual([(a["label"], a["filename"], a["size_bytes"]) for a in att],
+                         [("Enquiry e-mail", "enquiry.pdf", 16)])
+        self.assertTrue(att[0]["uploaded_at"])
+
+    def test_the_batch_is_all_or_nothing(self):
+        from backend.core import paths
+        oid = self.order()
+        with self.assertRaises(ValueError):
+            orders.save_order_attachments(self.conn, oid, "PO", [
+                ("ok.pdf", "application/pdf", b"%PDF ok"),
+                ("bad.exe", "application/x-msdownload", b"MZ")])
+        self.assertEqual(orders.get_order(self.conn, oid)["attachments"], [])
+        self.assertEqual(list(paths.order_files_dir().iterdir()), [])
+
+    def test_delete_removes_the_row_and_the_file(self):
+        from backend.core import paths
+        oid = self.order()
+        meta = orders.save_order_attachments(
+            self.conn, oid, "PO", [("po.pdf", "application/pdf", b"%PDF")])[0]
+        self.assertEqual(len(list(paths.order_files_dir().iterdir())), 1)
+        o = orders.delete_order_attachment(self.conn, meta["id"])
+        self.assertEqual(o["attachments"], [])
+        self.assertEqual(list(paths.order_files_dir().iterdir()), [])
+        with self.assertRaises(ValueError):
+            orders.delete_order_attachment(self.conn, meta["id"])
+
+    def test_an_unknown_order_is_refused(self):
+        with self.assertRaises(ValueError):
+            orders.save_order_attachments(self.conn, 9999, "", [
+                ("x.pdf", "application/pdf", b"%PDF")])
+
+    def test_the_items_list_their_drawings_files(self):
+        did = self.drawing()
+        parts.save_files(self.conn, did, [("shaft.pdf", "application/pdf", b"%PDF"),
+                                          ("shaft.png", "image/png", b"\x89PNG")])
+        other = self.drawing(drawing_no="DRG-200")
+        oid = self.order(items=[{"drawing_id": did, "qty": 5, "rate": 10},
+                                {"drawing_id": other, "qty": 5, "rate": 10},
+                                {"description": "free text", "qty": 1, "rate": 10}])
+        items = orders.get_order(self.conn, oid)["items"]
+        self.assertEqual([f["filename"] for f in items[0]["drawing_files"]],
+                         ["shaft.pdf", "shaft.png"])
+        self.assertEqual(items[1]["drawing_files"], [])
+        self.assertEqual(items[2]["drawing_files"], [])   # no drawing, no files
+
+
+class OutsourcedLineFields(WorkshopBase):
+    """os_item_id rides on the line models now, so the pickers can land later
+    without a migration. Pydantic drops what it doesn't declare."""
+
+    def test_the_quotation_line_model_carries_it(self):
+        self.assertEqual(quotations.LineIn(qty=1, os_item_id=7).os_item_id, 7)
+        self.assertIsNone(quotations.LineIn(qty=1).os_item_id)
+
+    def test_the_costing_bom_line_model_carries_it(self):
+        self.assertEqual(parts.BomLineIn(os_item_id=7).os_item_id, 7)
+        self.assertIsNone(parts.BomLineIn().os_item_id)
+
+    def test_a_quotation_line_persists_it(self):
+        osid = self.os_item()
+        did = quotations.create_doc(self.conn, "quotation", {
+            "customer_id": self.cust, "doc_date": "2026-08-14",
+            "lines": [{"description": "Bought-out bush", "qty": 2, "rate": 40,
+                       "os_item_id": osid}]})
+        self.assertEqual(quotations.get_doc(self.conn, did)["lines"][0]["os_item_id"], osid)
+
+    def test_a_costing_material_persists_it(self):
+        osid = self.os_item()
+        did = self.drawing()
+        d = parts.save_costing(self.conn, did, {
+            "materials": [{"material_label": "Bought-out bush", "unit_cost": 40,
+                           "qty_per_piece": 1, "os_item_id": osid}]})
+        self.assertEqual(d["costings"][0]["materials"][0]["os_item_id"], osid)
+
+    def test_a_dangling_outsourced_item_is_a_400_not_a_500(self):
+        with self.assertRaises(ValueError):
+            quotations.create_doc(self.conn, "quotation", {
+                "customer_id": self.cust, "doc_date": "2026-08-14",
+                "lines": [{"description": "x", "qty": 1, "rate": 1, "os_item_id": 9999}]})
+        with self.assertRaises(ValueError):
+            parts.save_costing(self.conn, self.drawing(), {
+                "materials": [{"material_label": "x", "unit_cost": 1,
+                               "qty_per_piece": 1, "os_item_id": 9999}]})
+
+    def os_item(self) -> int:
+        """A row in the outsourced-stock table the modules land on in wave 4."""
+        cur = self.conn.execute(
+            "INSERT INTO os_item (os_id, description, qty) VALUES (?,?,?)",
+            (numbering.os_item_id(self.conn), "Bought-out bush", 10))
+        self.conn.commit()
+        return cur.lastrowid

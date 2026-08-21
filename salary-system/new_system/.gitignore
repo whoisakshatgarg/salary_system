@@ -6,6 +6,8 @@ data/
 
 # PyInstaller build output
 build/
+# ...but the document-template build scripts are source, not build output
+!backend/documents/templates/build/
 dist/
 build-venv/
 *.session_secret

@@ -1,10 +1,12 @@
 """Customers — the master that Orders, Parts & Pricing, quotations, invoices
 and consignments reference.
 
-Each customer gets a short CODE the office can say out loud: an abbreviation of
-the name plus a serial within that abbreviation — Acme Castings -> AC01, and
-the next AC… customer becomes AC02. The abbreviation can be overridden when the
-automatic one reads badly; the serial is always assigned by the app.
+Each customer gets the CLIENT CODE their documents are numbered with: the
+first letter of the name plus a serial within that letter — Thermosense ->
+T04, East Coast Sensors -> E01 (CONVENTIONS §2). It is the company's own
+scheme, printed on quotations and acknowledgements, so it is editable: the
+letter can be overridden, the whole code can be typed in, and the serial is
+assigned by the app whenever the field is left blank.
 
 The customer record also answers "how much business have we done with them":
 order-by-order history, a monthly series for the growth chart, lifetime totals,
@@ -39,26 +41,35 @@ _NOISE = {"pvt", "private", "ltd", "limited", "llp", "inc", "co", "company",
 # 'M/s Tata Steel' is Messrs-Tata-Steel: the prefix must go BEFORE tokenising,
 # or it splits into M + s and steals the initials.
 _PREFIX = re.compile(r"^\s*(m\s*/\s*s|messrs)\b[.\s]*", re.I)
+# The document scheme: one letter, two digits. Three digits is the same scheme
+# overflowing past the 99th customer under one letter — still conforming, or
+# recode_legacy_codes would rewrite it on every start.
+_CODE_RE = re.compile(r"^[A-Z][0-9]{2,}$")
 
 
 def abbreviate(name: str) -> str:
-    """'Bharat Hydraulics Pvt Ltd' -> 'BH'; 'Acme' -> 'AC'; falls back to 'XX'."""
+    """'Bharat Hydraulics Pvt Ltd' -> 'B'; 'M/s Tata Steel' -> 'T'; else 'X'."""
     words = [w for w in re.split(r"[^A-Za-z0-9]+", _PREFIX.sub("", _s(name))) if w]
     words = [w for w in words if w.lower() not in _NOISE] or words
-    if not words:
-        return "XX"
-    if len(words) == 1:
-        return (words[0][:2] or "XX").upper()
-    return (words[0][:1] + words[1][:1]).upper()
+    for w in words:
+        for ch in w:
+            if ch.isalpha():
+                return ch.upper()      # '3M Company' still gets a letter
+    return "X"
+
+
+def clean_code(v) -> str:
+    """A typed code as it will be stored: letters and digits, upper case."""
+    return re.sub(r"[^A-Z0-9]", "", _s(v).upper())
 
 
 def next_code(conn, name: str, abbr: str = "") -> str:
-    """Abbreviation + the next free serial for that abbreviation (AC01, AC02…).
+    """One letter + the next free serial for that letter (T01, T02…).
 
     Called inside the caller's transaction so two customers can't take the
     same code; customer.code is UNIQUE as the backstop.
     """
-    prefix = re.sub(r"[^A-Z0-9]", "", _s(abbr).upper()) or abbreviate(name)
+    prefix = re.sub(r"[^A-Z]", "", _s(abbr).upper())[:1] or abbreviate(name)
     used = []
     for r in conn.execute("SELECT code FROM customer WHERE code LIKE ?", (prefix + "%",)):
         m = re.fullmatch(re.escape(prefix) + r"(\d+)", r["code"] or "")
@@ -106,6 +117,12 @@ def save_customer(conn, data: dict, customer_id: int | None = None) -> int:
     fields = (name, _s(data.get("gstin")).upper(), _s(data.get("address_billing")),
               _s(data.get("address_shipping")), _s(data.get("payment_terms")),
               _s(data.get("notes")))
+    # An abbreviation that is already a whole code ('T04') is one: the field is
+    # labelled "Customer code", so a typed code is taken at its word.
+    typed = clean_code(data.get("code"))
+    abbr = clean_code(data.get("abbr"))
+    if not typed and _CODE_RE.fullmatch(abbr):
+        typed, abbr = abbr, ""
     # BEGIN IMMEDIATE: the duplicate check and the code allocation must be
     # atomic, or two customers added at once could claim the same code.
     conn.execute("BEGIN IMMEDIATE")
@@ -113,8 +130,13 @@ def save_customer(conn, data: dict, customer_id: int | None = None) -> int:
         dup = conn.execute("SELECT id FROM customer WHERE name=?", (name,)).fetchone()
         if dup and dup["id"] != customer_id:
             raise ValueError(f"'{name}' already exists")
+        if typed:
+            clash = conn.execute("SELECT id, name FROM customer WHERE code=?",
+                                 (typed,)).fetchone()
+            if clash and clash["id"] != customer_id:
+                raise ValueError(f"Code {typed} already belongs to {clash['name']}")
         if customer_id is None:
-            code = next_code(conn, name, _s(data.get("abbr")))
+            code = typed or next_code(conn, name, abbr)
             cur = conn.execute(
                 """INSERT INTO customer (code, name, gstin, address_billing,
                      address_shipping, payment_terms, notes, active, created_at)
@@ -122,10 +144,18 @@ def save_customer(conn, data: dict, customer_id: int | None = None) -> int:
                 (code, *fields, datetime.now().isoformat(timespec="seconds")))
             customer_id = cur.lastrowid
         else:
+            # Blank means "leave it alone" for a customer that already has a
+            # code — their quotations are numbered under it, so it is never
+            # silently reissued — and "assign one" for a customer without.
+            row = conn.execute("SELECT code FROM customer WHERE id=?",
+                               (customer_id,)).fetchone()
+            if not row:
+                raise ValueError("Customer not found")
+            code = typed or _s(row["code"]) or next_code(conn, name, abbr)
             conn.execute(
                 """UPDATE customer SET name=?, gstin=?, address_billing=?,
-                     address_shipping=?, payment_terms=?, notes=? WHERE id=?""",
-                (*fields, customer_id))
+                     address_shipping=?, payment_terms=?, notes=?, code=? WHERE id=?""",
+                (*fields, code, customer_id))
         conn.commit()
     except BaseException:
         conn.rollback()
@@ -142,6 +172,26 @@ def backfill_codes(conn) -> int:
                      (next_code(conn, r["name"]), r["id"]))
     conn.commit()
     return len(rows)
+
+
+def recode_legacy_codes(conn) -> int:
+    """Move customers off the old two-letter scheme (AC01) onto the document
+    scheme (A01), oldest customer first.
+
+    A one-off: a code that already conforms is never touched, so this is
+    idempotent and safe to run on every start. Collisions can't happen —
+    next_code reads the codes already assigned, including the ones this loop
+    has just written.
+    """
+    n = 0
+    for r in conn.execute("SELECT id, name, code FROM customer ORDER BY id").fetchall():
+        if _CODE_RE.fullmatch(_s(r["code"])):
+            continue
+        conn.execute("UPDATE customer SET code=? WHERE id=?",
+                     (next_code(conn, r["name"]), r["id"]))
+        n += 1
+    conn.commit()
+    return n
 
 
 # --------------------------------------------------------------------------- #
@@ -283,7 +333,8 @@ def delete_contact(conn, contact_id: int) -> dict:
 # --------------------------------------------------------------------------- #
 class CustomerIn(BaseModel):
     name: str
-    abbr: str = ""          # optional override for the auto abbreviation
+    code: str = ""          # the client code itself; blank = assign one
+    abbr: str = ""          # or just the letter to number under
     gstin: str = ""
     address_billing: str = ""
     address_shipping: str = ""

@@ -9,17 +9,23 @@ Order-number format tokens: {FY} → Indian financial year like '26-27',
 {YYYY} → calendar year of the order date, {SEQ} → per-FY running number,
 zero-padded to 3 (e.g. 'ORD-{FY}-{SEQ}' → ORD-26-27-014). Sequence state
 lives in the order_seq table, bumped atomically by the orders module.
+
+Numbering also owns the DOCUMENT counters (core/numbering, CONVENTIONS §3):
+every live scope with the serial it will hand out next, editable by the owner
+so a real-world count — "our quotations are at 317, not 1" — can be corrected
+without a code change.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from ..core import db
+from ..core import db, numbering
 from ..core.deps import current_user, get_db, require_admin, require_module
 from ..core.rules import load_rules, save_rules
 
@@ -142,6 +148,15 @@ class RateIn(BaseModel):
     rate_per_hour: float
 
 
+class CounterIn(BaseModel):
+    scope: str                 # 'qtn:T04', 'inv:26-27', 'vendor', …
+    next_seq: int
+
+
+# Scope names are keys, not prose — anything else is a typo, not a new counter.
+_SCOPE_RE = re.compile(r"[A-Za-z0-9_:.\-]{1,40}")
+
+
 def _check_rate(v: float) -> float:
     import math
     if not math.isfinite(v) or v < 0 or v > 1e9:
@@ -182,6 +197,34 @@ def set_order_format(body: FormatIn, user: dict = Depends(require_admin),
         raise HTTPException(status_code=400, detail="Keep the format under 40 characters")
     set_setting(conn, "order_number_format", fmt)
     return all_settings(conn)
+
+
+@router.get("/numbering")
+def numbering_counters(conn=Depends(get_db)):
+    """Every live document counter with the serial it will hand out next."""
+    return [{"scope": r["scope"], "next_seq": r["next_seq"],
+             "label": numbering.label_for(r["scope"])}
+            for r in conn.execute("SELECT scope, next_seq FROM doc_counter ORDER BY scope")]
+
+
+@router.put("/numbering")
+def set_numbering_counter(body: CounterIn, user: dict = Depends(require_admin),
+                          conn=Depends(get_db)):
+    """Set a counter's next serial — new scopes included, so a client whose
+    first quotation hasn't been raised yet can still be seeded."""
+    scope = body.scope.strip()
+    if not _SCOPE_RE.fullmatch(scope):
+        raise HTTPException(status_code=400,
+                            detail="A counter name looks like 'qtn:T04' — letters, "
+                                   "digits, ':', '-' and '_' only")
+    if not 1 <= body.next_seq <= 1_000_000:
+        raise HTTPException(status_code=400,
+                            detail="The next number must be between 1 and 1000000")
+    conn.execute("INSERT INTO doc_counter (scope, next_seq) VALUES (?,?)"
+                 " ON CONFLICT(scope) DO UPDATE SET next_seq=excluded.next_seq",
+                 (scope, body.next_seq))
+    conn.commit()
+    return numbering_counters(conn)
 
 
 @router.post("/units")

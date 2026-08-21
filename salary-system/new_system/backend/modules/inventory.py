@@ -1171,6 +1171,12 @@ def material_search(q: str = "", limit: int = 30, conn=Depends(get_db)):
     unit costs so the BOM line can price itself:
         ₹/rod = price_total / rods_received
         ₹/kg  = price_rate_per_kg, else price_total / total_weight_kg
+
+    Bought-out parts answer the same question, so outsourced stock is searched
+    alongside the rack and comes back flagged ``source:"outsourced"`` (heats are
+    ``source:"heat"``). They are NOT the same shape — a heat has rods and a
+    chemistry, an OS item has a quantity and a vendor — so the caller reads the
+    flag rather than guessing from the keys.
     """
     like = f"%{_s(q)}%"
     rows = []
@@ -1194,6 +1200,7 @@ def material_search(q: str = "", limit: int = 30, conn=Depends(get_db)):
             "SELECT length_mm, diameter_mm, quantity FROM heat_piece"
             " WHERE heat_id=? ORDER BY id", (h["id"],))]
         rows.append({
+            "source": "heat",
             "heat_id": h["id"], "heat_number": h["heat_number"],
             "material_class": h["material_class"], "grade": h["grade"],
             "shape": h["shape"], "supplier": h["supplier"],
@@ -1205,7 +1212,46 @@ def material_search(q: str = "", limit: int = 30, conn=Depends(get_db)):
             "label": " · ".join(x for x in (h["heat_number"], h["material_class"],
                                             h["grade"], h["size_section"]) if x),
         })
+    rows += _outsourced_matches(conn, _s(q), max(1, min(int(limit or 30), 200)))
     return {"rows": rows}
+
+
+def _outsourced_matches(conn, q: str, limit: int) -> list[dict]:
+    """Active bought-out stock matching the same search box (SOP-DESIGN §9).
+
+    Deliberately a plain read of os_item rather than a call into the
+    outsourcing module: this endpoint is open to four grants that do NOT
+    include 'outsourcing', and importing the module here would buy a cycle
+    (outsourcing imports settings, settings is imported everywhere).
+    """
+    like = f"%{q}%"
+    out = []
+    for r in conn.execute(
+        "SELECT i.*, v.code AS vendor_code, v.name AS vendor_name,"
+        " o.os_no AS source_os_no FROM os_item i"
+        " LEFT JOIN vendor v ON v.id=i.vendor_id"
+        " LEFT JOIN os_order o ON o.id=i.os_order_id"
+        " WHERE i.active=1 AND (? = '' OR i.os_id LIKE ? OR i.description LIKE ?"
+        "        OR i.part_code LIKE ? OR i.material LIKE ?)"
+        " ORDER BY i.id DESC LIMIT ?",
+        (q, like, like, like, like, limit)
+    ):
+        i = dict(r)
+        vendor = " ".join(x for x in (i["vendor_code"], i["vendor_name"]) if x)
+        what = ", ".join(x for x in (i["description"], i["size_section"]) if x)
+        label = " · ".join(x for x in (i["os_id"], what, i["material"]) if x)
+        out.append({
+            "source": "outsourced",
+            "os_item_id": i["id"], "os_id": i["os_id"],
+            "description": i["description"], "part_code": i["part_code"],
+            "material": i["material"], "size_section": i["size_section"],
+            "qty_remaining": i["qty"], "unit": i["unit"],
+            "unit_cost": i["unit_cost"],
+            "vendor_code": i["vendor_code"], "vendor_name": i["vendor_name"],
+            "source_os_no": i["source_os_no"],
+            "label": f"{label} ({vendor})" if vendor else label,
+        })
+    return out
 
 
 @check_router.get("/refs")

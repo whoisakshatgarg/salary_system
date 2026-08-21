@@ -5,8 +5,14 @@ table with a ``kind``: a quotation quotes a price and expires; an invoice bills
 for work and can be raised straight from an order (its items become the lines,
 so nobody retypes quantities and rates).
 
-Numbering mirrors Order Tracking: a per-financial-year sequence rendered
-through a format from Settings (``QUO-{FY}-{SEQ}`` / ``INV-{FY}-{SEQ}``).
+Numbering is the company's own (CONVENTIONS §3), owned by core/numbering:
+quotations run per client code (``T04/AT/130826/317``), invoices per fiscal
+year (``AT/EI/26-27/169``). Rows numbered before that switch keep their
+``QUO-``/``INV-`` numbers forever.
+
+A quotation can be REVISED: the header and lines are copied to a fresh draft
+numbered ``… Rev-A``, ``Rev-B``…, the parent is marked superseded, and the
+chain stays browsable. Only the tip of a chain can be revised.
 
 Printing is deliberately dependency-free: ``/print`` returns a clean A4-styled
 HTML page that the browser prints or saves as PDF. No PDF library to install,
@@ -17,6 +23,7 @@ from __future__ import annotations
 
 import html
 import math
+import re
 import sqlite3
 from datetime import date, datetime
 
@@ -24,9 +31,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
+from ..core import numbering
 from ..core.db import row_to_dict
 from ..core.deps import get_db, require_module
 from ..core.rules import get_rules
+from . import customers as customers_mod
 from . import settings as settings_mod
 
 router = APIRouter(prefix="/api/quotations",
@@ -34,6 +43,9 @@ router = APIRouter(prefix="/api/quotations",
 
 KINDS = ("quotation", "invoice")
 STATUSES = ("draft", "sent", "accepted", "paid", "cancelled")
+# DEPRECATED, kept harmless: numbers now come from core/numbering, so the
+# settings keys quotation_number_format / invoice_number_format are dead. Old
+# documents keep the numbers these formats gave them.
 DEFAULT_FORMATS = {"quotation": "QUO-{FY}-{SEQ}", "invoice": "INV-{FY}-{SEQ}"}
 DEFAULT_TERMS = ("Prices are ex-works unless stated otherwise.\n"
                  "GST extra as applicable.\n"
@@ -73,26 +85,46 @@ def _check_num(v, label: str, positive: bool = False) -> float:
 # Numbering
 # --------------------------------------------------------------------------- #
 def format_for(conn, kind: str) -> str:
+    """DEPRECATED — the number formats moved to core/numbering (see above)."""
     return settings_mod.get_setting(conn, f"{kind}_number_format", DEFAULT_FORMATS[kind])
 
 
-def next_doc_no(conn, kind: str, doc_date: date) -> str:
-    """Atomic per-kind, per-FY sequence (same pattern as order numbers)."""
-    fmt = format_for(conn, kind)
-    fy = settings_mod.fy_label(doc_date)
+def client_code(conn, customer_id) -> str:
+    """The customer's client code, assigning one if they have none.
+
+    Called inside the numbering transaction: a quotation number is built from
+    the code, so the two have to be decided together or a second quotation
+    could be numbered under a different code.
+    """
+    row = conn.execute("SELECT id, name, code FROM customer WHERE id=?",
+                       (customer_id,)).fetchone()
+    if not row:
+        raise ValueError("That customer no longer exists — reload the page")
+    code = (row["code"] or "").strip()
+    if not code:
+        code = customers_mod.next_code(conn, row["name"])
+        conn.execute("UPDATE customer SET code=? WHERE id=?", (code, row["id"]))
+    return code
+
+
+def next_doc_no(conn, kind: str, doc_date: date, customer_id=None) -> str:
+    """The company's own numbering (CONVENTIONS §3), consumed atomically.
+
+    BEGIN IMMEDIATE covers the client-code lookup, the code assignment it may
+    have to make, and the counter bump: the take joins this transaction
+    rather than opening one of its own.
+    """
     conn.execute("BEGIN IMMEDIATE")
     try:
-        row = conn.execute("SELECT seq FROM doc_seq WHERE kind=? AND fy=?",
-                           (kind, fy)).fetchone()
-        seq = (row["seq"] if row else 0) + 1
-        conn.execute("INSERT INTO doc_seq (kind, fy, seq) VALUES (?,?,?)"
-                     " ON CONFLICT(kind, fy) DO UPDATE SET seq=excluded.seq",
-                     (kind, fy, seq))
+        if kind == "quotation":
+            doc_no = numbering.quotation_no(conn, client_code(conn, customer_id), doc_date)
+        else:
+            doc_no = numbering.invoice_no(conn, doc_date)
         conn.commit()
     except BaseException:
         conn.rollback()
         raise
-    return settings_mod.render_order_no(fmt, doc_date, seq)
+    return doc_no
 
 
 # --------------------------------------------------------------------------- #
@@ -107,6 +139,7 @@ def _validate_lines(lines: list[dict]) -> list[dict]:
             raise ValueError(f"Line {i}: pick a part or type a description")
         out.append({
             "drawing_id": ln.get("drawing_id") or None,
+            "os_item_id": ln.get("os_item_id") or None,
             "description": _s(ln.get("description")),
             "qty": _check_num(ln.get("qty"), f"Line {i} quantity", positive=True),
             "unit": _s(ln.get("unit")) or "Nos",
@@ -125,6 +158,9 @@ def _check_refs(conn, customer_id, lines: list[dict], order_id=None) -> None:
         if ln["drawing_id"] and not conn.execute(
                 "SELECT 1 FROM drawing WHERE id=?", (ln["drawing_id"],)).fetchone():
             raise ValueError(f"Line {i}: that drawing no longer exists — reload the page")
+        if ln.get("os_item_id") and not conn.execute(
+                "SELECT 1 FROM os_item WHERE id=?", (ln["os_item_id"],)).fetchone():
+            raise ValueError(f"Line {i}: that outsourced item no longer exists — reload the page")
 
 
 def create_doc(conn, kind: str, data: dict) -> int:
@@ -137,7 +173,7 @@ def create_doc(conn, kind: str, data: dict) -> int:
     tax = _check_num(data.get("tax_pct") or 0, "Tax %")
     lines = _validate_lines(data.get("lines") or [])
     _check_refs(conn, data["customer_id"], lines, data.get("order_id"))
-    doc_no = next_doc_no(conn, kind, date.fromisoformat(doc_date))
+    doc_no = next_doc_no(conn, kind, date.fromisoformat(doc_date), data["customer_id"])
     try:
         cur = conn.execute(
             """INSERT INTO document (kind, doc_no, customer_id, order_id, doc_date,
@@ -147,15 +183,21 @@ def create_doc(conn, kind: str, data: dict) -> int:
              valid_until, _s(data.get("reference")), tax, _s(data.get("notes")),
              _s(data.get("terms")) or DEFAULT_TERMS, _now()))
     except sqlite3.IntegrityError:
-        raise ValueError(f"{doc_no} already exists — check the number format in Settings")
+        raise ValueError(f"{doc_no} already exists — correct the counter in "
+                         "Settings → Numbering")
     doc_id = cur.lastrowid
     for ln in lines:
-        conn.execute(
-            "INSERT INTO document_line (document_id, drawing_id, description, qty, unit, rate)"
-            " VALUES (?,?,?,?,?,?)",
-            (doc_id, ln["drawing_id"], ln["description"], ln["qty"], ln["unit"], ln["rate"]))
+        _insert_line(conn, doc_id, ln)
     conn.commit()
     return doc_id
+
+
+def _insert_line(conn, doc_id: int, ln: dict) -> None:
+    conn.execute(
+        "INSERT INTO document_line (document_id, drawing_id, os_item_id, description,"
+        " qty, unit, rate) VALUES (?,?,?,?,?,?,?)",
+        (doc_id, ln["drawing_id"], ln.get("os_item_id"), ln["description"],
+         ln["qty"], ln["unit"], ln["rate"]))
 
 
 def update_doc(conn, doc_id: int, data: dict) -> None:
@@ -181,14 +223,103 @@ def update_doc(conn, doc_id: int, data: dict) -> None:
              _s(data.get("terms")), doc_id))
         conn.execute("DELETE FROM document_line WHERE document_id=?", (doc_id,))
         for ln in lines:
-            conn.execute(
-                "INSERT INTO document_line (document_id, drawing_id, description, qty, unit, rate)"
-                " VALUES (?,?,?,?,?,?)",
-                (doc_id, ln["drawing_id"], ln["description"], ln["qty"], ln["unit"], ln["rate"]))
+            _insert_line(conn, doc_id, ln)
         conn.commit()
     except BaseException:
         conn.rollback()
         raise
+
+
+# --------------------------------------------------------------------------- #
+# Revisions — a copy that supersedes its parent (SOP-DESIGN §2, CONVENTIONS §9-B)
+# --------------------------------------------------------------------------- #
+_REV_SUFFIX = re.compile(r"\s+Rev-[A-Z]+$")
+
+
+def _revision_base(doc_no: str) -> str:
+    """The number without its revision marker: revisions of a revision still
+    hang off the ORIGINAL number, they don't stack ' Rev-A Rev-B'."""
+    return _REV_SUFFIX.sub("", _s(doc_no))
+
+
+def _rev_letter(n: int) -> str:
+    """0 -> 'A', 25 -> 'Z', 26 -> 'AA' — a chain that long is a filing problem,
+    but it must still produce a number."""
+    out = ""
+    n += 1
+    while n:
+        n, r = divmod(n - 1, 26)
+        out = chr(65 + r) + out
+    return out
+
+
+def revision_chain(conn, doc_id: int) -> list[dict]:
+    """Every revision of one document, oldest first; `active` is the tip."""
+    root, seen = doc_id, {doc_id}
+    while True:
+        r = conn.execute("SELECT revises_document_id FROM document WHERE id=?",
+                         (root,)).fetchone()
+        parent = r["revises_document_id"] if r else None
+        if not parent or parent in seen:
+            break
+        seen.add(parent)
+        root = parent
+    out, cur, walked = [], root, set()
+    while cur and cur not in walked:
+        walked.add(cur)
+        r = conn.execute(
+            "SELECT id, doc_no, status, doc_date, superseded_by FROM document WHERE id=?",
+            (cur,)).fetchone()
+        if not r:
+            break
+        out.append({"id": r["id"], "doc_no": r["doc_no"], "status": r["status"],
+                    "doc_date": r["doc_date"], "active": r["superseded_by"] is None})
+        nxt = conn.execute(
+            "SELECT id FROM document WHERE revises_document_id=? ORDER BY id LIMIT 1",
+            (r["id"],)).fetchone()
+        cur = nxt["id"] if nxt else None
+    return out
+
+
+def revise_doc(conn, doc_id: int) -> int:
+    """Copy a document to a new draft revision and supersede the original.
+
+    Only the tip of a chain can be revised: a superseded document is history,
+    and branching it would leave two documents claiming to be the latest.
+    """
+    conn.execute("BEGIN IMMEDIATE")     # the tip check and the copy are one act
+    try:
+        doc = row_to_dict(conn.execute(
+            "SELECT * FROM document WHERE id=?", (doc_id,)).fetchone())
+        if not doc:
+            raise ValueError("Document not found")
+        if doc["superseded_by"]:
+            raise ValueError("This one has already been revised — revise the latest revision")
+        doc_no = (f"{_revision_base(doc['doc_no'])} "
+                  f"Rev-{_rev_letter(max(len(revision_chain(conn, doc_id)) - 1, 0))}")
+        try:
+            cur = conn.execute(
+                """INSERT INTO document (kind, doc_no, customer_id, order_id, doc_date,
+                     valid_until, reference, tax_pct, notes, terms, status,
+                     revises_document_id, created_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,'draft',?,?)""",
+                (doc["kind"], doc_no, doc["customer_id"], doc["order_id"], doc["doc_date"],
+                 doc["valid_until"], doc["reference"], doc["tax_pct"], doc["notes"],
+                 doc["terms"], doc_id, _now()))
+        except sqlite3.IntegrityError:
+            raise ValueError(f"{doc_no} already exists — renumber that one first")
+        new_id = cur.lastrowid
+        conn.execute(
+            """INSERT INTO document_line (document_id, drawing_id, os_item_id,
+                 description, qty, unit, rate)
+               SELECT ?, drawing_id, os_item_id, description, qty, unit, rate
+               FROM document_line WHERE document_id=? ORDER BY id""", (new_id, doc_id))
+        conn.execute("UPDATE document SET superseded_by=? WHERE id=?", (new_id, doc_id))
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    return new_id
 
 
 def totals(subtotal: float, tax_pct: float) -> dict:
@@ -213,13 +344,16 @@ def get_doc(conn, doc_id: int) -> dict:
     for ln in d["lines"]:
         ln["amount"] = round(ln["qty"] * ln["rate"], 2)
     d.update(totals(sum(ln["amount"] for ln in d["lines"]), d["tax_pct"]))
+    # only when there IS a chain: a document nobody revised has no history rail
+    d["revisions"] = (revision_chain(conn, doc_id)
+                      if d["revises_document_id"] or d["superseded_by"] else [])
     return d
 
 
 def list_docs(conn, kind: str = "", q: str = "", customer_id=None) -> dict:
     sql = """SELECT d.id, d.kind, d.doc_no, d.doc_date, d.valid_until, d.status,
                     d.tax_pct, c.name AS customer_name, c.code AS customer_code,
-                    o.order_no,
+                    o.order_no, d.superseded_by,
                     (SELECT COALESCE(SUM(l.qty*l.rate),0) FROM document_line l
                        WHERE l.document_id=d.id) AS subtotal
              FROM document d JOIN customer c ON c.id=d.customer_id
@@ -426,6 +560,7 @@ def render_print(conn, doc_id: int) -> str:
 # --------------------------------------------------------------------------- #
 class LineIn(BaseModel):
     drawing_id: int | None = None
+    os_item_id: int | None = None    # a bought-out part instead of a drawing
     description: str = ""
     qty: float
     unit: str = "Nos"
@@ -512,6 +647,12 @@ def update(doc_id: int, body: DocIn, conn=Depends(get_db)):
 @router.post("/{doc_id}/status")
 def status(doc_id: int, body: StatusIn, conn=Depends(get_db)):
     return _400(set_status, conn, doc_id, body.status)
+
+
+@router.post("/{doc_id}/revise")
+def revise(doc_id: int, conn=Depends(get_db)):
+    """A fresh draft ' Rev-A' carrying this document's header and lines."""
+    return get_doc(conn, _400(revise_doc, conn, doc_id))
 
 
 @router.delete("/{doc_id}")

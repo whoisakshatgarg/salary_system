@@ -11,6 +11,10 @@ the source of truth). Shipping lives HERE as consignments: GST fields
 (transporter, LR, e-way, invoice), lines referencing order items with
 quantities — so partial shipments and one truck carrying several orders both
 work. Over-shipping an item is refused.
+
+Intake paperwork attaches to the order (the enquiry e-mail, their PO scan):
+files on disk under order_files/, metadata in order_attachment, the shared
+plumbing in core/attachments.py.
 """
 
 from __future__ import annotations
@@ -18,13 +22,18 @@ from __future__ import annotations
 import html
 import math
 import re
+import secrets
 import sqlite3
 from datetime import date, datetime
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 
+from ..core import paths
+from ..core.attachments import (header_filename, response_mime, storage_ext,
+                                validate_attachment)
 from ..core.db import row_to_dict
 from ..core.deps import current_user, get_db, require_module
 from ..core.rules import get_rules
@@ -313,6 +322,7 @@ def get_order(conn, order_id: int) -> dict:
         it["segments"], it["over_delivered"] = _segments(
             it["schedule"], it["qty"], it["shipped"])
         o["items"].append(it)
+    _drawing_files(conn, o["items"])
     o["amount"] = round(sum(i["amount"] for i in o["items"]), 2)
     o["qty_total"] = round(sum(i["qty"] for i in o["items"]), 3)
     o["qty_shipped"] = round(sum(i["shipped"] for i in o["items"]), 3)
@@ -329,6 +339,11 @@ def get_order(conn, order_id: int) -> dict:
            ORDER BY d.doc_date DESC, d.id DESC""", (order_id,))]
     for d in o["documents"]:
         d["total"] = round(d["subtotal"] * (1 + (d["tax_pct"] or 0) / 100), 2)
+    # the GENERATED paperwork (SOP-DESIGN §6): what the pipeline strip draws a
+    # chip for, newest first. One query — the strip shows every stage at once.
+    o["papers"] = [dict(r) for r in conn.execute(
+        """SELECT id, kind, paper_no, revision, status, paper_date
+           FROM paper WHERE order_id=? ORDER BY id DESC""", (order_id,))]
     # material traceability: inventory issues recorded against this order number
     o["heats"] = [dict(r) for r in conn.execute(
         """SELECT m.mv_date, m.rods, m.weight_kg, m.remarks,
@@ -341,8 +356,82 @@ def get_order(conn, order_id: int) -> dict:
            JOIN consignment_line l ON l.consignment_id=cn.id
            JOIN order_item i ON i.id=l.order_item_id
            WHERE i.order_id=? ORDER BY cn.consign_date DESC, cn.id DESC""", (order_id,))]
+    # intake paperwork: what the customer sent us for THIS order
+    o["attachments"] = [dict(r) for r in conn.execute(
+        "SELECT id, label, filename, size_bytes, uploaded_at FROM order_attachment"
+        " WHERE order_id=? ORDER BY id", (order_id,))]
     o["stages"] = [{"key": s, "label": STAGE_LABELS[s]} for s in STAGES]
     return o
+
+
+def _drawing_files(conn, items: list[dict]) -> None:
+    """Hang each item's drawing files on it, in ONE query — the order page
+    lists them per row, and asking per row would be a query per item."""
+    ids = [i["drawing_id"] for i in items if i["drawing_id"]]
+    files: dict[int, list[dict]] = {}
+    if ids:
+        marks = ",".join("?" * len(ids))
+        for r in conn.execute(
+                f"SELECT id, drawing_id, filename FROM drawing_file"
+                f" WHERE drawing_id IN ({marks}) ORDER BY id", ids):
+            files.setdefault(r["drawing_id"], []).append(
+                {"id": r["id"], "filename": r["filename"]})
+    for it in items:
+        it["drawing_files"] = files.get(it["drawing_id"], [])
+
+
+# --------------------------------------------------------------------------- #
+# Intake attachments (files on disk, metadata in the DB).
+# Validation/mime plumbing is shared app-wide — see core/attachments.py.
+# --------------------------------------------------------------------------- #
+def save_order_attachments(conn, order_id: int, label: str,
+                           items: list[tuple[str, str, bytes]]) -> list[dict]:
+    """Store a batch of (filename, mime, content) ALL-OR-NOTHING: every file is
+    validated before anything is written, and a failure mid-batch rolls back
+    the DB rows and removes the files already on disk."""
+    if not conn.execute("SELECT 1 FROM customer_order WHERE id=?", (order_id,)).fetchone():
+        raise ValueError("Order not found")
+    if not items:
+        raise ValueError("Pick at least one file")
+    checked = [(filename, validate_attachment(mime, content), content)
+               for filename, mime, content in items]
+    written: list[Path] = []
+    metas: list[dict] = []
+    try:
+        for filename, mime, content in checked:
+            stored = f"o{order_id}-{secrets.token_hex(8)}{storage_ext(filename, mime)}"
+            path = paths.order_files_dir() / stored
+            path.write_bytes(content)
+            written.append(path)
+            cur = conn.execute(
+                "INSERT INTO order_attachment (order_id, label, filename, mime,"
+                " size_bytes, stored_name, uploaded_at) VALUES (?,?,?,?,?,?,?)",
+                (order_id, _s(label), _s(filename) or stored, mime, len(content),
+                 stored, _now()),
+            )
+            metas.append({"id": cur.lastrowid, "label": _s(label),
+                          "filename": _s(filename) or stored,
+                          "mime": mime, "size_bytes": len(content)})
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        for p in written:
+            p.unlink(missing_ok=True)
+        raise
+    return metas
+
+
+def delete_order_attachment(conn, attachment_id: int) -> dict:
+    row = conn.execute(
+        "SELECT order_id, stored_name FROM order_attachment WHERE id=?",
+        (attachment_id,),
+    ).fetchone()
+    if not row:
+        raise ValueError("Attachment not found")
+    conn.execute("DELETE FROM order_attachment WHERE id=?", (attachment_id,))
+    conn.commit()
+    (paths.order_files_dir() / row["stored_name"]).unlink(missing_ok=True)
+    return get_order(conn, row["order_id"])
 
 
 def delete_order(conn, order_id: int) -> None:
@@ -1146,6 +1235,42 @@ def requisition_print(doc_id: int, conn=Depends(get_db)):
         return HTMLResponse(render_material_doc(conn, doc_id))
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+# Declared BEFORE the /{order_id} routes: '/attachments/3' must not be read as
+# an order id.
+@router.get("/attachments/{attachment_id}")
+def order_attachment_view(attachment_id: int, download: bool = False, conn=Depends(get_db)):
+    row = conn.execute(
+        "SELECT * FROM order_attachment WHERE id=?", (attachment_id,)
+    ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+    path = paths.order_files_dir() / row["stored_name"]
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="File is missing on disk")
+    safe = header_filename(row["filename"])
+    disposition = "attachment" if download else "inline"
+    return FileResponse(
+        path, media_type=response_mime(row["stored_name"]),
+        headers={"Content-Disposition": f'{disposition}; filename="{safe}"'},
+    )
+
+
+@router.delete("/attachments/{attachment_id}")
+def order_attachment_delete(attachment_id: int, conn=Depends(get_db)):
+    return _400(delete_order_attachment, conn, attachment_id)
+
+
+@router.post("/{order_id}/attachments")
+def order_attachment_upload(order_id: int, label: str = Form(""),
+                            files: list[UploadFile] = File(...),
+                            conn=Depends(get_db)):
+    # Sync on purpose (like every route here): the sqlite connection from
+    # get_db lives in the threadpool, so the handler must run there too.
+    items = [(f.filename or "", f.content_type or "", f.file.read()) for f in files]
+    saved = _400(save_order_attachments, conn, order_id, label, items)
+    return {"saved": saved, "order": get_order(conn, order_id)}
 
 
 @router.post("/{order_id}/bom/issue")

@@ -8,6 +8,7 @@ and the static frontend mount. All business routes live in their modules:
     modules/parts       drawing master, rate history, costing builder
     modules/orders      orders, stages, consignments, FY numbering
     modules/quotations  quotations + invoices, printable copies
+    modules/outsourcing vendors, outgoing job orders, receipts, bought-out stock
     modules/settings    order format, units, operation rates, departments
     modules/users       accounts, module grants, the launcher's tile list
 
@@ -26,12 +27,12 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from .core import auth, db, edition, paths, update
+from .core import auth, db, edition, numbering, paths, update
 from .core.deps import current_user, get_db, require_admin
 from .core.rules import get_rules
 from .core.version import __version__
-from .modules import (customers, inventory, orders, parts, quotations,
-                      settings, users)
+from .modules import (customers, inventory, orders, outsourcing, parts,
+                      quotations, settings, users)
 from .modules.employees import seed
 from .modules.employees.router import router as employees_router
 from .modules.payroll.router import router as payroll_router
@@ -74,6 +75,8 @@ def _startup() -> None:
     settings.ensure_defaults()   # first-run units / operations / order format
     with db.connect() as _c:     # customers added before codes existed
         customers.backfill_codes(_c)
+        customers.recode_legacy_codes(_c)  # …and codes from the old 2-letter scheme
+        numbering.ensure_seeds(_c)         # real-world counter starting points
 
 
 app.include_router(employees_router)
@@ -86,6 +89,7 @@ app.include_router(customers.router)
 app.include_router(parts.router)
 app.include_router(orders.router)
 app.include_router(quotations.router)
+app.include_router(outsourcing.router)
 
 
 # --------------------------------------------------------------------------- #
@@ -190,8 +194,9 @@ def update_apply(request: Request):
 # --------------------------------------------------------------------------- #
 def _write_backup_zip(dest: Path) -> None:
     """A COMPLETE backup: consistent salary.db snapshot + every on-disk file
-    (inventory certificates/invoices AND employee documents). Restore = unzip
-    salary.db, inventory_files/ and employee_files/ back into the data folder."""
+    (inventory certificates/invoices, employee documents, drawings, order
+    intake paperwork, vendor paperwork). Restore = unzip salary.db and every
+    *_files/ folder back into the data folder."""
     tmp = Path(tempfile.mkdtemp()) / "salary.db"
     db.backup_to(tmp)
     try:
@@ -199,7 +204,9 @@ def _write_backup_zip(dest: Path) -> None:
             z.write(tmp, "salary.db")
             for dirname, folder in (("inventory_files", paths.inventory_files_dir()),
                                     ("employee_files", paths.employee_files_dir()),
-                                    ("drawing_files", paths.drawing_files_dir())):
+                                    ("drawing_files", paths.drawing_files_dir()),
+                                    ("order_files", paths.order_files_dir()),
+                                    ("outsourcing_files", paths.outsourcing_files_dir())):
                 for f in sorted(folder.iterdir()):
                     if f.is_file():
                         z.write(f, f"{dirname}/{f.name}")

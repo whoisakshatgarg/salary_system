@@ -3,5 +3,6 @@
 # the Excel exporters (next phase).
 fastapi>=0.115
 uvicorn[standard]>=0.30
-openpyxl>=3.1          # exact-format CEO + Distribution salary sheets
+openpyxl>=3.1          # salary sheets + the xlsx documents (quotation, ack, WO, TC, BOM)
+python-docx>=1.1       # the docx documents (invoice, packing list, COC)
 python-multipart>=0.0.9

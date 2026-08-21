@@ -212,20 +212,21 @@ function cu() {
                     address_shipping: "", payment_terms: "", notes: "" };
       this.formError = "";
     },
-    // live preview of the code the server will assign (initials, noise words dropped)
+    // live preview of the code the server will assign: first letter of the name
+    // (noise words dropped) + a serial, or a whole code typed in as-is
     get codePreview() {
       const f = this.form;
       if (!f || f.id) return "";
       const manual = (f.abbr || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-      if (manual) return manual + "nn";
+      if (/^[A-Z][0-9]{2,}$/.test(manual)) return manual;
+      if (manual) return manual[0] + "nn";
       const noise = ["pvt", "private", "ltd", "limited", "llp", "inc", "co", "company",
                      "corp", "corporation", "and", "the", "ms"];
       let w = (f.name || "").split(/[^A-Za-z0-9]+/).filter(Boolean);
       const sig = w.filter((x) => !noise.includes(x.toLowerCase()));
       w = sig.length ? sig : w;
-      if (!w.length) return "";
-      const abbr = w.length === 1 ? w[0].slice(0, 2) : w[0][0] + w[1][0];
-      return abbr.toUpperCase() + "nn";
+      const letter = w.join("").match(/[A-Za-z]/);
+      return letter ? letter[0].toUpperCase() + "nn" : "";
     },
     editCust() {
       this.form = { ...this.detail };

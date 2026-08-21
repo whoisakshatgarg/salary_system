@@ -123,6 +123,22 @@ def drawing_files_dir() -> Path:
     return d
 
 
+def order_files_dir() -> Path:
+    """Order intake paperwork (the enquiry e-mail, the customer's PO scan) —
+    same pattern; included in backup zips."""
+    d = data_dir() / "order_files"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def outsourcing_files_dir() -> Path:
+    """Vendor paperwork (uploaded, never generated) — same pattern; included
+    in backup zips."""
+    d = data_dir() / "outsourcing_files"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def _seed_default_config(dest: Path) -> None:
     """Copy bundled default config into the writable dir, only if missing."""
     src = resource_dir() / "config"

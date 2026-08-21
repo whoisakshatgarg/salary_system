@@ -336,7 +336,8 @@ CREATE TABLE IF NOT EXISTS costing_material (
     unit           TEXT,                          -- 'rod' | 'kg'
     unit_cost      REAL NOT NULL DEFAULT 0,       -- ₹ per unit, snapshot
     qty_per_piece  REAL NOT NULL DEFAULT 0,
-    cost           REAL NOT NULL DEFAULT 0
+    cost           REAL NOT NULL DEFAULT 0,
+    os_item_id     INTEGER REFERENCES os_item(id) -- costing a bought-out part
 );
 
 CREATE TABLE IF NOT EXISTS costing_op (
@@ -385,6 +386,21 @@ CREATE TABLE IF NOT EXISTS order_stage_log (
     at       TEXT NOT NULL,
     note     TEXT
 );
+
+-- What the customer sent us at intake (the enquiry e-mail, their PO scan, a
+-- drawing photo). Files on disk under order_files/, metadata here — same
+-- pattern as heat_attachment.
+CREATE TABLE IF NOT EXISTS order_attachment (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id    INTEGER NOT NULL REFERENCES customer_order(id) ON DELETE CASCADE,
+    label       TEXT,                             -- e.g. 'Enquiry e-mail', 'PO'
+    filename    TEXT NOT NULL,                    -- original name, shown to user
+    mime        TEXT,
+    size_bytes  INTEGER,
+    stored_name TEXT NOT NULL UNIQUE,             -- file under order_files/
+    uploaded_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_order_att_order ON order_attachment(order_id);
 
 -- Delivery plan for a long-running order: "250 by the 10th, 100 by the 24th,
 -- the rest before the deadline". Lines hang off the ITEM, because a quantity
@@ -471,6 +487,15 @@ CREATE TABLE IF NOT EXISTS doc_seq (               -- per-FY numbering, per kind
     PRIMARY KEY (kind, fy)
 );
 
+-- Every counter behind the company's real document numbers (CONVENTIONS §3).
+-- One row per scope ('qtn:T04', 'inv:26-27', 'wo:26', 'vendor', …), bumped by
+-- core/numbering._take and editable in Settings → Numbering, which is how a
+-- real-world count is corrected without a code change.
+CREATE TABLE IF NOT EXISTS doc_counter (
+    scope    TEXT PRIMARY KEY,
+    next_seq INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS document (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     kind         TEXT NOT NULL,                    -- 'quotation' | 'invoice'
@@ -484,7 +509,11 @@ CREATE TABLE IF NOT EXISTS document (
     notes        TEXT,
     terms        TEXT,
     status       TEXT NOT NULL DEFAULT 'draft',    -- draft|sent|accepted|paid|cancelled
-    created_at   TEXT
+    created_at   TEXT,
+    -- Revision chain: a revision names its parent, the parent names the
+    -- revision that replaced it. Only the tip (superseded_by IS NULL) is live.
+    revises_document_id INTEGER REFERENCES document(id),
+    superseded_by       INTEGER REFERENCES document(id)
 );
 
 CREATE TABLE IF NOT EXISTS document_line (
@@ -494,12 +523,153 @@ CREATE TABLE IF NOT EXISTS document_line (
     description TEXT,
     qty         REAL NOT NULL,
     unit        TEXT,
-    rate        REAL NOT NULL DEFAULT 0
+    rate        REAL NOT NULL DEFAULT 0,
+    os_item_id  INTEGER REFERENCES os_item(id)     -- quoting a bought-out part
 );
 
 CREATE INDEX IF NOT EXISTS idx_document_customer ON document(customer_id);
 CREATE INDEX IF NOT EXISTS idx_document_order    ON document(order_id);
 CREATE INDEX IF NOT EXISTS idx_doc_line_doc      ON document_line(document_id);
+
+-- ---------- Papers (generated documents, SOP-DESIGN §2) ---------- --
+-- One row per document instance the company issues. The payload holds every
+-- editable field so a hand edit is never clobbered by a refill; the file
+-- itself is rendered on demand from payload + template, never stored.
+-- Quotation/invoice papers also carry document_id — the ledger stays the money
+-- truth, the paper holds the export-format fields.
+CREATE TABLE IF NOT EXISTS paper (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind        TEXT NOT NULL,                    -- quotation|ack|work_order|invoice|
+                                                  -- packing_list|coc|test_cert|bom
+    paper_no    TEXT NOT NULL,                    -- formatted per CONVENTIONS §3
+    revision    TEXT NOT NULL DEFAULT '',
+    order_id    INTEGER NOT NULL REFERENCES customer_order(id),
+    customer_id INTEGER REFERENCES customer(id),
+    document_id INTEGER REFERENCES document(id),  -- ledger link (quotation/invoice)
+    based_on_id INTEGER REFERENCES paper(id),     -- revision parent OR attached source
+    status      TEXT NOT NULL DEFAULT 'draft',    -- draft|final|sent|superseded|void
+    paper_date  TEXT,
+    payload     TEXT NOT NULL,                    -- JSON: every editable field
+    created_at  TEXT,
+    updated_at  TEXT,
+    UNIQUE(kind, paper_no, revision)
+);
+
+CREATE INDEX IF NOT EXISTS idx_paper_order ON paper(order_id);
+CREATE INDEX IF NOT EXISTS idx_paper_kind  ON paper(kind, status);
+
+-- ---------- Outsourcing (SOP-DESIGN §9) ---------- --
+-- Work that leaves the shop: a vendor, the job order sent out, what came back,
+-- and the bought-out stock that results. Outsourced stock is deliberately its
+-- OWN world (os_item / os_movement) and not a heat: it has no heat number and
+-- no chemistry, so filing it under the raw-material register would mean a
+-- table of empty columns.
+CREATE TABLE IF NOT EXISTS vendor (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    code         TEXT UNIQUE,                     -- 'V01', from core/numbering
+    name         TEXT UNIQUE NOT NULL,
+    contact_name TEXT,
+    phone        TEXT,
+    email        TEXT,
+    address      TEXT,
+    services     TEXT,                            -- what they do for us
+    notes        TEXT,
+    active       INTEGER NOT NULL DEFAULT 1,
+    created_at   TEXT
+);
+
+CREATE TABLE IF NOT EXISTS os_order (              -- the outgoing job order
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    os_no      TEXT NOT NULL UNIQUE,              -- 'AT/OS/26-27/001'
+    vendor_id  INTEGER NOT NULL REFERENCES vendor(id),
+    order_id   INTEGER REFERENCES customer_order(id),  -- when it serves one order
+    purpose    TEXT,
+    date_sent  TEXT,
+    deadline   TEXT,                              -- drives the workspace panel
+    status     TEXT NOT NULL DEFAULT 'open',      -- open|partial|received|closed|cancelled
+    notes      TEXT,
+    created_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS os_order_item (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    os_order_id   INTEGER NOT NULL REFERENCES os_order(id) ON DELETE CASCADE,
+    description   TEXT,
+    part_code     TEXT,
+    qty           REAL NOT NULL,
+    unit          TEXT,
+    unit_cost     REAL,                             -- the vendor's agreed rate
+    order_item_id INTEGER REFERENCES order_item(id)  -- one order split across vendors
+);
+
+CREATE TABLE IF NOT EXISTS os_receipt (            -- a delivery back from the vendor
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    os_order_id      INTEGER NOT NULL REFERENCES os_order(id) ON DELETE CASCADE,
+    receipt_date     TEXT,
+    inspection_notes TEXT,
+    accepted         INTEGER NOT NULL DEFAULT 1,
+    created_at       TEXT
+);
+
+CREATE TABLE IF NOT EXISTS os_receipt_line (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    os_receipt_id   INTEGER NOT NULL REFERENCES os_receipt(id) ON DELETE CASCADE,
+    os_order_item_id INTEGER REFERENCES os_order_item(id),
+    qty             REAL NOT NULL,
+    os_item_id      INTEGER REFERENCES os_item(id)  -- the stock row it became
+);
+
+CREATE TABLE IF NOT EXISTS os_item (               -- the outsourced inventory
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    os_id         TEXT NOT NULL UNIQUE,            -- 'OS-0001', from core/numbering
+    description   TEXT NOT NULL,
+    part_code     TEXT,
+    material      TEXT,
+    size_section  TEXT,
+    unit          TEXT,
+    qty           REAL NOT NULL DEFAULT 0,
+    unit_cost     REAL,                             -- carried in from the job order
+    vendor_id     INTEGER REFERENCES vendor(id),
+    os_order_id   INTEGER REFERENCES os_order(id),
+    received_date TEXT,
+    notes         TEXT,
+    active        INTEGER NOT NULL DEFAULT 1,
+    created_at    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS os_movement (           -- mirrors heat_movement
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    os_item_id INTEGER NOT NULL REFERENCES os_item(id) ON DELETE CASCADE,
+    mv_date    TEXT,
+    type       TEXT NOT NULL,                     -- 'receive' | 'issue' | 'adjust'
+    qty        REAL NOT NULL,                     -- SIGNED: + in, - out
+    order_id   TEXT,                              -- the order NUMBER, as in heat_movement
+    remarks    TEXT,
+    created_at TEXT
+);
+
+-- Vendor paperwork is UPLOADED, never generated (owner brief). Files on disk
+-- under outsourcing_files/, metadata here.
+CREATE TABLE IF NOT EXISTS os_document (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    vendor_id   INTEGER REFERENCES vendor(id),
+    os_order_id INTEGER REFERENCES os_order(id),
+    label       TEXT,
+    filename    TEXT NOT NULL,
+    mime        TEXT,
+    size_bytes  INTEGER,
+    stored_name TEXT NOT NULL UNIQUE,             -- file under outsourcing_files/
+    uploaded_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_os_order_vendor   ON os_order(vendor_id);
+CREATE INDEX IF NOT EXISTS idx_os_order_deadline ON os_order(deadline);
+CREATE INDEX IF NOT EXISTS idx_os_order_item_os  ON os_order_item(os_order_id);
+CREATE INDEX IF NOT EXISTS idx_os_receipt_os     ON os_receipt(os_order_id);
+CREATE INDEX IF NOT EXISTS idx_os_receipt_line   ON os_receipt_line(os_receipt_id);
+CREATE INDEX IF NOT EXISTS idx_os_movement_item  ON os_movement(os_item_id);
+CREATE INDEX IF NOT EXISTS idx_os_document_vendor ON os_document(vendor_id);
+CREATE INDEX IF NOT EXISTS idx_os_document_order  ON os_document(os_order_id);
 
 CREATE TABLE IF NOT EXISTS sync_log (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -570,6 +740,26 @@ _MIGRATIONS = {
         "attendance_percentage": "REAL NOT NULL DEFAULT 0",
         "penalty_days": "INTEGER NOT NULL DEFAULT 0",
     },
+    # No REFERENCES clause on these: SQLite refuses to ADD COLUMN with a
+    # foreign key, and the constraint only matters for rows written from now on.
+    "document": {
+        "revises_document_id": "INTEGER",
+        "superseded_by": "INTEGER",
+    },
+    "document_line": {
+        "os_item_id": "INTEGER",
+    },
+    "costing_material": {
+        "os_item_id": "INTEGER",
+    },
+    # The vendor's agreed rate: it rides the receipt into stock so a costing or
+    # a quotation can price a bought-out part.
+    "os_order_item": {
+        "unit_cost": "REAL",
+    },
+    "os_item": {
+        "unit_cost": "REAL",
+    },
 }
 
 
@@ -595,7 +785,13 @@ def _migrate(conn) -> None:
 
 
 def init_db(db_path: str | Path | None = None) -> None:
-    """Create all tables if they don't exist, then apply column migrations."""
+    """Create all tables if they don't exist, then apply column migrations.
+
+    SCHEMA is re-run on every start and every statement in it is IF NOT
+    EXISTS — that is how a NEW table (or index) reaches a database that
+    already holds live data. Only new COLUMNS on existing tables need
+    _migrate, because CREATE TABLE IF NOT EXISTS won't alter one.
+    """
     conn = connect(db_path)
     try:
         conn.executescript(SCHEMA)

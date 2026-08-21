@@ -224,9 +224,9 @@ operators need per-key ticks in Users & Access. Settings → Numbering writes ar
 |---|---|
 | Phase 0: CONVENTIONS.md, reference_specs/, xls conversions | ✅ done |
 | format_spec.py at repo root (owner-supplied) | ✅ done |
-| Wave 1: numbering + paper/outsourcing schema + migrations | ⏳ pending |
+| Wave 1: numbering + paper/outsourcing schema + migrations | ✅ done (307 tests green; blank-code edits keep the code; codes may grow past 2 digits (`A100`); ledger marks `superseded_by` only — `superseded` status is paper-level) |
 | Wave 2: engine + 8 templates + fidelity tests | ⏳ pending |
-| Wave 4: outsourcing module end to end | ⏳ pending |
+| Wave 4: outsourcing module end to end | ✅ done (86 module tests; `os_item.unit_cost`/`os_order_item.unit_cost` added; os_order status derives open→partial→received, closed/cancelled are hand-set only, and `POST /orders/{id}/reopen` takes a terminal state back and re-derives; `os_movement.qty` is the SIGNED change and sums to `os_item.qty`; deleting a receipt logs a reversing `adjust` at the receipt's own date; stock is a running quantity, not lots — per-receipt lot tracking out of scope per owner) |
 | Wave 3: papers UI + pipeline strip + homepage reorder | ⏳ pending |
 | Final: audits, docs, USER_GUIDE | ⏳ pending |
 | Quotation template owner sign-off | ⏳ pending |

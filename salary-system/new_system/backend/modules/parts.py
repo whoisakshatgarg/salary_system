@@ -306,9 +306,13 @@ def save_costing(conn, drawing_id: int, data: dict) -> dict:
         unit_cost = _check_money(m.get("unit_cost") or 0, f"{label}: unit cost")
         qty = _check_ratio(m.get("qty_per_piece"), f"{label}: quantity per piece")
         hid = m.get("heat_id")
+        osid = m.get("os_item_id")
+        if osid and not conn.execute("SELECT 1 FROM os_item WHERE id=?", (osid,)).fetchone():
+            raise ValueError(f"{label}: that outsourced item no longer exists — reload the page")
         bom.append((int(hid) if hid else None, _s(m.get("heat_number")),
                     _s(m.get("material_label")), _s(m.get("unit")) or "rod",
-                    unit_cost, qty, bom_cost(unit_cost, qty)))
+                    unit_cost, qty, bom_cost(unit_cost, qty),
+                    int(osid) if osid else None))
 
     if bom:
         material = round(sum(b[6] for b in bom), 2)
@@ -337,12 +341,12 @@ def save_costing(conn, drawing_id: int, data: dict) -> dict:
             "INSERT INTO costing_op (costing_id, operation, minutes, rate_per_hour,"
             " weightage, extra_rate, cost) VALUES (?,?,?,?,?,?,?)",
             (cur.lastrowid, name, minutes, rate, weightage, extra, cost))
-    for hid, hn, label, unit, unit_cost, qty, cost in bom:
+    for hid, hn, label, unit, unit_cost, qty, cost, osid in bom:
         conn.execute(
             "INSERT INTO costing_material (costing_id, heat_id, heat_number,"
-            " material_label, unit, unit_cost, qty_per_piece, cost)"
-            " VALUES (?,?,?,?,?,?,?,?)",
-            (cur.lastrowid, hid, hn, label, unit, unit_cost, qty, cost))
+            " material_label, unit, unit_cost, qty_per_piece, cost, os_item_id)"
+            " VALUES (?,?,?,?,?,?,?,?,?)",
+            (cur.lastrowid, hid, hn, label, unit, unit_cost, qty, cost, osid))
     conn.commit()
     return get_drawing(conn, drawing_id)
 
@@ -449,6 +453,7 @@ class CostingOpIn(BaseModel):
 class BomLineIn(BaseModel):
     """One stock item the part is made from, priced from inventory."""
     heat_id: int | None = None
+    os_item_id: int | None = None  # a bought-out part instead of a heat
     heat_number: str = ""
     material_label: str = ""
     unit: str = "rod"             # 'rod' | 'kg'
