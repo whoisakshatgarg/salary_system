@@ -86,4 +86,8 @@ The ones worth picking up first:
   2026-08-15 restyle, detailed in QA-FINDINGS.
 - **Settings "Add" on an existing operation name silently overwrites its rate**
   (`INSERT … ON CONFLICT DO UPDATE`), repricing every costing built afterwards.
+- **Stage-history timestamps render raw** (`2026-08-21 14:49`) on the order's
+  Shipments segment while the consignment rows beside them read `21 Aug 2026`
+  (found on the 2026-08-21 live walk; same family as the outsourcing date fix,
+  different surface — cosmetic).
 
