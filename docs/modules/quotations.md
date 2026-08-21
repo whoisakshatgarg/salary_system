@@ -21,6 +21,37 @@ invoice bills for it and is usually raised straight from an order.
 - **Print / Save as PDF** opens a clean A4 page — the browser saves it as PDF.
   The same button appears on the customer's Business tab, so any past document
   can be reprinted at any time.
+- **Rates carry 3 decimals** (`step="0.001"`, CONVENTIONS §5): export unit
+  prices are quoted that way (`£0.534`) and rounding one to 2dp moves a
+  120,000-piece line by £60. Line totals stay at 2.
+
+## Revisions
+A customer who asks for a better price gets a **revision**, not a second
+document and not an overwrite. **Revise** (`POST /api/quotations/{id}/revise` →
+`revise_doc`) copies the row to a new draft whose `doc_no` is the base number
+plus ` Rev-A`, ` Rev-B`… and sets `superseded_by` on the parent.
+
+- Only the **tip** of a chain can be revised: a superseded document is history,
+  and branching it would leave two documents claiming to be the latest.
+- `revision_chain(conn, doc_id)` walks to the root and back down, oldest first,
+  with `active` marking the tip — the UI draws it as a rail on the open
+  document and dims superseded rows in the list.
+- The revision marker is a placeholder scheme (CONVENTIONS §9-B): no revision
+  appears anywhere in the reference documents.
+- A quotation's **paper** revises in the same breath — `documents/service.revise`
+  calls `revise_doc` so the money row and the export sheet keep one number. See
+  [papers.md](papers.md).
+
+## The export paper
+**Export paper** on an open document is one button for both cases
+(`exportPaper()` in quotations.js): it searches `/api/papers` for a paper whose
+number is this document's and deep-links to `/papers/?open=<id>`, or creates one
+(`kind` = `quotation`/`invoice`, `opts.document_id` = this row) and lands on it.
+
+The ledger stays the **money** truth — what was quoted, to whom, for how much,
+and the customer stats built off it. The paper holds the export-format fields
+and renders the file. A document with no `order_id` cannot have one: a paper
+hangs off an order, and the button says so rather than guessing.
 
 ## Material availability (optional)
 Creating a quotation opens a **full page** now, not a modal; editing one still
@@ -39,15 +70,26 @@ quoting to it.
 ## Implemented (file paths)
 `backend/modules/quotations.py` (data + `/api/quotations/*`, grant `quotations`;
 `render_print` builds the printable HTML) · UI `frontend/quotations/index.html`
-+ `quotations.js` · numbering via `modules/settings.py` (`doc_seq` table,
-formats `QUO-{FY}-{SEQ}` / `INV-{FY}-{SEQ}`) · spec `tests/test_workshop.py`
-(QuotationsAndInvoices).
++ `quotations.js` · spec `tests/test_workshop.py` (QuotationsAndInvoices).
+
+**Numbering moved to `backend/core/numbering.py`** (CONVENTIONS §3). A NEW
+quotation takes the real per-client export number — `T04/AT/210826/317`, counted
+under `qtn:{client}` — and a new invoice `AT/EI/26-27/169` under `inv:{fy}`.
+`client_code(conn, customer_id)` resolves the code inside the numbering
+transaction, **assigning one if the customer has none**, because the number is
+built from it and the two have to be decided together. Old rows keep their
+`QUO-`/`INV-` numbers forever; `format_for()` and the `doc_seq` table survive
+only for those and for MRQ requisitions. Seeds and edits live in
+Settings → Numbering ([settings.md](settings.md)).
 
 ## Data model
 `document(kind, doc_no UNIQUE, customer_id, order_id?, doc_date, valid_until,
-reference, tax_pct, notes, terms, status)` · `document_line(document_id,
-drawing_id?, description, qty, unit, rate)` · `doc_seq(kind, fy, seq)`.
-Subtotal/tax/total are always derived, never stored.
+reference, tax_pct, notes, terms, status, revises_document_id?,
+superseded_by?)` · `document_line(document_id, drawing_id?, description, qty,
+unit, rate, os_item_id?)` · `doc_seq(kind, fy, seq)` (legacy + requisitions).
+Subtotal/tax/total are always derived, never stored. The two revision columns
+and `os_item_id` are additive and nullable — `os_item_id` lets a line price a
+bought-out part instead of a drawing ([outsourcing.md](outsourcing.md)).
 
 ## Printing
 Deliberately dependency-free: `/api/quotations/{id}/print` returns styled HTML

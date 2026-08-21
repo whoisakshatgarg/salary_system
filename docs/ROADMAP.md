@@ -3,10 +3,26 @@
 Everything left to build, grouped by priority. Each item also appears in its
 module doc's "What's left". Update both when shipping.
 
-**Every module tile is built** — Salary, Inventory, Employee Management, Order
-Tracking, Parts & Pricing, Quotations & Invoices, Customers and Settings, plus
-the admin-only Users & Access (2026-08-14). What remains is hardening and
-convenience.
+**Every module tile is built** and since 2026-08-21 the launcher reads like the
+SOP itself: Orders → Quotations → PO Acknowledgements → Production (WO & BOM) →
+Shipping (Invoice & Packing) → Quality (COC & Test Certs) → Outsourcing, then
+Inventory, Parts, Customers, Employees, Salary, Settings, plus the admin-only
+Users & Access. The company's real paperwork generates from the app
+(SOP-DESIGN.md). What remains is hardening and convenience.
+
+## Waiting on the owner
+
+- **Open one generated Quotation and one Invoice** (any paper → Download) in
+  Excel/Word/Numbers and say "ship it" — the only two templates without a
+  native reference file (PDF-rebuilt / packing-list-skeleton) are marked
+  *pending visual sign-off* in `backend/documents/templates/README.md`.
+- **Set the real client codes** (E01, T04, S01…) on customer records and
+  check the counter seeds in Settings → Numbering BEFORE the first real
+  paperwork (pre-seeded: T04→317, E01→595, WO→253/26, invoice→169).
+- **The official BOM format**, when it exists — swap it in via
+  `templates/build/` and remove the placeholder marking.
+- **Drop the reference PNG renders into `reference_renders/`** at the repo
+  root (they exist only in the build conversation today).
 
 ## Now (next sessions)
 
@@ -25,7 +41,10 @@ convenience.
   outflow, receivables) — the data all exists now.
 - Friendlier payroll-rules editor inside Settings (raw JSON today).
 - Printable PDF salary slips; bulk CSV attendance import.
-- Order/consignment printouts (delivery challan layout).
+- Order/consignment printouts (delivery challan layout — domestic; the export
+  invoice/packing list are covered by the SOP papers now).
+- Server-side amount-in-words preview for the invoice editor (the rule lives
+  in `payloads.py` and is duplicated client-side as a suggest button).
 
 ## Later
 
@@ -38,6 +57,13 @@ convenience.
 - LAN multi-user mode if a third machine appears.
 - A true vector (SVG) of the corrected logo from the designer — the repaired
   raster is clean at app sizes but won't scale to print/signage.
+- Per-receipt lot tracking in Outsourcing — stock is a running quantity today,
+  so deleting an early receipt can consume goods a later one brought in.
+- PDF export of generated papers — needs the owner's call on a converter
+  (native files download today; on the office Windows machine the natural
+  route is automating its own Word/Excel — ask first, per the toolchain rule).
+- COC-per-part shortcut for multi-part shipments (today: duplicate the COC
+  and edit the part line).
 
 ## Known, not yet fixed
 

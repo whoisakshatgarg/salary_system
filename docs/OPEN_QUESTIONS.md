@@ -12,6 +12,10 @@ to [DECISIONS.md](DECISIONS.md) with the date.
 | 5 | **Multi-user beyond two machines** — more accounts now exist; if a third PC is needed, LAN mode (one server, browsers connect) is the natural step. | Single-PC installs + shared-folder sync only. |
 | 6 | **Should employees-granted (non-admin) staff edit profiles / add employees?** Today mutations (add, edit, deactivate) are admin-only; EM-granted staff can view everything and manage documents + the leave bank. | Keep admin-only mutations; the UI hides those buttons for non-admins. Relax per-operation later if HR staff need it. |
 | 7 | **Repo visibility for self-update** — repo must be public or a token pasted into `config/update.json` on each install. Which will it be? | Assumed public at release time; token path documented in DEPLOY.md. |
+| 8 | **Which phone number is right?** The quotation/ack references print Tel **4167651**; the TC/COC/invoice/packing-list references print **4167561** (CONVENTIONS §1). | Each template keeps the number its own reference prints (fidelity); one word from the owner normalizes all templates. |
+| 9 | **Reotemp's client code** — their test certificates carry no code; the scheme says `R` + serial. | Auto-assigned on their customer record the first time paperwork needs it; editable on the customer. |
+| 10 | **Official Bill of Materials format** — the BOM is the one document with no company reference; a placeholder in the Apex house style is in use, marked PLACEHOLDER on its face. | `Apex_BOM_Template_PLACEHOLDER.xlsx` + numbering `AT/BOM/{FY}/{serial}` + format code `AT/BOM/EXP/01`, all to confirm when the real format lands. |
+| 11 | **One COC per shipment or per part?** The reference COC covers a single part for a whole invoice. | One COC per shipment with an editable part/material line; duplicate the paper per part when a customer wants one each. |
 
 ## Known issues (accepted for now)
 - ~~payroll console errors~~ — **fixed 2026-08-14** (0 on load now). The cause is

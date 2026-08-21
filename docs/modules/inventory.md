@@ -105,6 +105,20 @@ Exposed at `POST /api/material/check` on its own router with
 `require_module("inventory", "quotations", "orders")` — the quotation and order
 screens offer the same check, and their users don't hold the inventory grant.
 
+## Material search — and the source flag
+`GET /api/material/search` (same shared router) is the one box the costing
+workspace and the quotation lines search material through: heat number, grade,
+material class or supplier.
+
+It searches **outsourced stock alongside the rack**, because a bought-out part
+answers the same question a bar does. Every row therefore carries a `source`:
+`"heat"` for your own steel, `"outsourced"` for an `os_item`
+(`_outsourced_matches()`, with `source_os_no` naming the job it came in on).
+The caller keys off that flag rather than guessing from the shape of the row —
+outsourced stock has no heat number and no chemistry, which is exactly why it
+lives in its own tables (see [outsourcing.md](outsourcing.md)) and not as a
+heat with empty columns.
+
 ## Screens
 guide-images: inv-stock, inv-heat-detail, inv-add-delivery, inv-material-check,
 inv-usage-log, inv-lists. (inv-new-heat predates the full-screen add page.)

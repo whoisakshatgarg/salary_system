@@ -394,3 +394,51 @@ live in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).)
 - The add-employee form uploads day-one documents after the create returns
   (same pattern as intake and drawings): the person existing must never be
   confused with the paperwork attaching.
+
+## 2026-08-21 — The SOP becomes the app (papers, numbering, outsourcing)
+
+- **The company's own documents are the spec.** Phase 0 read every reference
+  file end to end before any code; everything extracted lives in
+  CONVENTIONS.md, which now outranks code and memory for every ID, label and
+  format. Two genuinely contradictory serials (`E01/…/594` before
+  `T04/…/316`) settled the quotation counter as PER-CLIENT — a global counter
+  cannot produce the documents the company already sent.
+- **Pure-Python document toolchain, owner-ruled.** openpyxl + python-docx (+
+  pdfplumber for the PDF, dev-only). No LibreOffice, no system packages, no
+  rendering: fidelity is proven STRUCTURALLY — `format_spec.py` dumps of
+  generated files diff against `reference_specs/`, and the fidelity tests fill
+  each template with its reference's own data and require byte-equal values
+  outside the enumerated deviations (typo fixes per CONVENTIONS §8, straight
+  apostrophes, the ack's added print setup, the BOM's de-greyed example rows).
+  A LibreOffice install made earlier that day was reverted on the ruling.
+- **A `paper` is a snapshot, the ledger stays the money truth.** Papers
+  auto-fill once at creation, refill only on an explicit action, freeze at
+  Finalize; quotation/invoice papers pair 1:1 with their ledger row and share
+  its number. Numbers are consumed inside the creating transaction (the
+  double-click rule), an ack reserves its work-order number in the same
+  breath, and Settings → Numbering edits any counter — the seeds
+  (T04→317, E01→595, WO→253/26, EI→169) came off the reference paperwork.
+- **New ledger quotations/invoices carry the real conventions**
+  (`T04/AT/210826/317`, `AT/EI/26-27/169`); every pre-existing number is
+  untouched. Customer codes unified on the document scheme (one letter +
+  serial, legacy codes re-coded once at startup, always editable). Unit rates
+  keep 3 decimals end to end because the reference quotation prints `£0.534`.
+- **Templates are token-marked COPIES of the reference files**, rebuilt by
+  scripts in `templates/build/` so an official replacement re-tokenizes with
+  no engine change. The two templates without a native reference — the
+  quotation (rebuilt from the PDF's measured geometry) and the invoice
+  (grown from the packing-list skeleton per the owner's render) — ship marked
+  *pending visual sign-off*. The TC's logo/badges live in a drawing container
+  openpyxl drops, so the build re-anchors the extracted images EMU-identically.
+- **Outsourcing is its own module with the one stored quantity.**
+  `os_item.qty` is stored (receipts mint `OS-####` stock) and its SIGNED
+  `os_movement` ledger must sum to it — the opposite of heats, and tested as
+  an invariant. Status derives open→partial→received; closed/cancelled are
+  hand-set; *reopen* clears the hand-set state and re-derives rather than
+  parking at open. Receipt deletion reverses stock at the receipt's own date.
+  Vendor paperwork is uploaded, never generated (owner brief).
+- **Four SOP tiles, one workspace.** `acks` / `production_docs` /
+  `shipping_docs` / `quality_docs` are separate grants whose tiles all open
+  `/papers/` pre-filtered — grants stay per-station granular without four
+  copies of one screen. The launcher order now reads like the SOP; the order
+  record shows the seven-stage pipeline strip with its papers as chips.

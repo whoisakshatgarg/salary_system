@@ -37,6 +37,21 @@ touching code.
   shipped drop out — nothing left to send is not a deadline. The panel is hidden
   entirely when all three buckets are empty.
 
+## Tile order = the SOP
+`registry.MODULES` is ordered so Home reads like the company's own procedure
+(SOP-DESIGN §7): **orders, quotations, acks, production_docs, shipping_docs,
+quality_docs, outsourcing**, then inventory, parts, customers, employees,
+salary, settings. `ALL_KEYS` derives from it, so the order is the only place
+this is stated.
+
+The four SOP keys are **distinct module keys with distinct grants** (admins are
+auto-granted) that all open `/papers/` pre-filtered — `?kind=ack`,
+`?kind=work_order,bom`, `?kind=invoice,packing_list`, `?kind=coc,test_cert`.
+One workspace, four doors, four permissions: the shop floor can be given work
+orders without invoices. The papers backend accepts **any** of the four, the
+same way inventory's `/api/material` router is shared (see
+[papers.md](papers.md)).
+
 ## Implemented (file paths)
 - UI: `salary-system/new_system/frontend/index.html` + `frontend/shell/shell.js`.
 - Tiles: `backend/core/registry.py` (single source of truth) served by
@@ -55,7 +70,8 @@ grants ignored for admins. Seeded accounts: `admin` (all), `operator`
 (`["salary"]`) — `backend/modules/employees/seed.py`.
 
 ## Screens
-guide-images: shell-login, shell-home (now includes the deadlines panel),
+guide-images: shell-login, shell-home (re-shot 2026-08-21 for the SOP tile
+order; the deadlines panel is below the fold on it now),
 shell-home-restricted, shell-users, shell-user-form. (shell-placeholder was
 retired — every registry module is built, so the placeholder screen is
 unreachable.)
@@ -67,4 +83,4 @@ None known.
 - [ ] Self-service password change (only admin resets today) — ROADMAP Next.
 - [ ] Audit trail of account/grant changes — ROADMAP Next.
 - [ ] Tiles for new modules as they ship (one registry entry each).
-      All nine currently in `registry.py` are built.
+      All thirteen currently in `registry.py` are built.

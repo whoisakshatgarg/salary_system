@@ -225,10 +225,10 @@ operators need per-key ticks in Users & Access. Settings → Numbering writes ar
 | Phase 0: CONVENTIONS.md, reference_specs/, xls conversions | ✅ done |
 | format_spec.py at repo root (owner-supplied) | ✅ done |
 | Wave 1: numbering + paper/outsourcing schema + migrations | ✅ done (307 tests green; blank-code edits keep the code; codes may grow past 2 digits (`A100`); ledger marks `superseded_by` only — `superseded` status is paper-level) |
-| Wave 2: engine + 8 templates + fidelity tests | ⏳ pending |
+| Wave 2: engine + 8 templates + fidelity tests | ✅ done (engine + registry + payload builders + `/api/papers` service/router; 65 engine tests + 64 paper tests; Work Order & BOM reproduce their references byte-for-byte, ack/TC differ only by sanctioned typo fixes; TC logo/badges re-anchored EMU-identical; BOM example rows normalised to real-line styling — deviation 6; invoice bottom row matches the owner's render; payload `_`-prefixed keys are app-meta (`_opts`, `_wo_no_short`); one WO serial per ack) |
 | Wave 4: outsourcing module end to end | ✅ done (86 module tests; `os_item.unit_cost`/`os_order_item.unit_cost` added; os_order status derives open→partial→received, closed/cancelled are hand-set only, and `POST /orders/{id}/reopen` takes a terminal state back and re-derives; `os_movement.qty` is the SIGNED change and sums to `os_item.qty`; deleting a receipt logs a reversing `adjust` at the receipt's own date; stock is a running quantity, not lots — per-receipt lot tracking out of scope per owner) |
-| Wave 3: papers UI + pipeline strip + homepage reorder | ⏳ pending |
-| Final: audits, docs, USER_GUIDE | ⏳ pending |
+| Wave 3: papers UI + pipeline strip + homepage reorder | ✅ done (549 tests; E2E: the whole chain driven in a browser — quotation→export paper→finalize→download→revise→ack (Repeat PO)→WO reusing 253/26→BOM→invoice→PL/COC/TC, seeds honored; fixups: 3dp rates, customer.country, contact fax, COC paper_no == filename stem) |
+| Final: audits, docs, USER_GUIDE | ✅ done (this file + CONVENTIONS resolutions + DECISIONS/ROADMAP/OPEN_QUESTIONS/ARCHITECTURE + guide sections & module docs) |
 | Quotation template owner sign-off | ⏳ pending |
 | Official BOM format (placeholder in use) | ⏳ awaiting owner |
 | reference_renders/ PNGs placed in repo | ⏳ owner to drop in |

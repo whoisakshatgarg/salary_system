@@ -47,6 +47,11 @@ files and/or settings, never inline in code.
 ## 2. Customers & client codes
 
 Scheme: **first letter of customer name + 2-digit sequence** (`T04`, `E01`, `S01`).
+Owner ruling 2026-08-21: this scheme is the app's ONE customer code — legacy
+two-letter codes were re-coded at startup, every code stays editable per
+customer, and after 99 customers under a letter the serial simply grows
+(`A100`). Set the true codes (E01, T04, S01…) on the customer records before
+generating real paperwork.
 
 | Code | Customer | Evidence |
 |---|---|---|
@@ -185,22 +190,24 @@ Fixed in our templates (owner instruction: never propagate template typos):
 | `NEWYORK` (remittance block) | kept as printed — bank instructions are quoted verbatim |
 | Filenames "Test Certiticate…" | our files: `Test Certificate …` |
 
-## 9. Open questions & conflicts (defaults chosen, flagged to owner)
+## 9. Open questions & conflicts (owner rulings of 2026-08-21 marked ✓)
 
-- **A. Quotation serial scope.** `E01/AT/030826/594` (03 Aug) vs `T04/AT/130826/316`
-  (13 Aug, *later but smaller*) ⇒ cannot be one global counter. Chosen: **per-client
-  running serial** (E01 is simply an older/busier account). Seeds are editable in
-  Settings so real current counts can be entered per client.
+- **A. Quotation serial scope. ✓ RESOLVED** — per-client running serial (the two
+  documents cannot share one global counter: `E01/…/594` on 03 Aug,
+  `T04/…/316` ten days later). Owner confirmed and seeded: T04 → 317,
+  E01 → 595; all counters editable in Settings → Numbering.
 - **B. Revision marker.** No revision appears in any reference. Chosen placeholder per
   brief: ` Rev-A`, ` Rev-B`… appended to the base number; history kept, only latest
   revision active.
-- **C. WO serial scope.** 160/23 (May'23) → 167/23 (Jun'23) → 252/26 (Aug'26). Rates
-  only make sense if the serial **resets each calendar year** (and the number always
-  carries /YY). Chosen: per-year counter, seedable.
-- **D. Currency header.** Ack/quotation print the literal header `Prices (U.S.D)` even
-  when values are in £ (Thermosense quotation!). The header is now a **currency field**
-  (`Prices (U.S.D.)` / `Prices (G.B.P.)` …) defaulting from the customer; symbols follow
-  the same field. The reference's own mislabel is not reproduced.
+- **C. WO serial scope. ✓ RESOLVED** — 160/23 (May'23) → 167/23 (Jun'23) →
+  252/26 (Aug'26): rates only make sense if the serial **resets each calendar
+  year** (and the number always carries /YY). Owner confirmed; seeded 253 for /26.
+  One WO serial is reserved per acknowledgement (its date is embedded in the
+  long form); the shop-floor Work Order paper reuses the ack's reservation.
+- **D. Currency header. ✓ RESOLVED** — the header is a **currency field**
+  (`Prices (U.S.D.)` / `Prices (G.B.P.)` …) defaulting from the customer's
+  country (UK → GBP, else USD), symbols following; the reference's own mislabel
+  is not reproduced. Ledger unit rates keep 3 decimals (`£0.534`); line totals 2.
 - **E. Phone discrepancy.** Quotation/Ack print Tel **4167651**; TC/COC/Invoice/PL print
   **4167561**. Kept per-document as each reference prints it (fidelity), until the owner
   says which is right.

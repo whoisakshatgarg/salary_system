@@ -74,13 +74,47 @@ the browser's Save-as-PDF is the PDF engine — with Required / Already issued /
 To issue now, the committed value, and three signature lines (issued by, store
 keeper, received by).
 
+## The pipeline strip
+The record opens on a **Pipeline** strip: the seven existing `STAGES` as cells
+(same `set_stage`, same log — **no stage machinery changed**), each carrying its
+papers as status chips.
+
+- `get_order` embeds `papers[]` alongside the existing `documents[]`: number,
+  kind, status and revision per paper, so the strip is drawn from the record it
+  already loaded rather than a second round trip.
+- A chip links to `/papers/?open=<id>`; its colour is the paper's status
+  (draft / final / sent / superseded), and a `superseded` paper keeps its chip
+  so the history stays visible.
+- A kind with no paper yet draws a dashed **＋** button that POSTs to
+  `/api/papers` with `kind` and this `order_id` pre-filled, then deep-links onto
+  the new draft. Which kinds sit under which stage is a fixed map (quote →
+  quotation, po → ack, production → work_order + bom, qc → coc + test_cert,
+  dispatch → invoice + packing_list); enquiry and payment carry none.
+- Voiding a paper takes its chip away and brings the **＋** back — as far as the
+  job is concerned that paper was never issued.
+
+Fetched fail-closed like the BOM section, so an account without any of the four
+SOP grants sees the stages without the chips rather than an error.
+
+## Intake attachments
+`order_attachment` + `paths.order_files_dir()` (in the backup zip list) hold the
+order's INCOMING paper: the enquiry e-mail, the customer's PO, a marked-up
+drawing. The standard uploads pattern — label + multiple files, validated
+through `core/attachments`, photos compressed, `stored_name` unique on disk.
+
+Under it, **Drawings on this order** is not an upload: it lists each item's
+drawing files straight from Parts & Pricing so the order screen can open a
+drawing without navigating away. Read-only, and it names the items that have
+none.
+
 ## The order's paper trail
 - `get_order` embeds `documents`: every quotation/invoice whose `order_id`
   points at the order (number, kind, date, status, tax-inclusive total), shown
-  as the record's fourth segment — **Documents** — with Print and a link into
-  Quotations & Invoices. Decision: embedded under the *orders* grant (order
-  values are already visible there); Print itself still runs under the
-  quotations grant.
+  as the record's **Documents** segment — with Print and a link into
+  Quotations & Invoices, and the generated SOP papers listed underneath with a
+  download link ([papers.md](papers.md)). Decision: embedded under the *orders*
+  grant (order values are already visible there); Print itself still runs under
+  the quotations grant.
 - **Deep links**: `/orders/?open=<id>` opens straight onto that order's record
   (the home deadline panel and the customer record link here); the param is
   stripped with `history.replaceState` so reload/Back behave. Same pattern on
@@ -148,10 +182,15 @@ keeper, received by).
 `order_item(order_id, drawing_id?, description, qty, unit, rate)` ·
 `order_stage_log` · `order_seq(fy, seq)` · `consignment(GST fields, delivered)`
 · `consignment_line(consignment_id, order_item_id, qty)` · `order_schedule(order_item_id, due_date, qty, note)` — shipped/pending
-always derived.
+always derived · `order_attachment(order_id, label, filename, mime, size_bytes,
+stored_name UNIQUE, uploaded_at)` — files under `data/order_files/`.
+
+Order numbers still come from `order_seq` and the Settings format; the SOP
+document numbers do not (see [papers.md](papers.md)).
 
 ## Screens
-guide-images: ws-order-detail, ws-consignment, ws-delivery-plan, ws-shipments.
+guide-images: ws-order-detail, ws-consignment, ws-delivery-plan, ws-shipments,
+ws-pipeline-strip, ws-order-intake.
 
 ## What's left
 - [ ] Delivery-challan / order printouts (ROADMAP Next).

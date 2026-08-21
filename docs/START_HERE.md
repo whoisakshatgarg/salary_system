@@ -23,7 +23,9 @@ Tests: `../venv/bin/python -m unittest discover -s tests`.
 | Employee Management (people, documents, leave bank) | 👥 | ✅ built | [modules/employees.md](modules/employees.md) |
 | Order Tracking (stages, consignments, delivery plans, deadlines) | 🗂 | ✅ built | [modules/orders.md](modules/orders.md) |
 | Parts & Pricing (drawings, rate history, costing, bill of materials) | 📐 | ✅ built | [modules/parts-pricing.md](modules/parts-pricing.md) |
-| Quotations & Invoices (printable copies) | 🧾 | ✅ built | [modules/quotations.md](modules/quotations.md) |
+| Quotations & Invoices (real numbering, Rev-A/B revisions, export papers) | 🧾 | ✅ built | [modules/quotations.md](modules/quotations.md) |
+| SOP Documents (`/papers/` — ack, work order, BOM, invoice, packing list, COC, test certs; four tiles ✓ ⚒ ✈ ✚) | ✓⚒✈✚ | ✅ built | [modules/papers.md](modules/papers.md) |
+| Outsourcing (vendors, outgoing jobs + deadlines, OS-#### stock, vendor documents) | 🚚 | ✅ built | [modules/outsourcing.md](modules/outsourcing.md) |
 | Customers (codes, order history, growth, agreed per-operation rates) | 🏢 | ✅ built | [modules/customers.md](modules/customers.md) |
 | Settings (order format, units, op rates, departments) | ⚙ | ✅ built | [modules/settings.md](modules/settings.md) |
 | Self-update / backups / two-machine sync | — | ✅ built (shared services) | [ARCHITECTURE.md](ARCHITECTURE.md) |
@@ -38,8 +40,13 @@ Tests: `../venv/bin/python -m unittest discover -s tests`.
    known-but-unfixed defects ([QA-FINDINGS.md](QA-FINDINGS.md) is the full sweep).
 5. [UI-STYLE.md](UI-STYLE.md) — the design system every screen follows
    (instrument tables, dot-chips, link-tabs; includes the Alpine traps).
-6. The module doc for whatever you're touching (`modules/<name>.md`).
-7. End-user behaviour reference: [USER_GUIDE.md](USER_GUIDE.md) (illustrated).
+6. [CONVENTIONS.md](CONVENTIONS.md) — **the paper trail decoded**: every document
+   number/date/label format, extracted from the company's real paperwork in
+   `salary-system/sample docs/`. It outranks code; when touching anything that
+   prints, start here. [SOP-DESIGN.md](SOP-DESIGN.md) is the build blueprint +
+   status (§12) for the papers engine and outsourcing.
+7. The module doc for whatever you're touching (`modules/<name>.md`).
+8. End-user behaviour reference: [USER_GUIDE.md](USER_GUIDE.md) (illustrated).
    It is also the SOURCE for the in-app guide at `/help/` — after editing it run
    `python tools/build_help.py` and commit the regenerated `frontend/help/`.
    Every `## ` chapter must be followed by an `<!-- access: KEY -->` marker (a

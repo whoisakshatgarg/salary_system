@@ -29,10 +29,28 @@ GSTIN, addresses, contact persons, payment terms.
   automatically for every drawing assigned to this customer, so a renegotiated
   rate is one edit, not one per part. Rates already snapshotted into a saved
   costing are untouched.
-- Each customer gets a **code** on creation: an abbreviation of the name plus a
-  serial within it (Acme Castings → AC01, the next AC… → AC02). "M/s"/"Messrs"
-  and Pvt/Ltd-style words are ignored when deriving it; the abbreviation can be
-  overridden in the form, which previews the result live.
+- Each customer gets a **code** on creation: **one letter + a 2-digit serial**
+  (`T04`, `E01`), the scheme printed on the company's own documents and the
+  owner's one customer code (CONVENTIONS §2). `abbreviate()` takes the first
+  letter of the first meaningful word — "M/s"/"Messrs" is stripped *before*
+  tokenising or it splits into M + s and steals the initial, and Pvt/Ltd-style
+  noise words are dropped; `next_code()` then appends the next free serial for
+  that letter, inside the caller's transaction, with `customer.code UNIQUE` as
+  the backstop. A typed code wins (`clean_code`, upper-cased, letters and
+  digits only) and the form previews the result live.
+- **`recode_legacy_codes(conn)`** moved existing customers off the old
+  two-letter scheme (AC01 → A01) at startup, oldest first. It is idempotent — a
+  code already matching `^[A-Z][0-9]{2,}$` is never touched — so it is safe to
+  run on every start, and three digits past the 99th customer under one letter
+  is the same scheme overflowing, not a violation.
+- **`country`** on the customer is not decoration: `documents/payloads` prints
+  it in the customer block on the quotation and the export invoice, and
+  `currency_for(country)` defaults the document's currency from it (UK → GBP,
+  else USD — CONVENTIONS §9-D). `split_country()` will also lift a trailing
+  country line out of a pasted address.
+- **`customer_contact.fax`** is its own column beside `phone`: the ack, the
+  invoice and the packing list all print a fax in their CONTACTS block, and
+  `payloads.primary_contact()` reads it.
 - Delete only while the customer has no orders or drawings (else deactivate).
 
 ## Implemented (file paths)
@@ -42,12 +60,18 @@ GSTIN, addresses, contact persons, payment terms.
 
 ## Data model
 `customer(id, code UNIQUE, name UNIQUE, gstin, address_billing, address_shipping,
-payment_terms, notes, active)` · `customer_contact(customer_id, name, phone,
-email, role)` (cascade) · `customer_operation_rate(customer_id, operation,
-rate_per_hour, extra_rate, note, UNIQUE(customer_id, operation))` (cascade).
+country, payment_terms, notes, active)` · `customer_contact(customer_id, name,
+phone, fax, email, role)` (cascade) · `customer_operation_rate(customer_id,
+operation, rate_per_hour, extra_rate, note, UNIQUE(customer_id, operation))`
+(cascade). `country` and `fax` are additive and default to `''`.
 
 ## Screens
 guide-images: ws-customer, ws-customer-business, ws-customer-rates.
 
 ## What's left
 - [ ] Receivables (invoiced vs paid) once invoice payments are tracked.
+- [ ] **The code is editable in the API but not in the UI.** `save_customer`
+      honours a typed code on update (`typed or existing or next_code(…)`) and
+      CONVENTIONS §2 says every code stays editable, but the edit form only
+      offers the box on create. Either expose it on Edit or write the rule down
+      as create-only — today the two disagree.

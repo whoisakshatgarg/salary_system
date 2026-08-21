@@ -11,8 +11,13 @@
   (`SALARY_EDITION=admin|operator`) from one codebase. CI at
   `.github/workflows/build-windows.yml` builds both exes and publishes GitHub
   Releases on `v*` tags; the app self-updates from those releases.
-- **Tests:** stdlib unittest (`salary-system/new_system/tests/`), 100+ tests.
+- **Tests:** stdlib unittest (`salary-system/new_system/tests/`), 549 tests.
   Playwright (dev-only, in the venv) for browser E2E.
+- **Documents:** generated `.xlsx`/`.docx` via openpyxl + python-docx ONLY —
+  no LibreOffice, no system converters, no rendering (owner rule; see
+  CONVENTIONS.md §10 and the fidelity protocol in SOP-DESIGN.md §4).
+  `format_spec.py` at the repo root dumps a file's structure to JSON;
+  `reference_specs/` holds the ground-truth dumps of the reference paperwork.
 
 ## Folder tree
 
@@ -22,7 +27,12 @@ salary_system/                        repo root
 ├── docs/                             ← you are here (see START_HERE.md)
 │   └── guide-images/                 screenshots used by USER_GUIDE.md
 ├── legacy/crude/                     superseded Tkinter prototype (reference only)
+├── format_spec.py                    owner-supplied xlsx/docx structure→JSON dumper
+├── reference_specs/                  ground-truth dumps of the reference paperwork
 └── salary-system/
+    ├── sample docs/                  the company's real reference documents (the
+    │                                 quotation PDF, acks, WO, invoice, PL, COC, TCs,
+    │                                 BOM placeholder + pure-Python .xls conversions)
     ├── venv/                         local Python env (gitignored)
     └── new_system/                   the app (CI + packaging anchor — don't rename)
         ├── backend/
@@ -30,6 +40,8 @@ salary_system/                        repo root
         │   │                         router includes, static mount — no business logic
         │   ├── core/                 infrastructure, no business logic
         │   │   ├── db.py             schema (all tables) + connect + column migrations
+        │   │   ├── numbering.py      every document number format + doc_counter
+        │   │   │                     seeds (CONVENTIONS §3 lives here, only here)
         │   │   ├── attachments.py    shared file validation (mime allowlist, size caps)
         │   │   ├── auth.py           PBKDF2 hashing + HMAC-signed session cookie
         │   │   ├── deps.py           get_db / current_user / require_admin /
@@ -40,6 +52,20 @@ salary_system/                        repo root
         │   │   ├── edition.py        admin vs operator edition (env var)
         │   │   ├── update.py         GitHub-Releases self-update (+ Windows updater bat)
         │   │   └── version.py        __version__ — CI tag must match
+        │   ├── documents/            the SOP paperwork engine (papers)
+        │   │   ├── engine.py         XlsxFiller/DocxFiller: {{token}} fill, item
+        │   │   │                     slots, checked overflow, image re-anchoring
+        │   │   ├── registry.py       one entry per document kind + the canonical
+        │   │   │                     payload schemas (docstring) + filename stems
+        │   │   ├── payloads.py       auto-fill builders (order/heats/consignments
+        │   │   │                     → payload), company constants, amount-in-words
+        │   │   ├── service.py        paper lifecycle: create (numbers consumed in
+        │   │   │                     the txn) / edit / refill / final / revise
+        │   │   ├── router.py         /api/papers* — guarded by ANY of the four
+        │   │   │                     SOP grants (acks/production/shipping/quality)
+        │   │   └── templates/        token-marked COPIES of the reference files
+        │   │                         (+ build/ scripts to re-tokenize a swapped
+        │   │                         official format; media/ = extracted logos)
         │   └── modules/              one folder (or file) per business module
         │       ├── employees/        employee MASTER + attendance + leave + sync + seed
         │       │   ├── repo.py       SQL: roster, attendance, summaries, leave, sync data
@@ -58,8 +84,14 @@ salary_system/                        repo root
         │       ├── parts.py          drawing master, rate history, costing + bill of materials
         │       ├── orders.py         orders, stages, consignments, delivery plans,
         │       │                     deadlines, FY numbering
-        │       ├── quotations.py     quotations + invoices (one table, a `kind`) + print view
-        │       ├── settings.py       config: order format, units, operation rates, departments
+        │       ├── quotations.py     quotations + invoices (one table, a `kind`) +
+        │       │                     print view + Rev-A/B revision chains; NEW rows
+        │       │                     numbered per the real conventions (numbering.py)
+        │       ├── outsourcing.py    vendors, outgoing jobs w/ deadlines, receipts
+        │       │                     minting OS-#### stock, signed movement ledger,
+        │       │                     vendor documents (/api/outsourcing/*)
+        │       ├── settings.py       config: order format, units, operation rates,
+        │       │                     departments + /api/settings/numbering (seeds)
         │       └── users.py          /api/modules (tiles) + /api/users* (accounts+grants)
         ├── frontend/                 ONE FOLDER PER MODULE (URL = folder)
         │   ├── index.html            the shell: login → Home launcher (entry point)
@@ -69,6 +101,9 @@ salary_system/                        repo root
         │   ├── employees/            index.html + employees.js → /employees/
         │   ├── inventory/            index.html + inventory.js → /inventory/
         │   ├── customers/ · parts/ · orders/ · quotations/ · settings/  → /<module>/
+        │   ├── papers/               the SOP Documents workspace → /papers/
+        │   │                         (?kind= filters; the four SOP tiles land here)
+        │   ├── outsourcing/          the outsourcing workspace → /outsourcing/
         │   ├── help/                GENERATED user guide (index.html + images/)
         │   │                        → /help/ — build with tools/build_help.py
         │   ├── assets/               brand: logo-full.png (login lockup),
@@ -76,11 +111,14 @@ salary_system/                        repo root
         │   └── vendor/               tailwind.js, alpine.js (offline, shared:
         │                             pages load it as /vendor/…)
         ├── config/                   rules.json (payroll policy) · sync.json · update.json
-        ├── tools/build_help.py       docs/USER_GUIDE.md → frontend/help/ (stdlib only)
+        ├── tools/                    build_help.py (USER_GUIDE → /help/, stdlib only) ·
+        │                             xls2xlsx.py (one-time legacy .xls conversion)
         ├── tests/                    test_payroll / test_inventory / test_users /
-        │                             test_workshop / test_help_build
+        │                             test_workshop / test_help_build / test_numbering /
+        │                             test_documents_engine / test_papers / test_outsourcing
         ├── data/                     runtime state, gitignored (salary.db, backups,
-        │                             inventory_files/, employee_files/, drawing_files/) — frozen
+        │                             inventory_files/, employee_files/, drawing_files/,
+        │                             order_files/, outsourcing_files/) — frozen
         │                             builds use %APPDATA%
         └── apex_payroll.spec · build_windows.bat · run_admin.py · run_operator.py · desktop.py
 ```
@@ -105,11 +143,15 @@ salary_system/                        repo root
   router prefix (`/api/{inventory,customers,parts,orders,settings}/*`); the
   original payroll/employee routes stay flat (`/api/employees`, `/api/attendance*`,
   …) because moving them would break installed clients.
-  **One documented exception to one-router-per-module:** `inventory.py` also
+  **Two documented exceptions to one-router-per-module:** `inventory.py` also
   exports `check_router` (`/api/material/*`) gated on
-  `require_module("inventory", "quotations", "orders")`, because the material
-  availability check and the bill-of-materials stock search are offered from
-  three screens whose users do not all hold the inventory grant.
+  `require_module("inventory", "quotations", "orders", "parts")`, because the
+  material availability check and the stock search are offered from screens
+  whose users do not all hold the inventory grant (the search also returns
+  outsourced `OS-####` items, flagged `source:"outsourced"`); and
+  `backend/documents/router.py` (`/api/papers*`) is gated on ANY of the four
+  SOP grants (`acks`, `production_docs`, `shipping_docs`, `quality_docs`) —
+  four launcher tiles, one workspace (`/papers/?kind=…`), one record owner.
 - **Dependency directions:** `core` never imports from `modules`. `payroll → employees`
   (payroll reads the master). The single allowed reverse import is
   `employees → payroll.engine` (pure functions, no I/O). New modules must not create
@@ -133,7 +175,15 @@ salary_system/                        repo root
   lines), and the unplanned balance of a delivery plan (item qty − Σ planned).
   Snapshots are the deliberate opposite and are marked as such — operation rates,
   agreed customer rates and bill-of-materials unit costs are COPIED into the
-  costing at save time so reopening an old quote never silently reprices it. Dropdown/select values are stored denormalized on records.
+  costing at save time so reopening an old quote never silently reprices it; a
+  PAPER's payload is the same idea for documents (auto-filled once at creation,
+  refilled only on an explicit action, frozen at Finalize — the quotation/invoice
+  LEDGER stays the money truth, the paper is the printed truth). Document
+  numbers are consumed by `core/numbering.py` inside the creating transaction;
+  counters seed/edit via Settings → Numbering. Outsourced stock is the one
+  STORED quantity (`os_item.qty`) — its signed `os_movement` ledger must sum to
+  it, which tests enforce. Dropdown/select values are stored denormalized on
+  records.
 - **Errors:** data-layer functions raise `ValueError` for user mistakes; routers map
   them to HTTP 400. 401 = not signed in, 403 = no grant / wrong role.
 - **Frontend:** one Alpine `x-data` object per page; `api()` helper always sends
