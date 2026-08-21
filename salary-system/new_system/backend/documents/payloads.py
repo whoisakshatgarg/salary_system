@@ -45,7 +45,7 @@ import json
 import re
 from datetime import date
 
-from ..core import numbering
+from ..core import currency, numbering
 from . import registry
 
 # --------------------------------------------------------------------------
@@ -82,12 +82,14 @@ COMPANY = {
 CHEM_COLUMNS = ("C", "Mn", "Si", "P", "S", "Cr", "Ni", "Mo")
 SPARE_COLUMNS = 5
 
-USD = {"code": "USD", "symbol": "$", "header": "Prices (U.S.D.)", "head": "USD ($)"}
-GBP = {"code": "GBP", "symbol": "£", "header": "Prices (G.B.P.)", "head": "GBP (£)"}
 # CONVENTIONS §9-D: the printed currency is a FIELD defaulted from the
 # customer, not the fixed 'U.S.D.' the reference documents mislabel it with.
-_STERLING = ("UK", "U.K.", "ENGLAND", "BRITAIN", "SCOTLAND", "WALES",
-             "UNITED KINGDOM")
+# The country -> currency map itself is core/currency.py, shared with the
+# ledger UI: a paper and its ledger row must never name different money.
+# ``head`` is this module's documented extension to the canonical three keys.
+_HEADED = {c["code"]: dict(c, head=f"{c['code']} ({c['symbol']})")
+           for c in (currency.INR, currency.USD, currency.GBP)}
+INR, USD, GBP = _HEADED["INR"], _HEADED["USD"], _HEADED["GBP"]
 
 # Sub-unit names for amount-in-words, by currency.
 _SUBUNIT = {"USD": "Cents", "GBP": "Pence", "EUR": "Cents", "INR": "Paise"}
@@ -216,9 +218,8 @@ def split_country(text) -> tuple[list[str], str]:
 
 
 def currency_for(country) -> dict:
-    """GBP for a British customer, USD otherwise (CONVENTIONS §9-D)."""
-    up = _s(country).upper()
-    return dict(GBP if any(w in up for w in _STERLING) else USD)
+    """The customer's currency (core/currency) plus this module's ``head``."""
+    return dict(_HEADED[currency.currency_for(country)["code"]])
 
 
 # --- amount in words -------------------------------------------------------

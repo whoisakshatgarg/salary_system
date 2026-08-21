@@ -130,7 +130,7 @@
                   <td class="px-3 py-2.5 font-mono text-xs whitespace-nowrap"
                       :class="d.order_no ? 'text-slate-500' : 'text-slate-300'" x-text="d.order_no || '—'"></td>
                   <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900 whitespace-nowrap"
-                      x-text="money(d.total)"></td>
+                      x-text="money(d.total, qiSym(d))"></td>
                   <td class="px-3 py-2.5">
                     <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium capitalize whitespace-nowrap"
                           :class="statusClass(d.status)">
@@ -223,7 +223,14 @@
                               : (r.active ? 'bg-white text-brand-700 ring-1 ring-slate-200 hover:bg-brand-50'
                                           : 'bg-slate-50 text-slate-400 ring-1 ring-slate-200')">
                 <span x-text="r.doc_no"></span>
-                <span class="opacity-60" x-text="r.status"></span>
+                <!-- a superseded parent keeps its own status (it may well have
+                     been sent) — the rail says what the LIST says: replaced -->
+                <span x-show="!r.superseded" class="opacity-60" x-text="r.status"></span>
+                <span x-show="r.superseded"
+                      class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-sans font-medium
+                             bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                  <span class="w-1 h-1 rounded-full bg-amber-500"></span>superseded
+                </span>
               </button>
             </span>
           </template>
@@ -264,24 +271,24 @@
                       </td>
                       <td class="px-3 py-2.5 text-right tabular-nums text-slate-600" x-text="l.qty"></td>
                       <td class="px-3 py-2.5 text-slate-400" x-text="l.unit"></td>
-                      <td class="px-3 py-2.5 text-right tabular-nums text-slate-600" x-text="qiRate(l.rate)"></td>
-                      <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(l.amount)"></td>
+                      <td class="px-3 py-2.5 text-right tabular-nums text-slate-600" x-text="qiRate(l.rate, qiSym(detail))"></td>
+                      <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(l.amount, qiSym(detail))"></td>
                     </tr>
                   </template>
                 </tbody>
                 <tfoot>
                   <tr class="bg-slate-50 border-t-2 border-slate-200">
                     <td colspan="4" class="px-4 py-2 text-right text-xs uppercase tracking-wider font-semibold text-slate-500">Subtotal</td>
-                    <td class="px-3 py-2 text-right tabular-nums text-slate-700" x-text="money(detail.subtotal)"></td>
+                    <td class="px-3 py-2 text-right tabular-nums text-slate-700" x-text="money(detail.subtotal, qiSym(detail))"></td>
                   </tr>
                   <tr class="bg-slate-50" x-show="detail.tax_pct">
                     <td colspan="4" class="px-4 py-2 text-right text-xs uppercase tracking-wider font-semibold text-slate-500"
                         x-text="'GST @ ' + detail.tax_pct + '%'"></td>
-                    <td class="px-3 py-2 text-right tabular-nums text-slate-700" x-text="money(detail.tax)"></td>
+                    <td class="px-3 py-2 text-right tabular-nums text-slate-700" x-text="money(detail.tax, qiSym(detail))"></td>
                   </tr>
                   <tr class="bg-slate-50 border-t border-slate-200">
                     <td colspan="4" class="px-4 py-2.5 text-right text-sm font-semibold text-slate-900">Total</td>
-                    <td class="px-3 py-2.5 text-right tabular-nums text-base font-bold text-slate-900" x-text="money(detail.total)"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums text-base font-bold text-slate-900" x-text="money(detail.total, qiSym(detail))"></td>
                   </tr>
                 </tfoot>
               </table>

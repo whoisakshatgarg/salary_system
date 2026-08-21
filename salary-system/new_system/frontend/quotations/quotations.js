@@ -40,16 +40,23 @@ function qi() {
     toast: { show: false, msg: "", kind: "ok" },
     flash(msg, kind = "ok") { this.toast = { show: true, msg, kind }; setTimeout(() => (this.toast.show = false), 3200); },
     fail(e) { this.flash(e.message || String(e), "err"); },
-    money(n) {
+    // The symbol is the ROW's, not the page's: the backend resolves it from
+    // the customer's country (core/currency.py), so a sterling quotation is
+    // never dressed as rupees. ₹ is only the fallback for a row without one.
+    qiSym(row) { return (row && row.currency && row.currency.symbol) || "₹"; },
+    // Money always shows both places: 2,005.8 reads like a figure that was cut
+    // short, and paise/pence are part of the price.
+    money(n, sym = "₹") {
       if (n === null || n === undefined || n === "") return "—";
-      return "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+      return sym + Number(n).toLocaleString("en-IN",
+        { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     },
     // A unit RATE keeps three decimals (CONVENTIONS §5): £0.534 is the price on
     // the reference quotation, and money()'s two places would print it as 0.53 —
     // the figure stored is right, so the figure shown has to be too.
-    qiRate(n) {
+    qiRate(n, sym = "₹") {
       if (n === null || n === undefined || n === "") return "—";
-      return "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 3 });
+      return sym + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 3 });
     },
     fmtDate(d) {
       if (!d) return "—";

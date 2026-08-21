@@ -42,9 +42,32 @@ function od() {
       setTimeout(() => (this.toast.show = false), 3200);
     },
     fail(e) { this.flash(e.message || String(e), "err"); },
-    money(n) {
+    // Both places, always: 2,005.8 reads like a figure that was cut short.
+    // The symbol is the ROW's where the row has one — a document raised in
+    // sterling stays sterling on the order record (core/currency.py resolves
+    // it from the customer's country); ₹ is the home default.
+    money(n, sym = "₹") {
       if (n === null || n === undefined || n === "") return "—";
-      return "₹" + Number(n).toLocaleString("en-IN");
+      return sym + Number(n).toLocaleString("en-IN",
+        { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
+    odSym(row) { return (row && row.currency && row.currency.symbol) || "₹"; },
+    // A unit RATE keeps three decimals (CONVENTIONS §5): an order line priced
+    // at 0.534 is not 0.53, and money()'s two places would say it was.
+    odRate(n, sym = "₹") {
+      if (n === null || n === undefined || n === "") return "—";
+      return sym + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 3 });
+    },
+    // 'Brass' + 'Naval Brass' is ONE material, not two: when either half
+    // already contains the other, the fuller of the two says it all.
+    odMaterial(h) {
+      const cls = ((h && h.material_class) || "").trim();
+      const grade = ((h && h.grade) || "").trim();
+      if (!cls || !grade) return cls || grade;
+      const c = cls.toLowerCase(), g = grade.toLowerCase();
+      if (g.includes(c)) return grade;
+      if (c.includes(g)) return cls;
+      return cls + " " + grade;
     },
     fmtDate(d) {
       if (!d) return "—";

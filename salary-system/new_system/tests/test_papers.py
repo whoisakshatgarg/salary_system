@@ -24,7 +24,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from backend.core import db, numbering, paths                       # noqa: E402
+from backend.core import currency, db, numbering, paths             # noqa: E402
 from backend.documents import payloads, registry, router, service   # noqa: E402
 from backend.modules import customers, orders, parts, quotations, settings  # noqa: E402
 
@@ -247,6 +247,18 @@ class BuilderSchemas(PapersBase):
         self.assertEqual(uk["currency"]["code"], "GBP")
         self.assertEqual(uk["currency"]["header"], "Prices (G.B.P.)")
         self.assertEqual(uk["currency_header"], "Prices (G.B.P.)")
+
+    def test_the_currency_map_is_the_one_the_ledger_reads(self):
+        """core/currency.py is the single source: a paper and its ledger row
+        must never name different money for the same customer."""
+        for country in ("England", "USA", "India", ""):
+            self.assertEqual(payloads.currency_for(country)["code"],
+                             currency.currency_for(country)["code"])
+        self.assertEqual(set(currency.currency_for("USA")),
+                         {"code", "symbol", "header"})
+        # 'head' is the papers' documented extension, on top of those three
+        self.assertEqual(payloads.currency_for("England")["head"], "GBP (£)")
+        self.assertEqual(payloads.currency_for("USA"), dict(payloads.USD))
 
     def test_unknown_kind_is_refused(self):
         with self.assertRaises(ValueError):
@@ -845,6 +857,71 @@ class Lifecycle(PapersBase):
 # Rendering
 # ==========================================================================
 
+class LedgerTwinStatus(PapersBase):
+    """Marking the PAPER sent sends its ledger row with it.
+
+    The two sit side by side on the order's Documents segment; one reading
+    draft while the other reads Sent is two answers to one question.  The
+    money lifecycle still outranks the paperwork.
+    """
+
+    def ledger_status(self, doc_id):
+        return self.conn.execute("SELECT status FROM document WHERE id=?",
+                                 (doc_id,)).fetchone()["status"]
+
+    def ledger_quotation(self):
+        return quotations.create_doc(self.conn, "quotation", {
+            "customer_id": self.cust, "order_id": self.order_a,
+            "doc_date": "2026-08-13",
+            "lines": [{"description": "Collar Assy.", "qty": 10, "unit": "EA",
+                       "rate": 1.5}]})
+
+    def test_sending_the_paper_sends_the_ledger_quotation(self):
+        paper = self.make("quotation", document_id=self.doc)
+        service.set_status(self.conn, paper["id"], "final")
+        self.assertEqual(self.ledger_status(self.doc), "draft")   # only 'sent' syncs
+        service.set_status(self.conn, paper["id"], "sent")
+        self.assertEqual(self.ledger_status(self.doc), "sent")
+
+    def test_sending_an_invoice_paper_sends_the_ledger_invoice_it_raised(self):
+        inv = self.invoice()
+        doc_id = inv["document_id"]
+        self.assertTrue(doc_id)
+        service.set_status(self.conn, inv["id"], "final")
+        service.set_status(self.conn, inv["id"], "sent")
+        self.assertEqual(self.ledger_status(doc_id), "sent")
+
+    def test_an_already_sent_ledger_row_stays_sent(self):
+        doc_id = self.ledger_quotation()
+        quotations.set_status(self.conn, doc_id, "sent")
+        paper = self.make("quotation", document_id=doc_id)
+        service.set_status(self.conn, paper["id"], "final")
+        service.set_status(self.conn, paper["id"], "sent")
+        self.assertEqual(self.ledger_status(doc_id), "sent")
+
+    def test_the_money_lifecycle_outranks_the_paperwork(self):
+        """An accepted/paid/cancelled document is NOT walked back to sent."""
+        for locked in ("accepted", "paid", "cancelled"):
+            doc_id = self.ledger_quotation()
+            quotations.set_status(self.conn, doc_id, locked)
+            paper = self.make("quotation", document_id=doc_id)
+            service.set_status(self.conn, paper["id"], "final")
+            service.set_status(self.conn, paper["id"], "sent")
+            self.assertEqual(self.ledger_status(doc_id), locked)
+
+    def test_a_paper_with_no_ledger_row_syncs_nothing(self):
+        wo = self.make("work_order")
+        self.assertIsNone(wo["document_id"])
+        service.set_status(self.conn, wo["id"], "final")
+        service.set_status(self.conn, wo["id"], "sent")
+        self.assertEqual(self.ledger_status(self.doc), "draft")
+
+    def test_voiding_a_paper_leaves_the_ledger_alone(self):
+        paper = self.make("quotation", document_id=self.doc)
+        service.set_status(self.conn, paper["id"], "void")
+        self.assertEqual(self.ledger_status(self.doc), "draft")
+
+
 class Rendering(PapersBase):
     def all_kinds(self):
         inv = self.invoice(self.order_a, self.order_b)
@@ -1122,15 +1199,73 @@ class Screens(unittest.TestCase):
         html = self.page("papers", "index.html")
         for grid in ("min-width:1560px", "min-width:1320px"):   # test cert, BOM
             self.assertIn(grid, html)
-        self.assertEqual(html.count("overflow-x-auto"), html.count("<table"))
+        # the two widest grids scroll as .xscroll, the rest as overflow-x-auto
+        self.assertEqual(html.count("overflow-x-auto") + html.count('class="xscroll"'),
+                         html.count("<table"))
+
+    def test_a_wide_grid_shows_that_it_scrolls(self):
+        """A scrollbar macOS only draws mid-gesture is no affordance: the grid
+        looked like it ENDED at Cr%.  Styled bar + a fade while there is more."""
+        html = self.page("papers", "index.html")
+        self.assertEqual(html.count('class="xscroll" x-ref="xsc"'), 2)  # TC, BOM
+        self.assertEqual(html.count('class="xwrap"'), 2)
+        self.assertIn(".xscroll::-webkit-scrollbar", html)      # real CSS, not @apply
+        # ...and scrollbar-width must stay behind @supports: in Chromium it
+        # REPLACES the pseudo-element bar with the overlay one that hides.
+        self.assertIn("@supports not selector(::-webkit-scrollbar)", html)
+        self.assertNotIn("\n    .xscroll { overflow-x: auto; scrollbar-width", html)
+        self.assertIn(".xwrap.is-scrollable::after", html)
+        self.assertIn("scrollWidth > el.clientWidth", html)     # only when scrollable
+        # measured on a ResizeObserver, not once: the editor is built inside an
+        # x-show'd page and can be display:none (0 wide) at x-init time
+        self.assertEqual(html.count("new ResizeObserver(() => xChk())"), 2)
+
+    def test_the_packing_list_box_fields_are_labelled(self):
+        """Four bare inputs did not say which weight was net and which gross."""
+        html = self.page("papers", "index.html")
+        for label in ("Box no.", "Box size", "Net wt (kg)", "Gross wt (kg)"):
+            self.assertIn(f'<label class="lbl">{label}</label>', html)
 
     def test_a_three_decimal_rate_is_shown_with_three_decimals(self):
         """money() caps at 2dp; a unit rate needs 3 or £0.534 reads £0.53."""
         js = self.page("quotations", "quotations.js")
         html = self.page("quotations", "index.html")
         self.assertIn("maximumFractionDigits: 3", js)
-        self.assertIn('x-text="qiRate(l.rate)"', html)
+        self.assertIn('x-text="qiRate(l.rate, qiSym(detail))"', html)
         self.assertIn('step="0.001"', html)
+
+    def test_ledger_money_wears_the_row_currency_and_both_places(self):
+        """A GBP quotation read '₹64,080' and '₹2,005.8': the symbol comes off
+        the row and money() never drops a trailing zero."""
+        for page, sym in (("quotations", "qiSym"), ("orders", "odSym")):
+            js = self.page(page, page + ".js")
+            self.assertIn("minimumFractionDigits: 2", js)
+            self.assertIn("currency.symbol", js)
+            self.assertIn(f"{sym}(row)", js)
+        self.assertIn('x-text="money(d.total, qiSym(d))"',
+                      self.page("quotations", "index.html"))
+        html = self.page("orders", "index.html")
+        self.assertIn('x-text="money(d.total, odSym(d))"', html)
+        self.assertIn('x-text="money(detail.amount, odSym(detail))"', html)
+        # …and the 2dp money() must not swallow a 3dp LINE RATE on the way
+        self.assertIn('x-text="odRate(it.rate, odSym(detail))"', html)
+        self.assertIn("maximumFractionDigits: 3", self.page("orders", "orders.js"))
+
+    def test_the_revision_rail_chips_a_superseded_parent(self):
+        """The rail printed the parent's raw status ('draft') while the list
+        dimmed it as superseded."""
+        html = self.page("quotations", "index.html")
+        self.assertIn('x-show="!r.superseded"', html)
+        self.assertIn('x-show="r.superseded"', html)
+
+    def test_an_issued_material_label_does_not_stutter(self):
+        """'Brass' + 'Naval Brass' is one material."""
+        self.assertIn('x-text="odMaterial(h)"', self.page("orders", "index.html"))
+        self.assertIn("odMaterial(h)", self.page("orders", "orders.js"))
+
+    def test_the_outsourcing_documents_tab_dates_read_like_the_others(self):
+        html = self.page("outsourcing", "index.html")
+        self.assertIn("""x-text="fmtDate((d.uploaded_at || '').slice(0, 10))\"""", html)
 
     def test_quotations_can_revise_and_export(self):
         js = self.page("quotations", "quotations.js")

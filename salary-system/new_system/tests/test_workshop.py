@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from backend.core import db, numbering  # noqa: E402
+from backend.core import currency, db, numbering  # noqa: E402
 from backend.modules import (customers, inventory, orders, parts, quotations,  # noqa: E402
                              settings)
 
@@ -1312,6 +1312,20 @@ class QuotationRevisions(WorkshopBase):
         self.assertEqual([c["id"] for c in quotations.get_doc(self.conn, b)["revisions"]],
                          [base, a, b])
 
+    def test_the_chain_flags_the_superseded_rows_without_touching_status(self):
+        """The rail showed the parent as 'draft' while the list dimmed it as
+        superseded: superseding is NOT a status change, so the row says both."""
+        base = self.quote()
+        a = quotations.revise_doc(self.conn, base)
+        quotations.set_status(self.conn, base, "sent")     # a parent has a life
+        b = quotations.revise_doc(self.conn, a)
+        chain = quotations.get_doc(self.conn, b)["revisions"]
+        self.assertEqual([c["superseded"] for c in chain], [True, True, False])
+        self.assertEqual([c["superseded"] for c in chain],
+                         [not c["active"] for c in chain])
+        # the status column is untouched by revising — it is the row's own
+        self.assertEqual([c["status"] for c in chain], ["sent", "draft", "draft"])
+
     def test_a_document_nobody_revised_has_no_chain(self):
         self.assertEqual(quotations.get_doc(self.conn, self.quote())["revisions"], [])
 
@@ -1336,6 +1350,81 @@ class QuotationRevisions(WorkshopBase):
                          "T04/AT/130826/316")
         self.assertEqual([quotations._rev_letter(n) for n in (0, 1, 25, 26)],
                          ["A", "B", "Z", "AA"])
+
+
+class LedgerCurrency(WorkshopBase):
+    """The ledger shows the CUSTOMER's money.
+
+    A £64,080 quotation to a British customer read '₹64,080' on every ledger
+    screen while the paper it prints was right: the symbol is resolved
+    server-side (core/currency.py) so the list, the detail and the order
+    record cannot each guess differently.
+    """
+
+    def uk_customer(self):
+        return customers.save_customer(self.conn, {
+            "name": "Thermosense Ltd.", "code": "T04", "country": "England"})
+
+    def quote(self, customer_id=None, **kw):
+        data = {"customer_id": customer_id or self.cust, "doc_date": "2026-08-14",
+                "lines": [{"description": "Collar Assy.", "qty": 120000,
+                           "unit": "EA", "rate": 0.534}]}
+        data.update(kw)
+        return quotations.create_doc(self.conn, "quotation", data)
+
+    def test_the_country_picks_the_currency(self):
+        self.assertEqual(currency.currency_for("England")["symbol"], "£")
+        self.assertEqual(currency.currency_for("UNITED KINGDOM")["code"], "GBP")
+        self.assertEqual(currency.currency_for("USA")["symbol"], "$")
+        self.assertEqual(currency.currency_for("Germany")["code"], "USD")
+        self.assertEqual(currency.currency_for("India")["code"], "INR")
+        # a blank country is a customer at home — what the ledger always showed
+        self.assertEqual(currency.currency_for("")["symbol"], "₹")
+        self.assertEqual(currency.currency_for(None)["code"], "INR")
+
+    def test_a_mutated_answer_cannot_poison_the_next_caller(self):
+        currency.currency_for("England")["symbol"] = "X"
+        self.assertEqual(currency.currency_for("England")["symbol"], "£")
+
+    def test_the_list_row_and_the_detail_carry_code_and_symbol(self):
+        uk = self.uk_customer()
+        self.quote(uk)
+        home = self.quote()
+        rows = {r["id"]: r for r in quotations.list_docs(self.conn)["rows"]}
+        by_customer = {r["customer_name"]: r for r in rows.values()}
+        self.assertEqual(by_customer["Thermosense Ltd."]["currency"],
+                         {"code": "GBP", "symbol": "£"})
+        self.assertEqual(by_customer["Acme Pumps"]["currency"],
+                         {"code": "INR", "symbol": "₹"})
+        detail = quotations.get_doc(self.conn, home)
+        self.assertEqual(detail["currency"], {"code": "INR", "symbol": "₹"})
+        self.assertEqual(detail["total"], 64080.0)      # 120000 x 0.534, no tax
+
+    def test_the_order_record_says_the_same_as_the_list(self):
+        uk = self.uk_customer()
+        oid = self.order(customer_id=uk)
+        self.quote(uk, order_id=oid)
+        doc = orders.get_order(self.conn, oid)["documents"][0]
+        self.assertEqual(doc["currency"], {"code": "GBP", "symbol": "£"})
+        self.assertNotIn("country", doc)                # the join, not a field
+
+    def test_the_order_record_carries_its_own_sale_currency(self):
+        """The record's header value is the customer's money too — it was the
+        third place a £64,080 order read '₹64,080'."""
+        uk = self.uk_customer()
+        o = orders.get_order(self.conn, self.order(customer_id=uk))
+        self.assertEqual(o["currency"], {"code": "GBP", "symbol": "£"})
+        self.assertNotIn("country", o)                  # the join, not a field
+        self.assertEqual(orders.get_order(self.conn, self.order())["currency"],
+                         {"code": "INR", "symbol": "₹"})
+
+    def test_a_document_raised_for_another_customer_keeps_its_own_currency(self):
+        """The row's currency is the DOCUMENT's customer, not the order's."""
+        uk = self.uk_customer()
+        oid = self.order()                              # home customer's order
+        self.quote(uk, order_id=oid)
+        doc = orders.get_order(self.conn, oid)["documents"][0]
+        self.assertEqual(doc["currency"]["code"], "GBP")
 
 
 class OrderAttachments(WorkshopBase):

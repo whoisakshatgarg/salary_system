@@ -37,6 +37,7 @@ from ..core.attachments import (header_filename, response_mime, storage_ext,
 from ..core.db import row_to_dict
 from ..core.deps import current_user, get_db, require_module
 from ..core.rules import get_rules
+from . import quotations as quotations_mod
 from . import settings as settings_mod
 
 router = APIRouter(prefix="/api/orders",
@@ -296,10 +297,14 @@ def list_orders(conn, q: str = "", stage: str = "") -> dict:
 
 def get_order(conn, order_id: int) -> dict:
     o = row_to_dict(conn.execute(
-        "SELECT o.*, c.name AS customer_name FROM customer_order o"
+        "SELECT o.*, c.name AS customer_name, c.country FROM customer_order o"
         " JOIN customer c ON c.id=o.customer_id WHERE o.id=?", (order_id,)).fetchone())
     if not o:
         raise ValueError("Order not found")
+    # The SALE money on this record — order value, line rates, their total — is
+    # written in the customer's currency, the same one their documents carry.
+    # (Costings, freight and stock value are OUR costs and stay in rupees.)
+    o["currency"] = quotations_mod.row_currency(o.pop("country"))
     shipped = _shipped_by_item(conn, order_id)
     o["items"] = []
     for r in conn.execute(
@@ -333,12 +338,18 @@ def get_order(conn, order_id: int) -> dict:
     # the record answers "what did we send them?" without a trip to Quotations
     o["documents"] = [dict(r) for r in conn.execute(
         """SELECT d.id, d.kind, d.doc_no, d.doc_date, d.status, d.tax_pct,
+                  dc.country,
                   (SELECT COALESCE(SUM(l.qty * l.rate), 0) FROM document_line l
                      WHERE l.document_id = d.id) AS subtotal
-           FROM document d WHERE d.order_id=?
+           FROM document d JOIN customer dc ON dc.id=d.customer_id
+           WHERE d.order_id=?
            ORDER BY d.doc_date DESC, d.id DESC""", (order_id,))]
     for d in o["documents"]:
         d["total"] = round(d["subtotal"] * (1 + (d["tax_pct"] or 0) / 100), 2)
+        # the same {code, symbol} the Quotations list carries: a sterling
+        # quotation must not read as rupees just because it is being looked
+        # at from the order record
+        d["currency"] = quotations_mod.row_currency(d.pop("country"))
     # the GENERATED paperwork (SOP-DESIGN §6): what the pipeline strip draws a
     # chip for, newest first. One query — the strip shows every stage at once.
     o["papers"] = [dict(r) for r in conn.execute(

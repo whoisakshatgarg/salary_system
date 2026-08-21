@@ -31,7 +31,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-from ..core import numbering
+from ..core import currency, numbering
 from ..core.db import row_to_dict
 from ..core.deps import get_db, require_module
 from ..core.rules import get_rules
@@ -265,7 +265,14 @@ def _rev_letter(n: int) -> str:
 
 
 def revision_chain(conn, doc_id: int) -> list[dict]:
-    """Every revision of one document, oldest first; `active` is the tip."""
+    """Every revision of one document, oldest first; `active` is the tip.
+
+    ``superseded`` is the row's own word for "replaced by the next revision",
+    and it is what the history rail chips.  It has to be a separate field:
+    superseding does NOT touch the status column (see revise_doc) — the parent
+    of a revision is still a draft/sent/accepted document in its own right, so
+    its status alone would label a superseded parent 'draft'.
+    """
     root, seen = doc_id, {doc_id}
     while True:
         r = conn.execute("SELECT revises_document_id FROM document WHERE id=?",
@@ -284,7 +291,8 @@ def revision_chain(conn, doc_id: int) -> list[dict]:
         if not r:
             break
         out.append({"id": r["id"], "doc_no": r["doc_no"], "status": r["status"],
-                    "doc_date": r["doc_date"], "active": r["superseded_by"] is None})
+                    "doc_date": r["doc_date"], "active": r["superseded_by"] is None,
+                    "superseded": r["superseded_by"] is not None})
         nxt = conn.execute(
             "SELECT id FROM document WHERE revises_document_id=? ORDER BY id LIMIT 1",
             (r["id"],)).fetchone()
@@ -297,6 +305,12 @@ def revise_doc(conn, doc_id: int) -> int:
 
     Only the tip of a chain can be revised: a superseded document is history,
     and branching it would leave two documents claiming to be the latest.
+
+    Superseding sets ``superseded_by`` and nothing else — deliberately.  The
+    status column is the document's OWN lifecycle (a superseded parent may
+    well have been sent, or even accepted), and overwriting it would destroy
+    that record.  Screens read ``superseded_by`` / ``revision_chain``'s
+    ``superseded`` flag to say "replaced".
     """
     conn.execute("BEGIN IMMEDIATE")     # the tip check and the copy are one act
     try:
@@ -338,16 +352,30 @@ def totals(subtotal: float, tax_pct: float) -> dict:
     return {"subtotal": round(subtotal, 2), "tax": tax, "total": round(subtotal + tax, 2)}
 
 
+def row_currency(country) -> dict:
+    """The money a row is written in, for the screen: code and symbol only.
+
+    A quotation to Thermosense is in sterling and one to SELCO in dollars —
+    resolved server-side from the customer's country so the list, the detail
+    and the order record cannot each guess differently.  The map is
+    core/currency.py, shared with the papers; the papers' printed ``header``
+    is a column title and has no place in a list row.
+    """
+    c = currency.currency_for(country)
+    return {"code": c["code"], "symbol": c["symbol"]}
+
+
 def get_doc(conn, doc_id: int) -> dict:
     d = row_to_dict(conn.execute(
         """SELECT d.*, c.name AS customer_name, c.code AS customer_code, c.gstin,
                   c.address_billing, c.address_shipping, c.payment_terms,
-                  o.order_no
+                  c.country, o.order_no
            FROM document d JOIN customer c ON c.id=d.customer_id
            LEFT JOIN customer_order o ON o.id=d.order_id
            WHERE d.id=?""", (doc_id,)).fetchone())
     if not d:
         raise ValueError("Document not found")
+    d["currency"] = row_currency(d["country"])
     d["lines"] = [dict(r) for r in conn.execute(
         """SELECT l.*, dr.drawing_no, dr.revision FROM document_line l
            LEFT JOIN drawing dr ON dr.id=l.drawing_id
@@ -364,7 +392,7 @@ def get_doc(conn, doc_id: int) -> dict:
 def list_docs(conn, kind: str = "", q: str = "", customer_id=None) -> dict:
     sql = """SELECT d.id, d.kind, d.doc_no, d.doc_date, d.valid_until, d.status,
                     d.tax_pct, c.name AS customer_name, c.code AS customer_code,
-                    o.order_no, d.superseded_by,
+                    c.country, o.order_no, d.superseded_by,
                     (SELECT COALESCE(SUM(l.qty*l.rate),0) FROM document_line l
                        WHERE l.document_id=d.id) AS subtotal
              FROM document d JOIN customer c ON c.id=d.customer_id
@@ -385,6 +413,7 @@ def list_docs(conn, kind: str = "", q: str = "", customer_id=None) -> dict:
     for r in conn.execute(sql, args):
         row = dict(r)
         row.update(totals(row.pop("subtotal"), row["tax_pct"]))
+        row["currency"] = row_currency(row.pop("country"))
         rows.append(row)
     counts = {k: 0 for k in KINDS}
     for r in conn.execute("SELECT kind, COUNT(*) AS n FROM document GROUP BY kind"):

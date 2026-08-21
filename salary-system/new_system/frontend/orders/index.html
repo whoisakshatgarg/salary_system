@@ -592,7 +592,7 @@
       <div class="grid grid-cols-4 gap-3">
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
           <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Order value</div>
-          <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="money(detail.amount)"></div>
+          <div class="text-2xl font-bold tabular-nums text-slate-900" x-text="money(detail.amount, odSym(detail))"></div>
         </div>
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
           <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Ordered</div>
@@ -664,8 +664,8 @@
                     <td class="px-3 py-2.5 text-right font-semibold tabular-nums"
                         :class="it.pending > 0 ? 'text-amber-700' : 'text-slate-300'"
                         x-text="it.pending"></td>
-                    <td class="px-3 py-2.5 text-right tabular-nums text-slate-600" x-text="money(it.rate)"></td>
-                    <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(it.amount)"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums text-slate-600" x-text="odRate(it.rate, odSym(detail))"></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="money(it.amount, odSym(detail))"></td>
                     <td class="px-3 py-2.5 text-right">
                       <button @click="openPlan(it)"
                               class="rounded-lg px-2.5 py-1 text-xs font-medium border shadow-sm transition-colors"
@@ -717,7 +717,7 @@
                       :class="detail.qty_pending > 0 ? 'text-amber-700' : 'text-slate-300'"
                       x-text="detail.qty_pending"></td>
                   <td></td>
-                  <td class="px-3 py-2.5 text-right tabular-nums text-slate-900" x-text="money(detail.amount)"></td>
+                  <td class="px-3 py-2.5 text-right tabular-nums text-slate-900" x-text="money(detail.amount, odSym(detail))"></td>
                   <td></td>
                 </tr>
               </tfoot>
@@ -867,7 +867,7 @@
                       <template x-for="(h, i) in detail.heats" :key="i">
                         <tr class="even:bg-slate-50/60 hover:bg-brand-50/60 transition-colors">
                           <td class="px-4 py-2.5 font-mono text-xs font-semibold text-brand-700" x-text="h.heat_number"></td>
-                          <td class="px-3 py-2.5 text-slate-600" x-text="[h.material_class, h.grade].filter(Boolean).join(' ')"></td>
+                          <td class="px-3 py-2.5 text-slate-600" x-text="odMaterial(h)"></td>
                           <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900" x-text="h.rods"></td>
                           <td class="px-3 py-2.5 text-right whitespace-nowrap text-slate-500" x-text="fmtDate(h.mv_date)"></td>
                         </tr>
@@ -1050,7 +1050,7 @@
                       </td>
                       <td class="px-3 py-2.5 whitespace-nowrap" x-text="fmtDate(d.doc_date)"></td>
                       <td class="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900"
-                          x-text="money(d.total)"></td>
+                          x-text="money(d.total, odSym(d))"></td>
                       <td class="px-3 py-2.5">
                         <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
                               :class="odDocStatus(d.status)">

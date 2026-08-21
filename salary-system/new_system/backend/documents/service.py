@@ -510,8 +510,20 @@ def refill(conn, paper_id: int) -> dict:
     return get_paper(conn, paper_id)
 
 
+# A ledger row the paperwork may speak for.  Sending the paper IS sending the
+# document, so the twin follows — but only out of these two: accepted, paid
+# and cancelled are the MONEY's lifecycle and outrank paperwork, and a paper
+# marked sent must never walk a paid invoice back to 'sent'.
+LEDGER_FOLLOWS_SENT = ("draft", "sent")
+
+
 def set_status(conn, paper_id: int, status: str) -> dict:
-    """draft → final → sent, and void from any of them.  Nothing else."""
+    """draft → final → sent, and void from any of them.  Nothing else.
+
+    A quotation/invoice paper carries its ledger row along to 'sent': the two
+    sit side by side on the order record and one saying draft while the other
+    says Sent is a lie about the same act.
+    """
     if status not in STATUSES:
         raise ValueError(f"Unknown status {status!r}")
     row = _row(conn, paper_id)
@@ -522,6 +534,11 @@ def set_status(conn, paper_id: int, status: str) -> dict:
         raise ValueError(f"A {current} paper can't become {status}")
     conn.execute("UPDATE paper SET status=?, updated_at=? WHERE id=?",
                  (status, _now(), paper_id))
+    if status == "sent" and row["document_id"]:
+        marks = ",".join("?" * len(LEDGER_FOLLOWS_SENT))
+        conn.execute(
+            f"UPDATE document SET status='sent' WHERE id=? AND status IN ({marks})",
+            (row["document_id"], *LEDGER_FOLLOWS_SENT))
     conn.commit()
     return get_paper(conn, paper_id)
 

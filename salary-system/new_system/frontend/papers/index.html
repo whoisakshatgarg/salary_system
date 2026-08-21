@@ -45,6 +45,36 @@
     .cel.mono { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
                 font-size:.75rem; }
     .cel[readonly] { color:#64748b; }
+
+    /* WIDE grids (test cert 21 columns, BOM 12) scroll inside their frame, and
+       the scroll has to ANNOUNCE itself: at 1440px the analysis grid ends at
+       Cr% and an overlay scrollbar that only appears mid-gesture reads as
+       "there is no Ni/Mo" (macOS hides them by default). So: a thin styled
+       bar that is always drawn, plus a fade on the right edge while there is
+       more to reach. Real CSS — @apply here is dead (UI-STYLE §8).
+       The fade is driven by a ResizeObserver, not a one-shot measurement: the
+       editor is built inside an x-show'd page, so at x-init time the grid can
+       still be display:none and measure 0 wide. */
+    .xscroll { overflow-x: auto; }
+    /* ::-webkit-scrollbar gives a bar that OCCUPIES space, i.e. one that is
+       always drawn — macOS overlay bars fade out and were the whole defect.
+       'scrollbar-width' would switch Chromium back to the overlay bar and is
+       therefore scoped to the engines that have no pseudo-element (Firefox). */
+    .xscroll::-webkit-scrollbar { height: 10px; }
+    .xscroll::-webkit-scrollbar-track { background: #f1f5f9;
+                                        border-top: 1px solid #e2e8f0; }
+    .xscroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px;
+                                        border: 2px solid #f1f5f9; }
+    .xscroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    @supports not selector(::-webkit-scrollbar) {
+      .xscroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 #f1f5f9; }
+    }
+    .xwrap { position: relative; }
+    .xwrap::after { content: ""; position: absolute; top: 0; right: 0; bottom: 10px;
+                    width: 3rem; pointer-events: none; opacity: 0;
+                    transition: opacity .15s;
+                    background: linear-gradient(to left, #fff, rgba(255,255,255,0)); }
+    .xwrap.is-scrollable::after { opacity: 1; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800" x-data="pw()" x-init="boot()" x-cloak>
@@ -787,13 +817,19 @@
                 <div class="space-y-4">
                   <template x-for="(box, bi) in ed.payload.boxes" :key="bi">
                     <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                      <div class="px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200 flex flex-wrap items-center gap-2">
-                        <input class="fld mono" style="width:9rem" x-model="box.box_label" />
-                        <input class="fld" style="width:11rem" x-model="box.size" placeholder='16" x 11" x 10"' />
-                        <input class="fld num" style="width:7rem" x-model="box.net_wt" @input="boxTotals()" placeholder="Net wt." />
-                        <input class="fld num" style="width:7rem" x-model="box.gross_wt" @input="boxTotals()" placeholder="Gross wt." />
+                      <!-- four labelled fields, not four bare boxes: which one
+                           is net and which is gross is not guessable -->
+                      <div class="px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200 flex flex-wrap items-end gap-2">
+                        <div><label class="lbl">Box no.</label>
+                          <input class="fld mono" style="width:9rem" x-model="box.box_label" /></div>
+                        <div><label class="lbl">Box size</label>
+                          <input class="fld" style="width:11rem" x-model="box.size" placeholder='16" x 11" x 10"' /></div>
+                        <div><label class="lbl">Net wt (kg)</label>
+                          <input class="fld num" style="width:7rem" x-model="box.net_wt" @input="boxTotals()" /></div>
+                        <div><label class="lbl">Gross wt (kg)</label>
+                          <input class="fld num" style="width:7rem" x-model="box.gross_wt" @input="boxTotals()" /></div>
                         <button @click="removeBox(bi)" title="Remove this box — its lines move to the first box"
-                                class="ml-auto text-rose-700 hover:underline text-xs font-medium">Remove box</button>
+                                class="ml-auto mb-1.5 text-rose-700 hover:underline text-xs font-medium">Remove box</button>
                       </div>
                       <div class="overflow-x-auto">
                         <table class="w-full text-sm">
@@ -937,57 +973,66 @@
                   <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Analysis</span>
                 </div>
                 <!-- 21 columns: the grid scrolls inside its frame rather than
-                     squeezing every analysis figure down to four characters -->
-                <div class="overflow-x-auto">
-                  <table class="w-full text-sm" style="min-width:1560px">
-                    <thead class="bg-slate-50 border-b border-slate-200">
-                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                        <th class="px-2 py-2 w-10">#</th>
-                        <th class="px-2 py-2 w-36">Item</th>
-                        <th class="px-2 py-2 w-28">Size of matl.</th>
-                        <th class="px-2 py-2 w-16 text-right">Qty</th>
-                        <th class="px-2 py-2 w-20">Component</th>
-                        <th class="px-2 py-2 w-24">Heat no.</th>
-                        <th class="px-2 py-2 w-28">Material</th>
-                        <template x-for="el in chem" :key="el">
-                          <th class="px-1 py-2 w-14 text-right" x-text="el + '%'"></th>
-                        </template>
-                        <template x-for="n in [1,2,3,4,5]" :key="'h' + n">
-                          <th class="px-1 py-2 w-14 text-right"
-                              :class="extraHead(n) ? 'text-slate-500' : 'text-slate-300'"
-                              x-text="extraHead(n) || '–'"></th>
-                        </template>
-                        <th class="px-2 py-2 w-8"></th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                      <template x-for="(it, i) in ed.payload.items" :key="i">
-                        <tr class="odd:bg-slate-50/60">
-                          <td class="px-2 py-1"><input class="cel num" x-model="it.sno" /></td>
-                          <td class="px-2 py-1"><input class="cel mono" x-model="it.item" /></td>
-                          <td class="px-2 py-1"><input class="cel" x-model="it.size" /></td>
-                          <td class="px-2 py-1"><input class="cel num" x-model="it.qty" /></td>
-                          <td class="px-2 py-1"><input class="cel" x-model="it.component" /></td>
-                          <td class="px-2 py-1"><input class="cel mono" x-model="it.heat_no" /></td>
-                          <td class="px-2 py-1"><input class="cel" x-model="it.material" /></td>
+                     squeezing every analysis figure down to four characters, and the
+                     always-visible scroll affordance: the bar is styled (.xscroll) and the
+                     right-edge fade (.xwrap.is-scrollable) is on while there is more grid
+                     to the right, so nobody reads a clipped column as a missing one -->
+                <div class="xwrap" :class="xMore ? 'is-scrollable' : ''"
+                     x-data="{ xMore: false, xChk() { const el = this.$refs.xsc; this.xMore = !!el
+                       && el.scrollWidth > el.clientWidth + 1
+                       && el.scrollLeft + el.clientWidth < el.scrollWidth - 1; } }"
+                     x-init="$nextTick(() => new ResizeObserver(() => xChk()).observe($refs.xsc))">
+                  <div class="xscroll" x-ref="xsc" @scroll="xChk()">
+                    <table class="w-full text-sm" style="min-width:1560px">
+                      <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                          <th class="px-2 py-2 w-10">#</th>
+                          <th class="px-2 py-2 w-36">Item</th>
+                          <th class="px-2 py-2 w-28">Size of matl.</th>
+                          <th class="px-2 py-2 w-16 text-right">Qty</th>
+                          <th class="px-2 py-2 w-20">Component</th>
+                          <th class="px-2 py-2 w-24">Heat no.</th>
+                          <th class="px-2 py-2 w-28">Material</th>
                           <template x-for="el in chem" :key="el">
-                            <td class="px-1 py-1">
-                              <input class="cel num" :value="chemOf(it, el)"
-                                     @input="setChem(it, el, $event.target.value)" /></td>
+                            <th class="px-1 py-2 w-14 text-right" x-text="el + '%'"></th>
                           </template>
-                          <template x-for="n in [1,2,3,4,5]" :key="'s' + n">
-                            <td class="px-1 py-1"><input class="cel num" x-model="it['spare_' + n]" /></td>
+                          <template x-for="n in [1,2,3,4,5]" :key="'h' + n">
+                            <th class="px-1 py-2 w-14 text-right"
+                                :class="extraHead(n) ? 'text-slate-500' : 'text-slate-300'"
+                                x-text="extraHead(n) || '–'"></th>
                           </template>
-                          <td class="px-2 py-1 text-right">
-                            <button @click="removeItem(i)" title="Remove line"
-                                    class="text-slate-300 hover:text-rose-600 transition-colors">✕</button></td>
+                          <th class="px-2 py-2 w-8"></th>
                         </tr>
-                      </template>
-                      <tr x-show="!ed.payload.items.length">
-                        <td colspan="21" class="px-4 py-6 text-center text-sm text-slate-400">No lines yet</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        <template x-for="(it, i) in ed.payload.items" :key="i">
+                          <tr class="odd:bg-slate-50/60">
+                            <td class="px-2 py-1"><input class="cel num" x-model="it.sno" /></td>
+                            <td class="px-2 py-1"><input class="cel mono" x-model="it.item" /></td>
+                            <td class="px-2 py-1"><input class="cel" x-model="it.size" /></td>
+                            <td class="px-2 py-1"><input class="cel num" x-model="it.qty" /></td>
+                            <td class="px-2 py-1"><input class="cel" x-model="it.component" /></td>
+                            <td class="px-2 py-1"><input class="cel mono" x-model="it.heat_no" /></td>
+                            <td class="px-2 py-1"><input class="cel" x-model="it.material" /></td>
+                            <template x-for="el in chem" :key="el">
+                              <td class="px-1 py-1">
+                                <input class="cel num" :value="chemOf(it, el)"
+                                       @input="setChem(it, el, $event.target.value)" /></td>
+                            </template>
+                            <template x-for="n in [1,2,3,4,5]" :key="'s' + n">
+                              <td class="px-1 py-1"><input class="cel num" x-model="it['spare_' + n]" /></td>
+                            </template>
+                            <td class="px-2 py-1 text-right">
+                              <button @click="removeItem(i)" title="Remove line"
+                                      class="text-slate-300 hover:text-rose-600 transition-colors">✕</button></td>
+                          </tr>
+                        </template>
+                        <tr x-show="!ed.payload.items.length">
+                          <td colspan="21" class="px-4 py-6 text-center text-sm text-slate-400">No lines yet</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
                 <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center">
                   <span class="text-xs text-slate-400 tabular-nums"><span x-text="ed.payload.items.length"></span> lines</span>
@@ -1021,48 +1066,57 @@
                 <div class="px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200">
                   <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Materials</span>
                 </div>
-                <div class="overflow-x-auto">
-                  <table class="w-full text-sm" style="min-width:1320px">
-                    <thead class="bg-slate-50 border-b border-slate-200">
-                      <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                        <th class="px-2 py-2 w-10">#</th>
-                        <th class="px-2 py-2 w-32">Part / Drg. no.</th>
-                        <th class="px-2 py-2">Component</th>
-                        <th class="px-2 py-2 w-28">Size</th>
-                        <th class="px-2 py-2 w-28">Material</th>
-                        <th class="px-2 py-2 w-28">Heat / OS ID</th>
-                        <th class="px-2 py-2 w-32">Source</th>
-                        <th class="px-2 py-2 w-20 text-right">Qty/assy</th>
-                        <th class="px-2 py-2 w-20 text-right">Total qty</th>
-                        <th class="px-2 py-2 w-16">Unit</th>
-                        <th class="px-2 py-2 w-28">Remarks</th>
-                        <th class="px-2 py-2 w-8"></th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                      <template x-for="(it, i) in ed.payload.items" :key="i">
-                        <tr class="odd:bg-slate-50/60">
-                          <td class="px-2 py-1"><input class="cel num" x-model="it.sno" /></td>
-                          <td class="px-2 py-1"><input class="cel mono" x-model="it.part_no" /></td>
-                          <td class="px-2 py-1"><input class="cel" x-model="it.description" /></td>
-                          <td class="px-2 py-1"><input class="cel" x-model="it.size" /></td>
-                          <td class="px-2 py-1"><input class="cel" x-model="it.material" /></td>
-                          <td class="px-2 py-1"><input class="cel mono" x-model="it.heat_or_os" /></td>
-                          <td class="px-2 py-1"><input class="cel" x-model="it.source" /></td>
-                          <td class="px-2 py-1"><input class="cel num" x-model="it.qty_per" /></td>
-                          <td class="px-2 py-1"><input class="cel num" x-model="it.total_qty" /></td>
-                          <td class="px-2 py-1"><input class="cel" x-model="it.unit" /></td>
-                          <td class="px-2 py-1"><input class="cel" x-model="it.remarks" /></td>
-                          <td class="px-2 py-1 text-right">
-                            <button @click="removeItem(i)" title="Remove line"
-                                    class="text-slate-300 hover:text-rose-600 transition-colors">✕</button></td>
+                <!-- always-visible scroll affordance: the bar is styled (.xscroll) and the
+                     right-edge fade (.xwrap.is-scrollable) is on while there is more grid
+                     to the right, so nobody reads a clipped column as a missing one -->
+                <div class="xwrap" :class="xMore ? 'is-scrollable' : ''"
+                     x-data="{ xMore: false, xChk() { const el = this.$refs.xsc; this.xMore = !!el
+                       && el.scrollWidth > el.clientWidth + 1
+                       && el.scrollLeft + el.clientWidth < el.scrollWidth - 1; } }"
+                     x-init="$nextTick(() => new ResizeObserver(() => xChk()).observe($refs.xsc))">
+                  <div class="xscroll" x-ref="xsc" @scroll="xChk()">
+                    <table class="w-full text-sm" style="min-width:1320px">
+                      <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                          <th class="px-2 py-2 w-10">#</th>
+                          <th class="px-2 py-2 w-32">Part / Drg. no.</th>
+                          <th class="px-2 py-2">Component</th>
+                          <th class="px-2 py-2 w-28">Size</th>
+                          <th class="px-2 py-2 w-28">Material</th>
+                          <th class="px-2 py-2 w-28">Heat / OS ID</th>
+                          <th class="px-2 py-2 w-32">Source</th>
+                          <th class="px-2 py-2 w-20 text-right">Qty/assy</th>
+                          <th class="px-2 py-2 w-20 text-right">Total qty</th>
+                          <th class="px-2 py-2 w-16">Unit</th>
+                          <th class="px-2 py-2 w-28">Remarks</th>
+                          <th class="px-2 py-2 w-8"></th>
                         </tr>
-                      </template>
-                      <tr x-show="!ed.payload.items.length">
-                        <td colspan="12" class="px-4 py-6 text-center text-sm text-slate-400">No lines yet</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100">
+                        <template x-for="(it, i) in ed.payload.items" :key="i">
+                          <tr class="odd:bg-slate-50/60">
+                            <td class="px-2 py-1"><input class="cel num" x-model="it.sno" /></td>
+                            <td class="px-2 py-1"><input class="cel mono" x-model="it.part_no" /></td>
+                            <td class="px-2 py-1"><input class="cel" x-model="it.description" /></td>
+                            <td class="px-2 py-1"><input class="cel" x-model="it.size" /></td>
+                            <td class="px-2 py-1"><input class="cel" x-model="it.material" /></td>
+                            <td class="px-2 py-1"><input class="cel mono" x-model="it.heat_or_os" /></td>
+                            <td class="px-2 py-1"><input class="cel" x-model="it.source" /></td>
+                            <td class="px-2 py-1"><input class="cel num" x-model="it.qty_per" /></td>
+                            <td class="px-2 py-1"><input class="cel num" x-model="it.total_qty" /></td>
+                            <td class="px-2 py-1"><input class="cel" x-model="it.unit" /></td>
+                            <td class="px-2 py-1"><input class="cel" x-model="it.remarks" /></td>
+                            <td class="px-2 py-1 text-right">
+                              <button @click="removeItem(i)" title="Remove line"
+                                      class="text-slate-300 hover:text-rose-600 transition-colors">✕</button></td>
+                          </tr>
+                        </template>
+                        <tr x-show="!ed.payload.items.length">
+                          <td colspan="12" class="px-4 py-6 text-center text-sm text-slate-400">No lines yet</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
                 <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center">
                   <span class="text-xs text-slate-400 tabular-nums"><span x-text="ed.payload.items.length"></span> lines</span>
