@@ -18,6 +18,10 @@ from PyInstaller.utils.hooks import collect_all, collect_submodules
 datas = [
     ("frontend", "frontend"),
     ("config", "config"),
+    # the SOP document templates: engine.py resolves them relative to its own
+    # __file__, which under PyInstaller lands in sys._MEIPASS — so the files
+    # must be bundled at the same relative path or every paper render 500s
+    ("backend/documents/templates", "backend/documents/templates"),
 ]
 
 hiddenimports = collect_submodules("uvicorn") + [

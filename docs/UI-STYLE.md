@@ -241,7 +241,25 @@ existing x-transition.
 - **Settings**: each group is a card with eyebrow header; units stay chips;
   the rates list becomes a framed two-column table (name · compact `w-28
   text-right tabular-nums` input) with a small "Save" text-button per row and
-  zebra; departments list framed with hover row + right-aligned ×.
+  zebra; departments list framed with hover row + right-aligned ×. Document
+  numbering follows the rates-table pattern (mono scope · label · tabular
+  next-number input · per-row Save).
+- **Papers** (`/papers/`, built 2026-08-21 to this spec): kind-filter pills are
+  real links (`?kind=`); list is the instrument table (mono numbers + small
+  `Rev-X` chip, kind/status dot-chips: draft slate · final emerald · sent
+  brand · superseded amber · void rose); the editor is a FULL PAGE — header
+  action strip, per-kind field cards, items grids with in-frame horizontal
+  scroll when wide (TC's 21 columns, BOM's 12 — never squeeze values), totals
+  auto-sum with manual override kept. Numbers render read-only: numbering owns
+  them.
+- **Outsourcing** (`/outsourcing/`, same date): the workspace mirrors Home's
+  deadline panel at the top of Outgoing; received % is the thin progress bar;
+  deadline cells drop to plain slate once a job is closed/cancelled (finished
+  rows must not shout); terminal records swap Close/Cancel for a quiet Reopen;
+  the movement ledger's footer states that movements sum to stock on hand.
+- **Order pipeline strip** (order record): seven stage cells, current one in
+  the active style; papers as tiny content-width chips (never full-width — they
+  read as buttons); dashed `＋` chips link to pre-filled creation.
 - **Help**: generated separately (`tools/build_help.py`) — out of scope here.
 
 ## 10. What this pass must NOT do

@@ -28,14 +28,21 @@ dynamic browser UI instead of pixel-positioned Tkinter windows.
 new_system/
 ├── config/               # rules.json (payroll policy) · sync.json · update.json
 ├── backend/
-│   ├── core/             # infrastructure: db, auth, deps, paths, registry,
-│   │                     # rules loader, edition, self-update, version
-│   ├── modules/          # employees/ · payroll/ · inventory.py · users.py
+│   ├── core/             # infrastructure: db, numbering, auth, deps, paths,
+│   │                     # registry, rules loader, edition, self-update, version
+│   ├── documents/        # SOP paperwork engine + token-marked templates
+│   ├── modules/          # employees/ · payroll/ · inventory · customers ·
+│   │                     # parts · orders · quotations · outsourcing ·
+│   │                     # settings · users
 │   └── main.py           # app assembly: session, update, backup, static mount
-├── frontend/             # index.html (shell) · payroll.html · inventory.html
-│                         # + shell.js / app.js / inventory.js · vendor/ (offline)
+├── frontend/             # one folder per module (shell, payroll, employees,
+│                         # inventory, customers, parts, orders, quotations,
+│                         # papers, outsourcing, settings, help) · vendor/ (offline)
+├── tools/                # build_help.py · xls2xlsx.py
 ├── data/                 # runtime state (gitignored)
-└── tests/                # unittest suite (payroll rules, inventory, users)
+└── tests/                # unittest suite — 549 tests (payroll, inventory, users,
+                          # workshop, numbering, documents engine, papers,
+                          # outsourcing, help build)
 ```
 
 Full tree with one-liners: [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).

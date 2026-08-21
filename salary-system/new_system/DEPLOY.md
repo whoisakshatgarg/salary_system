@@ -85,6 +85,12 @@ touched (the DB/config live in the per-user folder, not in the `.exe`).
 ---
 
 ## Notes
+- **SOP document templates ship inside the exe:** `apex_payroll.spec` bundles
+  `backend/documents/templates/` as data (the engine resolves them relative to
+  its own module, which lands under `sys._MEIPASS` when frozen). If a build's
+  paper downloads 500 with a missing-template error, that datas line was lost.
+  The engine's libraries (`openpyxl`, `python-docx`) ride in via normal import
+  analysis — they're in `requirements.txt` for source installs.
 - **WebView2 runtime:** the native window uses Microsoft’s WebView2, which ships with Windows 11 and current Windows 10. On the rare machine without it, install it once from <https://developer.microsoft.com/microsoft-edge/webview2/> (the “Evergreen Standalone Installer”), or the app falls back to opening in the default browser.
 - **Antivirus / SmartScreen:** unsigned PyInstaller `.exe`s can trigger a “Windows protected your PC” prompt → *More info → Run anyway*. Code-signing removes this if you have a certificate.
 - **Custom icon:** drop a `build/app.ico` next to the spec and uncomment the `icon=` line in `apex_payroll.spec`.

@@ -74,6 +74,13 @@ two sources of truth for one number is how they end up disagreeing. Everything
 is snapshotted into `costing_material` on save (heat number, label, unit cost),
 so reopening an old costing never silently reprices it when stock does.
 
+Since 2026-08-21 the same search also returns **outsourced stock** (rows
+flagged `source:"outsourced"`, labelled by their `OS-####` id and vendor). A
+BOM line built from one carries `costing_material.os_item_id`, which is how the
+order's generated Bill of Materials prints *OS-0001* in its Heat No. / OS ID
+column and *Outsourced - V01* as the Source (see
+[papers.md](papers.md) / [outsourcing.md](outsourcing.md)).
+
 ## Implemented (file paths)
 `backend/modules/parts.py` (data + `/api/parts/*` routes, grant `parts`) ·
 UI `frontend/parts/index.html` + `parts.js` · files under `data/drawing_files/`
