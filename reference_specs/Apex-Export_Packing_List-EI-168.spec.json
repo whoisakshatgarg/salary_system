@@ -1,0 +1,513 @@
+{
+ "file": "Apex-Export Packing List-EI-168.docx",
+ "type": "docx",
+ "paragraphs": [
+  {
+   "style": "Normal",
+   "align": "CENTER (1)",
+   "runs": [
+    {
+     "text": "APE",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 18.0
+    },
+    {
+     "text": "X",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 18.0
+    },
+    {
+     "text": " THERMOCON PVT. ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 18.0
+    },
+    {
+     "text": "LTD.",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 18.0
+    }
+   ]
+  },
+  {
+   "style": "Normal",
+   "align": "CENTER (1)",
+   "runs": [
+    {
+     "text": "A-2/15, SECTOR-17, KAVI NAGAR INDUSTRIAL AREA, GHAZIABAD-201002, INDIA",
+     "bold": null,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    }
+   ]
+  },
+  {
+   "style": "Normal",
+   "align": "None",
+   "runs": [
+    {
+     "text": "Tel:",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 11.0
+    },
+    {
+     "text": " + 91-120-4167561   ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 11.0
+    },
+    {
+     "text": "FAX: +",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 11.0
+    },
+    {
+     "text": "91-120-4167561",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 11.0
+    },
+    {
+     "text": "\tE-",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 11.0
+    },
+    {
+     "text": "mail:",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 11.0
+    },
+    {
+     "text": " ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 11.0
+    },
+    {
+     "text": "sales@apexthermocon.com",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 11.0
+    },
+    {
+     "text": "  ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 11.0
+    }
+   ]
+  },
+  {
+   "style": "Normal",
+   "align": "CENTER (1)",
+   "runs": [
+    {
+     "text": "PACKING LIST",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 18.0
+    }
+   ]
+  }
+ ],
+ "tables": [
+  {
+   "n_rows": 16,
+   "n_cols": 9,
+   "style": "Normal Table",
+   "rows": [
+    [
+     {
+      "text": "Exporter & Manufacturer :\nAPEX THERMOCON PVT. LTD.\nA-2/15, Sector-17, Kavi Nagar Industrial Area, Ghaziabad-201002, UP, ",
+      "colspan": 3
+     },
+     {
+      "text": "INVOICE NO. & DATE :\nAT/EI/26-27/168  14/08/2026",
+      "colspan": 3
+     },
+     {
+      "text": "Buyer's Order No. & Date   :\nPO03864   Dtd.  06.03.26, PO03956   Dtd.  27.03.26, PO03969   Dtd.  06.04.26,         PO04181   Dtd.  05.06.26 PO04205   Dtd.  15.06.26& PO04219   Dtd.  16.06.26",
+      "colspan": 3
+     }
+    ],
+    [
+     {
+      "text": "Exporter & Manufacturer :\nAPEX THERMOCON PVT. LTD.\nA-2/15, Sector-17, Kavi Nagar Industrial Area, Ghaziabad-201002, UP, ",
+      "colspan": 3
+     },
+     {
+      "text": "Other Ref: IEC Code No. 0509008631\n                  AD Code No. 0292085 / 2690009",
+      "colspan": 6
+     }
+    ],
+    [
+     {
+      "text": "Consignee:\nSELCO PRODUCTS COMPANY\n640, Maestro Drive, Suite 102\t\nReno, NV 89511, USA\nTel No. :001-775-6745100 \nContact: Cassie Halverson",
+      "colspan": 3
+     },
+     {
+      "text": "Buyer:\nSELCO PRODUCTS COMPANY\n8780, Technology Way,\nReno, NV 89521-5908, USA\t\nTel No. :001-775-6745100",
+      "colspan": 6
+     }
+    ],
+    [
+     {
+      "text": "Pre-Carriage By\n",
+      "colspan": 2
+     },
+     {
+      "text": "Place & Receipt of Pre-Carrier\n",
+      "colspan": 1
+     },
+     {
+      "text": "Country of Origin of Goods\n",
+      "colspan": 3
+     },
+     {
+      "text": "Country of Final Destination\nUSA ",
+      "colspan": 3
+     }
+    ],
+    [
+     {
+      "text": "Vessel / Flight No.\nAIR",
+      "colspan": 2
+     },
+     {
+      "text": "\n",
+      "colspan": 1
+     },
+     {
+      "text": "Terms of Delivery & Payment:\nDDU\t ",
+      "colspan": 6
+     }
+    ],
+    [
+     {
+      "text": "\nNV, USA",
+      "colspan": 2
+     },
+     {
+      "text": "Final Destination\nUSA",
+      "colspan": 1
+     },
+     {
+      "text": "Terms of Delivery & Payment:\nDDU\t ",
+      "colspan": 6
+     }
+    ],
+    [
+     {
+      "text": "Marks & Nos. & No. & Kinds of Pkgs.",
+      "colspan": 1
+     },
+     {
+      "text": "Description of Goods",
+      "colspan": 2
+     },
+     {
+      "text": "Qty. Per  (Nos.) ",
+      "colspan": 1
+     },
+     {
+      "text": "Box No.",
+      "colspan": 1
+     },
+     {
+      "text": "Box Size",
+      "colspan": 2
+     },
+     {
+      "text": "Net Wt. in Kgs",
+      "colspan": 1
+     },
+     {
+      "text": "Gross Wt. in Kgs",
+      "colspan": 1
+     }
+    ],
+    [
+     {
+      "text": "\n1/3 TO 3/3\nAS ADDRESS\n 3 BOXES",
+      "colspan": 1
+     },
+     {
+      "text": "Parts & Accessories for Automatic Regulating & Controlling Instruments \u2013 (H.T. Code) (9032.90.6080)\n",
+      "colspan": 2
+     },
+     {
+      "text": "",
+      "colspan": 1
+     },
+     {
+      "text": "",
+      "colspan": 1
+     },
+     {
+      "text": "",
+      "colspan": 2
+     },
+     {
+      "text": "",
+      "colspan": 1
+     },
+     {
+      "text": "",
+      "colspan": 1
+     }
+    ],
+    [
+     {
+      "text": "\n1/3 TO 3/3\nAS ADDRESS\n 3 BOXES",
+      "colspan": 1
+     },
+     {
+      "text": "1.TPCR-236-0790,Heat Pump Sensor Probe For Temperature Sensor Devices, Matl. Copper ",
+      "colspan": 2
+     },
+     {
+      "text": "2000",
+      "colspan": 1
+     },
+     {
+      "text": "Box No. 1",
+      "colspan": 1
+     },
+     {
+      "text": "16\u201d x 11\u201d x 10\u201d",
+      "colspan": 2
+     },
+     {
+      "text": "20.600",
+      "colspan": 1
+     },
+     {
+      "text": "21.800",
+      "colspan": 1
+     }
+    ],
+    [
+     {
+      "text": "\n1/3 TO 3/3\nAS ADDRESS\n 3 BOXES",
+      "colspan": 1
+     },
+     {
+      "text": "2.TPS-0353,Thermistor Probe Housing  For Temperature Sensor Devices, Matl. S/Steel ",
+      "colspan": 2
+     },
+     {
+      "text": "1300",
+      "colspan": 1
+     },
+     {
+      "text": "Box No. 1",
+      "colspan": 1
+     },
+     {
+      "text": "16\u201d x 11\u201d x 10\u201d",
+      "colspan": 2
+     },
+     {
+      "text": "20.600",
+      "colspan": 1
+     },
+     {
+      "text": "21.800",
+      "colspan": 1
+     }
+    ],
+    [
+     {
+      "text": "\n1/3 TO 3/3\nAS ADDRESS\n 3 BOXES",
+      "colspan": 1
+     },
+     {
+      "text": "3.3200625, Custom Probe For Temperature Sensor Devices, Matl. Brass",
+      "colspan": 2
+     },
+     {
+      "text": "200",
+      "colspan": 1
+     },
+     {
+      "text": "Box No. 1",
+      "colspan": 1
+     },
+     {
+      "text": "16\u201d x 11\u201d x 10\u201d",
+      "colspan": 2
+     },
+     {
+      "text": "20.600",
+      "colspan": 1
+     },
+     {
+      "text": "21.800",
+      "colspan": 1
+     }
+    ],
+    [
+     {
+      "text": "\n1/3 TO 3/3\nAS ADDRESS\n 3 BOXES",
+      "colspan": 1
+     },
+     {
+      "text": "1. TWB3M4M0630, Custom Probe For Temperature Sensor Devices, Matl. Brass",
+      "colspan": 2
+     },
+     {
+      "text": "300",
+      "colspan": 1
+     },
+     {
+      "text": "Box No. 2",
+      "colspan": 1
+     },
+     {
+      "text": "16\u201d x 11\u201d x 10\u201d",
+      "colspan": 2
+     },
+     {
+      "text": "17.700",
+      "colspan": 1
+     },
+     {
+      "text": "18.900",
+      "colspan": 1
+     }
+    ],
+    [
+     {
+      "text": "\n1/3 TO 3/3\nAS ADDRESS\n 3 BOXES",
+      "colspan": 1
+     },
+     {
+      "text": "1. TW5535-S, Thermowell For Temperature Sensor Devices, Matl. 304S/Steel",
+      "colspan": 2
+     },
+     {
+      "text": "200",
+      "colspan": 1
+     },
+     {
+      "text": "Box No. 3",
+      "colspan": 1
+     },
+     {
+      "text": "12\u201d x 10\u201d x 9\u201d",
+      "colspan": 2
+     },
+     {
+      "text": "11.700",
+      "colspan": 1
+     },
+     {
+      "text": "12.900",
+      "colspan": 1
+     }
+    ],
+    [
+     {
+      "text": "\n1/3 TO 3/3\nAS ADDRESS\n 3 BOXES",
+      "colspan": 1
+     },
+     {
+      "text": "2.EO234201,Thermowell \u00bd\u201dNpt For Temperature Sensor Devices, Matl. Brass ",
+      "colspan": 2
+     },
+     {
+      "text": "60",
+      "colspan": 1
+     },
+     {
+      "text": "Box No. 3",
+      "colspan": 1
+     },
+     {
+      "text": "12\u201d x 10\u201d x 9\u201d",
+      "colspan": 2
+     },
+     {
+      "text": "11.700",
+      "colspan": 1
+     },
+     {
+      "text": "12.900",
+      "colspan": 1
+     }
+    ],
+    [
+     {
+      "text": "Total Weight in Kgs: Net Wt: 50.000       Gross Wt: 53.600",
+      "colspan": 3
+     },
+     {
+      "text": "4060",
+      "colspan": 1
+     },
+     {
+      "text": "",
+      "colspan": 1
+     },
+     {
+      "text": "",
+      "colspan": 2
+     },
+     {
+      "text": "50.000",
+      "colspan": 1
+     },
+     {
+      "text": "53.600",
+      "colspan": 1
+     }
+    ],
+    [
+     {
+      "text": "",
+      "colspan": 3
+     },
+     {
+      "text": "FOR APEX THERMOCON PVT. LTD.\n\n\n AUTHORISED SIGNATORY",
+      "colspan": 6
+     }
+    ]
+   ]
+  }
+ ],
+ "sections": [
+  {
+   "orientation": "PORTRAIT (0)",
+   "page_width_pt": 595.35,
+   "page_height_pt": 841.95,
+   "margins_pt": [
+    72.0,
+    54.0,
+    18.0,
+    9.0
+   ]
+  }
+ ]
+}

@@ -1,0 +1,6023 @@
+{
+ "file": "E01.04.08.26.252.26 (converted).xlsx",
+ "type": "xlsx",
+ "sheets": {
+  "01": {
+   "merged_ranges": [
+    "A10:D10",
+    "A11:B11",
+    "A12:D12",
+    "A1:J1",
+    "A2:J2",
+    "A32:H32",
+    "A33:J34",
+    "A35:J35",
+    "A36:J37",
+    "A38:J38",
+    "A39:J41",
+    "A3:J3",
+    "A42:J42",
+    "A43:J43",
+    "A44:J44",
+    "A45:J45",
+    "A4:J4",
+    "A5:J5",
+    "A6:D6",
+    "A7:D7",
+    "A8:D8",
+    "A9:D9",
+    "B13:D13",
+    "B14:D14",
+    "B15:D15",
+    "B16:D16",
+    "C11:D11",
+    "C17:E17",
+    "C18:E18",
+    "C20:E20",
+    "C21:E21",
+    "C22:E22",
+    "C23:E23",
+    "C24:E24",
+    "C25:E25",
+    "C26:E26",
+    "C27:E27",
+    "C28:E28",
+    "C31:E31",
+    "F11:J11",
+    "F12:J12",
+    "F13:J13",
+    "F14:J14",
+    "F15:J15",
+    "F16:J16",
+    "G10:J10",
+    "G6:J6",
+    "G7:J7",
+    "G8:J8",
+    "G9:J9",
+    "I17:J17",
+    "I32:J32"
+   ],
+   "col_widths": {
+    "A": 4.63,
+    "B": 17.0,
+    "C": 15.45,
+    "D": 2.09,
+    "E": 19.36,
+    "F": 12.54,
+    "G": 6.45,
+    "H": 5.0,
+    "I": 7.45,
+    "J": 11.36,
+    "K": 11.45,
+    "L": 11.45,
+    "M": 11.45,
+    "N": 11.45,
+    "O": 11.45,
+    "P": 11.45,
+    "Q": 11.45,
+    "R": 11.45,
+    "S": 11.45,
+    "T": 11.45,
+    "U": 11.45,
+    "V": 11.45,
+    "W": 11.45,
+    "X": 11.45,
+    "Y": 11.45,
+    "Z": 11.45,
+    "AA": 11.45,
+    "AB": 11.45,
+    "AC": 11.45,
+    "AD": 11.45,
+    "AE": 11.45,
+    "AF": 11.45,
+    "AG": 11.45,
+    "AH": 11.45,
+    "AI": 11.45,
+    "AJ": 11.45,
+    "AK": 11.45,
+    "AL": 11.45,
+    "AM": 11.45,
+    "AN": 11.45,
+    "AO": 11.45,
+    "AP": 11.45,
+    "AQ": 11.45,
+    "AR": 11.45,
+    "AS": 11.45,
+    "AT": 11.45,
+    "AU": 11.45,
+    "AV": 11.45,
+    "AW": 11.45,
+    "AX": 11.45,
+    "AY": 11.45,
+    "AZ": 11.45,
+    "BA": 11.45,
+    "BB": 11.45,
+    "BC": 11.45,
+    "BD": 11.45,
+    "BE": 11.45,
+    "BF": 11.45,
+    "BG": 11.45,
+    "BH": 11.45,
+    "BI": 11.45,
+    "BJ": 11.45,
+    "BK": 11.45,
+    "BL": 11.45,
+    "BM": 11.45,
+    "BN": 11.45,
+    "BO": 11.45,
+    "BP": 11.45,
+    "BQ": 11.45,
+    "BR": 11.45,
+    "BS": 11.45,
+    "BT": 11.45,
+    "BU": 11.45,
+    "BV": 11.45,
+    "BW": 11.45,
+    "BX": 11.45,
+    "BY": 11.45,
+    "BZ": 11.45,
+    "CA": 11.45,
+    "CB": 11.45,
+    "CC": 11.45,
+    "CD": 11.45,
+    "CE": 11.45,
+    "CF": 11.45,
+    "CG": 11.45,
+    "CH": 11.45,
+    "CI": 11.45,
+    "CJ": 11.45,
+    "CK": 11.45,
+    "CL": 11.45,
+    "CM": 11.45,
+    "CN": 11.45,
+    "CO": 11.45,
+    "CP": 11.45,
+    "CQ": 11.45,
+    "CR": 11.45,
+    "CS": 11.45,
+    "CT": 11.45,
+    "CU": 11.45,
+    "CV": 11.45,
+    "CW": 11.45,
+    "CX": 11.45,
+    "CY": 11.45,
+    "CZ": 11.45,
+    "DA": 11.45,
+    "DB": 11.45,
+    "DC": 11.45,
+    "DD": 11.45,
+    "DE": 11.45,
+    "DF": 11.45,
+    "DG": 11.45,
+    "DH": 11.45,
+    "DI": 11.45,
+    "DJ": 11.45,
+    "DK": 11.45,
+    "DL": 11.45,
+    "DM": 11.45,
+    "DN": 11.45,
+    "DO": 11.45,
+    "DP": 11.45,
+    "DQ": 11.45,
+    "DR": 11.45,
+    "DS": 11.45,
+    "DT": 11.45,
+    "DU": 11.45,
+    "DV": 11.45,
+    "DW": 11.45,
+    "DX": 11.45,
+    "DY": 11.45,
+    "DZ": 11.45,
+    "EA": 11.45,
+    "EB": 11.45,
+    "EC": 11.45,
+    "ED": 11.45,
+    "EE": 11.45,
+    "EF": 11.45,
+    "EG": 11.45,
+    "EH": 11.45,
+    "EI": 11.45,
+    "EJ": 11.45,
+    "EK": 11.45,
+    "EL": 11.45,
+    "EM": 11.45,
+    "EN": 11.45,
+    "EO": 11.45,
+    "EP": 11.45,
+    "EQ": 11.45,
+    "ER": 11.45,
+    "ES": 11.45,
+    "ET": 11.45,
+    "EU": 11.45,
+    "EV": 11.45,
+    "EW": 11.45,
+    "EX": 11.45,
+    "EY": 11.45,
+    "EZ": 11.45,
+    "FA": 11.45,
+    "FB": 11.45,
+    "FC": 11.45,
+    "FD": 11.45,
+    "FE": 11.45,
+    "FF": 11.45,
+    "FG": 11.45,
+    "FH": 11.45,
+    "FI": 11.45,
+    "FJ": 11.45,
+    "FK": 11.45,
+    "FL": 11.45,
+    "FM": 11.45,
+    "FN": 11.45,
+    "FO": 11.45,
+    "FP": 11.45,
+    "FQ": 11.45,
+    "FR": 11.45,
+    "FS": 11.45,
+    "FT": 11.45,
+    "FU": 11.45,
+    "FV": 11.45,
+    "FW": 11.45,
+    "FX": 11.45,
+    "FY": 11.45,
+    "FZ": 11.45,
+    "GA": 11.45,
+    "GB": 11.45,
+    "GC": 11.45,
+    "GD": 11.45,
+    "GE": 11.45,
+    "GF": 11.45,
+    "GG": 11.45,
+    "GH": 11.45,
+    "GI": 11.45,
+    "GJ": 11.45,
+    "GK": 11.45,
+    "GL": 11.45,
+    "GM": 11.45,
+    "GN": 11.45,
+    "GO": 11.45,
+    "GP": 11.45,
+    "GQ": 11.45,
+    "GR": 11.45,
+    "GS": 11.45,
+    "GT": 11.45,
+    "GU": 11.45,
+    "GV": 11.45,
+    "GW": 11.45,
+    "GX": 11.45,
+    "GY": 11.45,
+    "GZ": 11.45,
+    "HA": 11.45,
+    "HB": 11.45,
+    "HC": 11.45,
+    "HD": 11.45,
+    "HE": 11.45,
+    "HF": 11.45,
+    "HG": 11.45,
+    "HH": 11.45,
+    "HI": 11.45,
+    "HJ": 11.45,
+    "HK": 11.45,
+    "HL": 11.45,
+    "HM": 11.45,
+    "HN": 11.45,
+    "HO": 11.45,
+    "HP": 11.45,
+    "HQ": 11.45,
+    "HR": 11.45,
+    "HS": 11.45,
+    "HT": 11.45,
+    "HU": 11.45,
+    "HV": 11.45,
+    "HW": 11.45,
+    "HX": 11.45,
+    "HY": 11.45,
+    "HZ": 11.45,
+    "IA": 11.45,
+    "IB": 11.45,
+    "IC": 11.45,
+    "ID": 11.45,
+    "IE": 11.45,
+    "IF": 11.45,
+    "IG": 11.45,
+    "IH": 11.45,
+    "II": 11.45,
+    "IJ": 11.45,
+    "IK": 11.45,
+    "IL": 11.45,
+    "IM": 11.45,
+    "IN": 11.45,
+    "IO": 11.45,
+    "IP": 11.45,
+    "IQ": 11.45,
+    "IR": 11.45,
+    "IS": 11.45,
+    "IT": 11.45,
+    "IU": 11.45,
+    "IV": 11.45
+   },
+   "row_heights": {
+    "1": 17.25,
+    "2": 17.25,
+    "3": 16.5,
+    "4": 14.25,
+    "5": 14.25,
+    "6": 13.0,
+    "7": 13.0,
+    "8": 13.0,
+    "9": 13.0,
+    "10": 13.0,
+    "11": 13.0,
+    "12": 13.0,
+    "13": 13.0,
+    "14": 13.0,
+    "15": 13.0,
+    "16": 13.5,
+    "17": 13.0,
+    "18": 13.0,
+    "19": 11.5,
+    "20": 11.5,
+    "21": 11.5,
+    "22": 11.5,
+    "23": 13.0,
+    "24": 13.0,
+    "25": 13.0,
+    "26": 13.0,
+    "27": 13.0,
+    "28": 13.0,
+    "29": 13.0,
+    "30": 13.0,
+    "31": 13.5,
+    "32": 14.5,
+    "33": 15.0,
+    "34": 13.0,
+    "35": 15.5,
+    "36": 15.0,
+    "37": 13.0,
+    "38": 15.0,
+    "39": 15.0,
+    "40": 15.0,
+    "41": 18.75,
+    "42": 15.0,
+    "43": 15.0,
+    "44": 15.0,
+    "45": 15.0,
+    "46": 13.5
+   },
+   "images": [],
+   "page_setup": {
+    "orientation": null,
+    "fitToWidth": null,
+    "fitToHeight": null,
+    "print_area": ""
+   },
+   "cells": {
+    "A1": {
+     "value": "ACKNOWLEDGEMENT",
+     "font": {
+      "name": "Arial",
+      "size": 14.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {},
+     "fill": null,
+     "num_format": null
+    },
+    "A2": {
+     "value": "APEX THERMOCON Pvt. Ltd.",
+     "font": {
+      "name": "Arial",
+      "size": 14.0,
+      "bold": true,
+      "italic": false,
+      "color": "FF333399"
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {},
+     "fill": null,
+     "num_format": null
+    },
+    "A3": {
+     "value": "A-2/15, Sector 17, Kavi Nagar Industrial Area , Ghaziabad 201 002 , UP , INDIA",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": true,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {},
+     "fill": null,
+     "num_format": null
+    },
+    "A4": {
+     "value": "Tel. No. 91-120- 4167651 / 91-9810127235    Fax No. 91- 120- 4167561  ",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": true,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {},
+     "fill": null,
+     "num_format": null
+    },
+    "A5": {
+     "value": "www.apexthermocon.com  /  E-mail : sales@apexthermocon.com",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": "FF0000FF"
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {},
+     "fill": null,
+     "num_format": null
+    },
+    "A6": {
+     "value": "Bill To",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "thin",
+      "top": "medium",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B6": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C6": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D6": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin",
+      "top": "medium",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E6": {
+     "value": "Cust. P.O.No.",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "top": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F6": {
+     "value": "2916",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "top": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G6": {
+     "value": "Ship To",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "top": "medium",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "H6": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I6": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J6": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin",
+      "top": "medium",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A7": {
+     "value": "East Coast Sensors",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D7": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E7": {
+     "value": "P.O.Date",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F7": {
+     "value": "31st Jul' 2026",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G7": {
+     "value": "East Coast Sensors",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J7": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A8": {
+     "value": "20 Hathaway Drive",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D8": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E8": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": "FFFF0000"
+     },
+     "align": [
+      null,
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F8": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": "FFFF0000"
+     },
+     "align": [
+      null,
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G8": {
+     "value": "20 Hathaway Drive",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J8": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A9": {
+     "value": "Stratford, CT 06615",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D9": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E9": {
+     "value": "Quotation Ref.",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F9": {
+     "value": "E01/AT/030826/594",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 7.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G9": {
+     "value": "Stratford, CT 06615",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J9": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A10": {
+     "value": "USA",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D10": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F10": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": "dd\\/mm\\/yyyy"
+    },
+    "G10": {
+     "value": "USA",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "H10": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I10": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J10": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A11": {
+     "value": "Client Code",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "thin",
+      "top": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B11": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin",
+      "top": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C11": {
+     "value": "E01",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "top": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D11": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin",
+      "top": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E11": {
+     "value": "Ackn. Ref.",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F11": {
+     "value": "E01.04.08.26.01",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium",
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G11": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "H11": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I11": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J11": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium",
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A12": {
+     "value": "CONTACTS",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "thin",
+      "top": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B12": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C12": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D12": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin",
+      "top": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E12": {
+     "value": "Ackn. Date",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F12": {
+     "value": "04th Aug' 2026",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "dd\\/mm\\/yyyy"
+    },
+    "J12": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A13": {
+     "value": "Name",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "thin",
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B13": {
+     "value": "Ed O'Neill",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      true
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C13": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D13": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin",
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E13": {
+     "value": "Price Basis",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F13": {
+     "value": "Delivered by Fedex with another PO",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "dd\\/mm\\/yyyy"
+    },
+    "J13": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A14": {
+     "value": "E-Mail",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B14": {
+     "value": "Ed@ecsensors.com",
+     "font": {
+      "name": "MS Sans Serif",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": "FF0000FF"
+     },
+     "align": [
+      "left",
+      "center",
+      true
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D14": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E14": {
+     "value": "Payment. Terms",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F14": {
+     "value": "N 30 by Wire Transfer",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "dd\\/mm\\/yyyy"
+    },
+    "J14": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A15": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B15": {
+     "value": "001-203-381-6267",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D15": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E15": {
+     "value": "Ship Date",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F15": {
+     "value": "16th Sep' 2026",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "dd\\/mm\\/yyyy"
+    },
+    "J15": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A16": {
+     "value": "Fax.",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "thin",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B16": {
+     "value": "001-203-381-6278",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C16": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D16": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E16": {
+     "value": "Work Order No.",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F16": {
+     "value": "E01.04.08.26.252.26",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": "dd\\/mm\\/yyyy"
+    },
+    "G16": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "H16": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I16": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J16": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A17": {
+     "value": "Sl.",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B17": {
+     "value": "Product",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C17": {
+     "value": "Product Description",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E17": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F17": {
+     "value": "Matl.",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G17": {
+     "value": "Qty.",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "H17": {
+     "value": "Unit",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I17": {
+     "value": "Prices (U.S.D)",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J17": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A18": {
+     "value": "No.",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B18": {
+     "value": "Code",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C18": {
+     "value": null,
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D18": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E18": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F18": {
+     "value": null,
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G18": {
+     "value": null,
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "H18": {
+     "value": null,
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I18": {
+     "value": "Unit",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "top": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J18": {
+     "value": "Total",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium",
+      "top": "thin",
+      "bottom": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A19": {
+     "value": "1",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B19": {
+     "value": "ECS-125-688-NB-BR",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C19": {
+     "value": "Barstock Thermowell, OAL 5.25\"",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D19": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "bottom",
+      false
+     ],
+     "borders": {
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E19": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "bottom",
+      false
+     ],
+     "borders": {
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F19": {
+     "value": "Naval Brass Grade 1",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G19": {
+     "value": "30",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "right": "thin",
+      "top": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "H19": {
+     "value": "EA",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {},
+     "fill": null,
+     "num_format": null
+    },
+    "I19": {
+     "value": "37.29",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "J19": {
+     "value": "1118.7",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "A20": {
+     "value": "2",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B20": {
+     "value": "ECS-223-242-NB-BR",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C20": {
+     "value": "Barstock Thermowell, OAL 3.88\"",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E20": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F20": {
+     "value": "Naval Brass Grade 1",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G20": {
+     "value": "30",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "0"
+    },
+    "H20": {
+     "value": "EA",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I20": {
+     "value": "29.57",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "J20": {
+     "value": "887.1",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "A21": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B21": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C21": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E21": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F21": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G21": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "0"
+    },
+    "H21": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I21": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "J21": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "A22": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "B22": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C22": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E22": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F22": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G22": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "0"
+    },
+    "H22": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I22": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "J22": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "A23": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "B23": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C23": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E23": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F23": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G23": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "0"
+    },
+    "H23": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I23": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "J23": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "A24": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "B24": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C24": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E24": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F24": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G24": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "H24": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I24": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "J24": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "A25": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "B25": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C25": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E25": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F25": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G25": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "H25": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I25": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "J25": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "A26": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B26": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C26": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E26": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F26": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G26": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "H26": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I26": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "J26": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "A27": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "B27": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C27": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E27": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F27": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G27": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "0"
+    },
+    "H27": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I27": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "J27": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "A28": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "B28": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C28": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E28": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F28": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G28": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "H28": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I28": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "J28": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "A29": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "B29": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E29": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F29": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G29": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "H29": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I29": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "J29": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "A30": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "B30": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F30": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G30": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "H30": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I30": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "J30": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "A31": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B31": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C31": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E31": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F31": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G31": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "#,##0"
+    },
+    "H31": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "center",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I31": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "thin"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "J31": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 9.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "thin",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00"
+    },
+    "A32": {
+     "value": null,
+     "font": {
+      "name": "Arial Narrow",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "medium",
+      "top": "medium",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B32": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C32": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D32": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E32": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F32": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G32": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "H32": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium",
+      "top": "medium",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I32": {
+     "value": "2005.8",
+     "font": {
+      "name": "Arial Narrow",
+      "size": 11.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "right",
+      "center",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "medium",
+      "top": "medium",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": "\"$\"#,##0.00_);\\(\"$\"#,##0.00\\)"
+    },
+    "J32": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium",
+      "top": "medium",
+      "bottom": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A33": {
+     "value": "Apex Thermocon Pvt. Ltd. thanks you for your Purchase order and assures you that the supplies will conform to the specifications of your Purchase Order.",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "bottom",
+      true
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "medium",
+      "top": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B33": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C33": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D33": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E33": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F33": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G33": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "H33": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I33": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "top": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J33": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium",
+      "top": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A34": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J34": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A35": {
+     "value": "for APEX THERMOCON PVT. LTD.",
+     "font": {
+      "name": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      null,
+      "top",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J35": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A36": {
+     "value": "AUTHORISED SIGNATORY",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J36": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A37": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J37": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A38": {
+     "value": "Please remit payment by wire transfer per following bank details:-",
+     "font": {
+      "name": "Arial",
+      "size": 10.0,
+      "bold": false,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J38": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A39": {
+     "value": "BANK OF AMERICA, NEWYORK, U.S.A. SWIFT CODE : BOFAUS3N, ACCOUNT NUMBER : 6550692276 OF \u201cUNION BANK OF INDIA, MUMBAI. (INDIA)\u201d  TO THE CREDIT OF \"UNION BANK OF INDIA, S.S.I. BRANCH \",  H-6, PATEL NAGAR-III, GHAZIABAD-201001 (U.P),INDIA. FAX : 91-120-2835993 / PHONES: 91-120-2834293 \n",
+     "font": {
+      "name": "Arial",
+      "size": 9.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "bottom",
+      true
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J39": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A40": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J40": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A41": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "left": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J41": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A42": {
+     "value": "SWIFT CODE : UBININBBGHZ",
+     "font": {
+      "name": "Arial",
+      "size": 9.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "center",
+      true
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J42": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A43": {
+     "value": "BENEFICIARY : ",
+     "font": {
+      "name": "Arial",
+      "size": 9.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J43": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A44": {
+     "value": "APEX THERMOCON PVT. LTD., A-2/15, SECTOR-17, KAVI NAGAR INDUSTRIAL AREA, GHAZIABAD-201002 (U.P.), INDIA",
+     "font": {
+      "name": "Arial",
+      "size": 9.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "bottom",
+      false
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J44": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "A45": {
+     "value": "A/c: 508505010000249",
+     "font": {
+      "name": "Arial",
+      "size": 9.0,
+      "bold": true,
+      "italic": false,
+      "color": null
+     },
+     "align": [
+      "left",
+      "bottom",
+      true
+     ],
+     "borders": {
+      "left": "medium",
+      "right": "medium",
+      "bottom": "thick"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "B45": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "thick"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "C45": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "thick"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "D45": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "thick"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "E45": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "thick"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "F45": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "thick"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "G45": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "thick"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "H45": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "thick"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "I45": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "bottom": "thick"
+     },
+     "fill": null,
+     "num_format": null
+    },
+    "J45": {
+     "value": null,
+     "font": {
+      "name": "Calibri",
+      "size": 11.0,
+      "bold": false,
+      "italic": false,
+      "color": "theme:1"
+     },
+     "align": [
+      null,
+      null,
+      false
+     ],
+     "borders": {
+      "right": "medium",
+      "bottom": "thick"
+     },
+     "fill": null,
+     "num_format": null
+    }
+   }
+  }
+ }
+}

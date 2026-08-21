@@ -1,0 +1,839 @@
+{
+ "file": "COC-PO-02940-EI-122.docx",
+ "type": "docx",
+ "paragraphs": [
+  {
+   "style": "Normal",
+   "align": "None",
+   "runs": [
+    {
+     "text": "APEX THERMOCON",
+     "bold": null,
+     "italic": null,
+     "font": "Arial",
+     "size": 22.0
+    },
+    {
+     "text": " ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 22.0
+    },
+    {
+     "text": "PVT. LTD",
+     "bold": null,
+     "italic": null,
+     "font": "Arial",
+     "size": 14.0
+    },
+    {
+     "text": ".",
+     "bold": null,
+     "italic": null,
+     "font": "Arial",
+     "size": 14.0
+    },
+    {
+     "text": " ",
+     "bold": null,
+     "italic": null,
+     "font": "Arial",
+     "size": 10.0
+    },
+    {
+     "text": "      ",
+     "bold": null,
+     "italic": null,
+     "font": "Arial",
+     "size": 10.0
+    }
+   ]
+  },
+  {
+   "style": "Heading 2",
+   "align": "CENTER (1)",
+   "runs": [
+    {
+     "text": "Works & Office: A-2/15, Sector-17, Kavi Nagar Industrial Area, Ghaziabad-201002, ",
+     "bold": null,
+     "italic": null,
+     "font": "Book Antiqua",
+     "size": 9.0
+    },
+    {
+     "text": " ",
+     "bold": null,
+     "italic": null,
+     "font": "Book Antiqua",
+     "size": 9.0
+    }
+   ]
+  },
+  {
+   "style": "Heading 2",
+   "align": "CENTER (1)",
+   "runs": [
+    {
+     "text": "Ph: +91-120-4167561 Fax: +91-12",
+     "bold": null,
+     "italic": null,
+     "font": "Book Antiqua",
+     "size": 9.0
+    },
+    {
+     "text": "-4167561",
+     "bold": null,
+     "italic": null,
+     "font": "Book Antiqua",
+     "size": 9.0
+    },
+    {
+     "text": ", E-mail:",
+     "bold": null,
+     "italic": null,
+     "font": "Book Antiqua",
+     "size": 9.0
+    },
+    {
+     "text": "sales@apexthermocon.com",
+     "bold": null,
+     "italic": null,
+     "font": "Book Antiqua",
+     "size": 9.0
+    }
+   ]
+  },
+  {
+   "style": "Normal",
+   "align": "CENTER (1)",
+   "runs": [
+    {
+     "text": "CERTIFICATE OF CONFORMITY",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": 18.0
+    }
+   ]
+  },
+  {
+   "style": "Normal",
+   "align": "JUSTIFY (3)",
+   "runs": [
+    {
+     "text": "Apex Thermocon ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "Pvt. Ltd hereby certifies that the Material shipped per following details, conforms in all respects to the Drawings and specifications of ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "SELCO PRODUCTS COMPANY ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "Purchase Order",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    }
+   ]
+  },
+  {
+   "style": "Normal",
+   "align": "JUSTIFY (3)",
+   "runs": [
+    {
+     "text": "SELCO P.O. NUMBER                      ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": ":",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "         P",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "O0",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "2",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "940",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    }
+   ]
+  },
+  {
+   "style": "Normal",
+   "align": "JUSTIFY (3)",
+   "runs": [
+    {
+     "text": "Apex Thermocon ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "INVOICE NUMBER ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": ":",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": " ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "        ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "AT/EI/2",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "5",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "-2",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "6",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "/",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "1",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "22",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": " ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "D",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "d.",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": " ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "30",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "th",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": " ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "Jun",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\u2019 202",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "5",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    }
+   ]
+  },
+  {
+   "style": "Normal",
+   "align": "JUSTIFY (3)",
+   "runs": [
+    {
+     "text": "PART ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "NO. / DESCRIPTION         ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "     ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": ":",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": " ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "     ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "  ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": " ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "TWS061000",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    }
+   ]
+  },
+  {
+   "style": "Normal",
+   "align": "JUSTIFY (3)",
+   "runs": [
+    {
+     "text": "MATERIAL",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t:        ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "ASTM A276 304L",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    }
+   ]
+  },
+  {
+   "style": "Normal",
+   "align": "JUSTIFY (3)",
+   "runs": [
+    {
+     "text": "PLATING PROCESS",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t:",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "NA",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    }
+   ]
+  },
+  {
+   "style": "Normal",
+   "align": "JUSTIFY (3)",
+   "runs": [
+    {
+     "text": "FINISHING PROCESS",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t:",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "NA",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    }
+   ]
+  },
+  {
+   "style": "Normal",
+   "align": "JUSTIFY (3)",
+   "runs": [
+    {
+     "text": "QUANTITY SHIPPED                  ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "  ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "    ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": ":",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "  ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "       ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "1",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "00 Nos.",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    }
+   ]
+  },
+  {
+   "style": "Normal",
+   "align": "JUSTIFY (3)",
+   "runs": [
+    {
+     "text": "AUTHENTICATOR\u2019S NAME",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t:",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "Q.A. MANAGER",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    }
+   ]
+  },
+  {
+   "style": "Normal",
+   "align": "None",
+   "runs": [
+    {
+     "text": "DATE SHIPPED",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t:",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "    ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\t",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "30",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "th",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": " ",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "Jun",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "\u2019 202",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    },
+    {
+     "text": "5",
+     "bold": true,
+     "italic": null,
+     "font": "Arial",
+     "size": null
+    }
+   ]
+  }
+ ],
+ "tables": [],
+ "sections": [
+  {
+   "orientation": "PORTRAIT (0)",
+   "page_width_pt": 612.0,
+   "page_height_pt": 792.0,
+   "margins_pt": [
+    54.0,
+    27.0,
+    27.2,
+    28.4
+   ]
+  }
+ ]
+}
